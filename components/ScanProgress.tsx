@@ -1,0 +1,56 @@
+"use client";
+
+import { motion } from "framer-motion";
+import { Check, Loader2 } from "lucide-react";
+import { SCAN_STEPS } from "@/lib/constants";
+
+export default function ScanProgress({ activeStep }: { activeStep: number }) {
+  return (
+    <section className="px-6 py-16">
+      <div className="max-w-xl mx-auto glass rounded-2xl p-8 relative overflow-hidden">
+        <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-primary/20 to-transparent pointer-events-none" />
+        <div className="absolute left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/60 to-transparent animate-scan" />
+
+        <h3 className="font-display font-semibold text-lg mb-6 relative">
+          Scanning your site...
+        </h3>
+
+        <ul className="space-y-4 relative">
+          {SCAN_STEPS.map((step, i) => {
+            const done = i < activeStep;
+            const active = i === activeStep;
+            return (
+              <motion.li
+                key={step}
+                initial={{ opacity: 0, x: -8 }}
+                animate={{ opacity: done || active ? 1 : 0.35, x: 0 }}
+                className="flex items-center gap-3 text-sm"
+              >
+                <span
+                  className={`flex items-center justify-center w-6 h-6 rounded-full border shrink-0 ${
+                    done
+                      ? "bg-emerald/20 border-emerald text-emerald"
+                      : active
+                      ? "border-primary text-primary"
+                      : "border-border text-text-secondary"
+                  }`}
+                >
+                  {done ? (
+                    <Check size={13} />
+                  ) : active ? (
+                    <Loader2 size={13} className="animate-spin" />
+                  ) : (
+                    <span className="w-1.5 h-1.5 rounded-full bg-text-secondary/50" />
+                  )}
+                </span>
+                <span className={done ? "text-text-secondary line-through" : active ? "text-text-primary" : "text-text-secondary"}>
+                  {step}
+                </span>
+              </motion.li>
+            );
+          })}
+        </ul>
+      </div>
+    </section>
+  );
+}
