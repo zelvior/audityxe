@@ -7,32 +7,115 @@ import { AuditResult } from "@/lib/types";
 const W = 1200;
 const H = 630;
 
-function draw(canvas: HTMLCanvasElement, result: AuditResult) {
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return;
+function scoreColorFor(overall: number) {
+  return overall >= 8 ? "#10B981" : overall >= 5 ? "#F59E0B" : "#F43F5E";
+}
 
-  ctx.clearRect(0, 0, W, H);
+/** Renders headline text with one accent word tinted differently — the
+ * "senior graphic designer" typographic hierarchy technique: emphasize
+ * exactly one word rather than the whole line, so the eye has a single
+ * clear focal point. */
+function drawEmphasizedHeadline(
+  ctx: CanvasRenderingContext2D,
+  headline: string,
+  accentWord: string,
+  x: number,
+  y: number,
+  maxWidth: number,
+  fontSize: number,
+  accentColor: string,
+  align: "left" | "center" = "left"
+): number {
+  const words = headline.split(" ");
+  const lineHeight = fontSize * 1.08;
+  ctx.font = `800 ${fontSize}px Manrope, sans-serif`;
+  ctx.textAlign = align;
 
+  // Wrap into lines first
+  const lines: string[][] = [[]];
+  let currentWidth = 0;
+  const spaceWidth = ctx.measureText(" ").width;
+  for (const word of words) {
+    const w = ctx.measureText(word).width;
+    if (currentWidth + w > maxWidth && lines[lines.length - 1].length > 0) {
+      lines.push([]);
+      currentWidth = 0;
+    }
+    lines[lines.length - 1].push(word);
+    currentWidth += w + spaceWidth;
+  }
+
+  let curY = y;
+  for (const lineWords of lines) {
+    let cursorX = x;
+    const lineText = lineWords.join(" ");
+    if (align === "center") {
+      // measure full line, then draw word-by-word from the centered start x
+      const lineWidth = ctx.measureText(lineText).width;
+      cursorX = x - lineWidth / 2;
+      ctx.textAlign = "left";
+    }
+    for (let i = 0; i < lineWords.length; i++) {
+      const word = lineWords[i];
+      const isAccent = word.replace(/[^\w]/g, "").toLowerCase() === accentWord.replace(/[^\w]/g, "").toLowerCase();
+      ctx.fillStyle = isAccent ? accentColor : "#F4F4F5";
+      ctx.fillText(word, cursorX, curY);
+      cursorX += ctx.measureText(word + " ").width;
+    }
+    curY += lineHeight;
+    ctx.textAlign = align;
+  }
+  ctx.textAlign = "left";
+  return curY;
+}
+
+function wrapText(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+  maxWidth: number,
+  lineHeight: number,
+  maxLines = 2
+) {
+  const words = text.split(" ");
+  let line = "";
+  let curY = y;
+  let lines = 0;
+  for (const word of words) {
+    const test = line + word + " ";
+    if (ctx.measureText(test).width > maxWidth && line !== "" && lines < maxLines - 1) {
+      ctx.fillText(line, x, curY);
+      line = word + " ";
+      curY += lineHeight;
+      lines++;
+    } else {
+      line = test;
+    }
+  }
+  ctx.fillText(line, x, curY);
+  return curY;
+}
+
+function drawBackground(ctx: CanvasRenderingContext2D, accentColor: string) {
   const bg = ctx.createLinearGradient(0, 0, W, H);
   bg.addColorStop(0, "#0A0A0A");
   bg.addColorStop(1, "#141018");
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, W, H);
 
-  // ambient glow blobs
   const glow1 = ctx.createRadialGradient(180, 120, 0, 180, 120, 420);
-  glow1.addColorStop(0, "rgba(99,102,241,0.35)");
-  glow1.addColorStop(1, "rgba(99,102,241,0)");
+  glow1.addColorStop(0, accentColor + "59"); // ~35% alpha
+  glow1.addColorStop(1, accentColor + "00");
   ctx.fillStyle = glow1;
   ctx.fillRect(0, 0, W, H);
 
   const glow2 = ctx.createRadialGradient(1050, 520, 0, 1050, 520, 420);
-  glow2.addColorStop(0, "rgba(139,92,246,0.3)");
+  glow2.addColorStop(0, "rgba(139,92,246,0.28)");
   glow2.addColorStop(1, "rgba(139,92,246,0)");
   ctx.fillStyle = glow2;
   ctx.fillRect(0, 0, W, H);
 
-  // grid pattern
   ctx.strokeStyle = "rgba(255,255,255,0.04)";
   ctx.lineWidth = 1;
   for (let x = 0; x < W; x += 40) {
@@ -47,26 +130,9 @@ function draw(canvas: HTMLCanvasElement, result: AuditResult) {
     ctx.lineTo(W, y);
     ctx.stroke();
   }
+}
 
-  // eyebrow
-  ctx.fillStyle = "#9A9AA2";
-  ctx.font = "600 22px ui-monospace, monospace";
-  ctx.fillText("AUDITYXE AUDIT REPORT", 64, 90);
-
-  // url
-  ctx.fillStyle = "#F4F4F5";
-  ctx.font = "800 56px Manrope, sans-serif";
-  ctx.fillText(result.url, 64, 170);
-
-  // verdict
-  ctx.fillStyle = "#A1A1AA";
-  ctx.font = "500 26px Manrope, sans-serif";
-  wrapText(ctx, result.verdict.constructive, 64, 230, 620, 36);
-
-  // score badge
-  const cx = 1010;
-  const cy = 300;
-  const r = 130;
+function drawScoreBadge(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number, overall: number) {
   ctx.beginPath();
   ctx.arc(cx, cy, r, 0, Math.PI * 2);
   ctx.fillStyle = "rgba(255,255,255,0.04)";
@@ -77,45 +143,115 @@ function draw(canvas: HTMLCanvasElement, result: AuditResult) {
   ctx.arc(cx, cy, r - 20, 0, Math.PI * 2);
   ctx.stroke();
 
-  const scoreColor = result.overall >= 8 ? "#10B981" : result.overall >= 5 ? "#F59E0B" : "#F43F5E";
-  const pct = result.overall / 10;
+  const color = scoreColorFor(overall);
+  const pct = overall / 10;
   ctx.beginPath();
-  ctx.strokeStyle = scoreColor;
+  ctx.strokeStyle = color;
+  ctx.lineCap = "round";
   ctx.arc(cx, cy, r - 20, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * pct);
   ctx.stroke();
+  ctx.lineCap = "butt";
 
   ctx.fillStyle = "#F4F4F5";
   ctx.font = "800 64px Manrope, sans-serif";
   ctx.textAlign = "center";
-  ctx.fillText(result.overall.toFixed(1), cx, cy + 18);
+  ctx.fillText(overall.toFixed(1), cx, cy + 18);
   ctx.font = "500 20px ui-monospace, monospace";
   ctx.fillStyle = "#9A9AA2";
   ctx.fillText("/ 10", cx, cy + 48);
   ctx.textAlign = "left";
+}
+
+/** Layout A — large centered badge, headline + tagline on the left. */
+function drawCenteredBadgeLayout(ctx: CanvasRenderingContext2D, result: AuditResult, accentColor: string) {
+  ctx.fillStyle = "#9A9AA2";
+  ctx.font = "600 20px ui-monospace, monospace";
+  ctx.textAlign = "left";
+  ctx.fillText("AUDITYXE \u00B7 LIVE AI AUDIT", 64, 82);
+
+  ctx.fillStyle = "#F4F4F5";
+  ctx.font = "600 24px ui-monospace, monospace";
+  ctx.fillText(result.url, 64, 122);
+
+  const headlineBottom = drawEmphasizedHeadline(
+    ctx,
+    result.banner.headline,
+    result.banner.accentWord,
+    64,
+    205,
+    620,
+    58,
+    accentColor
+  );
+
+  ctx.fillStyle = "#A1A1AA";
+  ctx.font = "500 24px Manrope, sans-serif";
+  wrapText(ctx, result.banner.tagline, 64, headlineBottom + 34, 620, 34, 2);
+
+  drawScoreBadge(ctx, 1010, 300, 130, result.overall);
+}
+
+/** Layout B — compact left-aligned stat block, more room for a longer headline. */
+function drawLeftStackedLayout(ctx: CanvasRenderingContext2D, result: AuditResult, accentColor: string) {
+  ctx.fillStyle = "#9A9AA2";
+  ctx.font = "600 20px ui-monospace, monospace";
+  ctx.textAlign = "left";
+  ctx.fillText("AUDITYXE \u00B7 LIVE AI AUDIT", 64, 82);
+
+  ctx.fillStyle = "#F4F4F5";
+  ctx.font = "600 24px ui-monospace, monospace";
+  ctx.fillText(result.url, 64, 122);
+
+  const headlineBottom = drawEmphasizedHeadline(
+    ctx,
+    result.banner.headline,
+    result.banner.accentWord,
+    64,
+    200,
+    980,
+    52,
+    accentColor
+  );
+
+  ctx.fillStyle = "#A1A1AA";
+  ctx.font = "500 22px Manrope, sans-serif";
+  wrapText(ctx, result.banner.tagline, 64, headlineBottom + 30, 900, 30, 2);
+
+  // compact stat block bottom-left
+  const color = scoreColorFor(result.overall);
+  ctx.fillStyle = "rgba(255,255,255,0.04)";
+  ctx.fillRect(64, H - 150, 260, 84);
+  ctx.strokeStyle = "#2A2A2E";
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(64, H - 150, 260, 84);
+
+  ctx.fillStyle = color;
+  ctx.font = "800 44px Manrope, sans-serif";
+  ctx.fillText(result.overall.toFixed(1), 84, H - 96);
+  ctx.fillStyle = "#9A9AA2";
+  ctx.font = "500 16px ui-monospace, monospace";
+  ctx.fillText("OVERALL SCORE / 10", 84, H - 74);
+}
+
+function draw(canvas: HTMLCanvasElement, result: AuditResult) {
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+
+  ctx.clearRect(0, 0, W, H);
+  const accentColor = scoreColorFor(result.overall);
+  drawBackground(ctx, accentColor);
+
+  if (result.banner.layout === "left-stacked") {
+    drawLeftStackedLayout(ctx, result, accentColor);
+  } else {
+    drawCenteredBadgeLayout(ctx, result, accentColor);
+  }
 
   // footer brand
   ctx.fillStyle = "#6366F1";
   ctx.font = "700 24px Manrope, sans-serif";
+  ctx.textAlign = "left";
   ctx.fillText("audityxe.app", 64, H - 50);
-}
-
-function wrapText(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, maxWidth: number, lineHeight: number) {
-  const words = text.split(" ");
-  let line = "";
-  let curY = y;
-  let lines = 0;
-  for (const word of words) {
-    const test = line + word + " ";
-    if (ctx.measureText(test).width > maxWidth && line !== "" && lines < 2) {
-      ctx.fillText(line, x, curY);
-      line = word + " ";
-      curY += lineHeight;
-      lines++;
-    } else {
-      line = test;
-    }
-  }
-  ctx.fillText(line, x, curY);
 }
 
 export default function BannerCanvas({ result }: { result: AuditResult }) {

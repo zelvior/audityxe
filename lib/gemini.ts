@@ -10,7 +10,7 @@
  * caller, it just returns null on total failure.
  */
 
-export type GeminiTask = "VERDICT" | "PROMO" | "FIXES";
+export type GeminiTask = "VERDICT" | "PROMO" | "FIXES" | "BANNER";
 
 interface CallOptions {
   temperature?: number;

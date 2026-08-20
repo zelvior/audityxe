@@ -23,6 +23,13 @@ export interface FixItem {
   language: string;
 }
 
+export interface BannerDesign {
+  headline: string;
+  tagline: string;
+  accentWord: string;
+  layout: "centered-badge" | "left-stacked";
+}
+
 export interface AuditResult {
   url: string;
   overall: number;
@@ -31,6 +38,7 @@ export interface AuditResult {
   fixes: FixItem[];
   xPost: string;
   linkedinPost: string;
+  banner: BannerDesign;
   competitor?: {
     url: string;
     overall: number;
