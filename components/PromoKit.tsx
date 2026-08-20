@@ -15,15 +15,15 @@ export default function PromoKit({ result }: { result: AuditResult }) {
   }
 
   return (
-    <section className="px-6 py-10">
+    <section className="px-4 sm:px-6 py-6 sm:py-10">
       <div className="max-w-4xl mx-auto">
-        <h2 className="font-display font-semibold text-2xl mb-1">Viral Promo Kit</h2>
-        <p className="text-text-secondary text-sm mb-6">
+        <h2 className="font-display font-semibold text-xl sm:text-2xl mb-1">Viral Promo Kit</h2>
+        <p className="text-text-secondary text-xs sm:text-sm mb-5 sm:mb-6">
           Ready-to-post copy and a shareable banner, generated from your audit.
         </p>
 
         <div className="grid md:grid-cols-2 gap-5 mb-5">
-          <div className="glass rounded-2xl p-5">
+          <div className="glass rounded-2xl p-4 sm:p-5">
             <div className="flex items-center justify-between mb-3">
               <span className="flex items-center gap-2 text-sm font-semibold">
                 <Twitter size={16} className="text-primary" /> X Post
@@ -48,7 +48,7 @@ export default function PromoKit({ result }: { result: AuditResult }) {
             </pre>
           </div>
 
-          <div className="glass rounded-2xl p-5">
+          <div className="glass rounded-2xl p-4 sm:p-5">
             <div className="flex items-center justify-between mb-3">
               <span className="flex items-center gap-2 text-sm font-semibold">
                 <Linkedin size={16} className="text-primary" /> LinkedIn Post

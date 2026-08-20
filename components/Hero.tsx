@@ -22,14 +22,14 @@ export default function Hero({ onAnalyze, disabled }: HeroProps) {
   }
 
   return (
-    <section className="relative pt-28 pb-16 px-6">
+    <section className="relative pt-20 sm:pt-28 pb-12 sm:pb-16 px-4 sm:px-6">
       <div className="max-w-3xl mx-auto text-center">
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="inline-flex items-center gap-2 px-3 py-1 rounded-full glass text-xs font-mono text-text-secondary mb-6"
+          className="inline-flex items-center gap-2 px-3 py-1 rounded-full glass text-[11px] sm:text-xs font-mono text-text-secondary mb-5 sm:mb-6"
         >
-          <Sparkles size={13} className="text-accent" />
+          <Sparkles size={13} className="text-accent shrink-0" />
           AI-POWERED AUDIT ENGINE
         </motion.div>
 
@@ -37,7 +37,7 @@ export default function Hero({ onAnalyze, disabled }: HeroProps) {
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.05 }}
-          className="font-display font-medium text-[42px] leading-[1.05] sm:text-[56px] sm:leading-[1.03] tracking-tight text-gradient"
+          className="font-display font-medium text-[32px] leading-[1.1] sm:text-[48px] sm:leading-[1.05] md:text-[56px] md:leading-[1.03] tracking-tight text-gradient px-1"
         >
           Instant AI Site Audit &<br className="hidden sm:block" /> Viral Promo Generator
         </motion.h1>
@@ -46,7 +46,7 @@ export default function Hero({ onAnalyze, disabled }: HeroProps) {
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="mt-5 text-text-secondary text-base sm:text-lg max-w-xl mx-auto"
+          className="mt-4 sm:mt-5 text-text-secondary text-sm sm:text-base md:text-lg max-w-xl mx-auto px-2"
         >
           Drop any URL in. Get a brutally specific score, exact code fixes, and a
           ready-to-post promo kit in under a minute.
@@ -57,20 +57,20 @@ export default function Hero({ onAnalyze, disabled }: HeroProps) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15 }}
           onSubmit={handleSubmit}
-          className="mt-9 glass rounded-2xl p-2 flex flex-col sm:flex-row gap-2 shadow-glow"
+          className="mt-7 sm:mt-9 glass rounded-2xl p-2 flex flex-col sm:flex-row gap-2 shadow-glow"
         >
           <input
             type="text"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             placeholder="Enter a website URL, e.g. yoursite.com"
-            className="flex-1 bg-transparent px-4 py-3 text-sm sm:text-base placeholder:text-text-secondary/60 outline-none"
+            className="flex-1 min-w-0 bg-transparent px-3.5 sm:px-4 py-3 text-sm sm:text-base placeholder:text-text-secondary/60 outline-none"
             disabled={disabled}
           />
           <button
             type="submit"
             disabled={disabled || !url.trim()}
-            className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-primary to-accent font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed hover:brightness-110 transition"
+            className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-primary to-accent font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed hover:brightness-110 transition shrink-0"
           >
             Analyze Now
             <ArrowRight size={16} />
@@ -122,13 +122,13 @@ export default function Hero({ onAnalyze, disabled }: HeroProps) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
-          className="mt-10 flex flex-wrap items-center justify-center gap-2"
+          className="mt-8 sm:mt-10 flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 px-2"
         >
-          <span className="text-xs font-mono text-text-secondary/70 mr-1">Recent audits:</span>
+          <span className="text-[10px] sm:text-xs font-mono text-text-secondary/70 mr-1 w-full sm:w-auto text-center sm:text-left mb-1 sm:mb-0">Recent audits:</span>
           {LIVE_DEMO_PILLS.map((p) => (
             <span
               key={p.url}
-              className="text-xs font-mono px-3 py-1.5 rounded-full glass text-text-secondary"
+              className="text-[10px] sm:text-xs font-mono px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full glass text-text-secondary whitespace-nowrap"
             >
               {p.url} <span className="text-emerald font-semibold">{p.score.toFixed(1)}/10</span>
             </span>

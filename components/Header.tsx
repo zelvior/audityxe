@@ -2,7 +2,7 @@ import { Radar } from "lucide-react";
 
 export default function Header() {
   return (
-    <header className="px-6 py-5">
+    <header className="px-4 sm:px-6 py-4 sm:py-5">
       <div className="max-w-5xl mx-auto flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">

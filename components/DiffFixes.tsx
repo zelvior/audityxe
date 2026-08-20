@@ -25,10 +25,10 @@ export default function DiffFixes({ result, tone }: { result: AuditResult; tone:
   }
 
   return (
-    <section className="px-6 py-10">
+    <section className="px-4 sm:px-6 py-6 sm:py-10">
       <div className="max-w-4xl mx-auto">
-        <h2 className="font-display font-semibold text-2xl mb-1">Priority Fixes</h2>
-        <p className="text-text-secondary text-sm mb-6">
+        <h2 className="font-display font-semibold text-xl sm:text-2xl mb-1">Priority Fixes</h2>
+        <p className="text-text-secondary text-xs sm:text-sm mb-5 sm:mb-6">
           Your lowest-scoring areas, with exact code and copy to ship.
         </p>
 
@@ -40,34 +40,34 @@ export default function DiffFixes({ result, tone }: { result: AuditResult; tone:
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-40px" }}
               transition={{ delay: i * 0.05 }}
-              className="glass rounded-2xl p-5 sm:p-6"
+              className="glass rounded-2xl p-4 sm:p-6"
             >
               <div className="flex items-center justify-between gap-3 mb-3">
-                <span className="text-xs font-mono px-2.5 py-1 rounded-full bg-primary/15 text-primary">
+                <span className="text-[10px] sm:text-xs font-mono px-2.5 py-1 rounded-full bg-primary/15 text-primary">
                   {fix.category}
                 </span>
               </div>
 
-              <div className="flex items-start gap-2 text-sm text-text-secondary mb-2">
+              <div className="flex items-start gap-2 text-xs sm:text-sm text-text-secondary mb-2">
                 <MapPin size={14} className="mt-0.5 shrink-0" />
-                <span>{fix.target}</span>
+                <span className="break-words">{fix.target}</span>
               </div>
 
-              <p className="text-sm sm:text-base mb-3">
+              <p className="text-sm sm:text-base mb-3 break-words">
                 {tone === "brutal" ? fix.problem.brutal : fix.problem.constructive}
               </p>
 
-              <div className="flex items-start gap-2 text-sm mb-3">
+              <div className="flex items-start gap-2 text-xs sm:text-sm mb-3">
                 <Wrench size={14} className="mt-0.5 shrink-0 text-emerald" />
-                <span className="text-text-secondary">{fix.fix}</span>
+                <span className="text-text-secondary break-words">{fix.fix}</span>
               </div>
 
               <div className="relative rounded-xl overflow-hidden border border-border bg-black/40">
                 <div className="flex items-center justify-between px-3 py-2 border-b border-border">
-                  <span className="text-[11px] font-mono text-text-secondary uppercase">{fix.language}</span>
+                  <span className="text-[10px] sm:text-[11px] font-mono text-text-secondary uppercase">{fix.language}</span>
                   <button
                     onClick={() => copy(fix.id, fix.snippet)}
-                    className="flex items-center gap-1.5 text-xs font-mono text-text-secondary hover:text-primary transition"
+                    className="flex items-center gap-1.5 text-[11px] sm:text-xs font-mono text-text-secondary hover:text-primary transition shrink-0"
                   >
                     {copiedId === fix.id ? (
                       <>
@@ -80,7 +80,7 @@ export default function DiffFixes({ result, tone }: { result: AuditResult; tone:
                     )}
                   </button>
                 </div>
-                <pre className="text-xs sm:text-[13px] font-mono overflow-x-auto py-2">
+                <pre className="text-[11px] sm:text-[13px] font-mono overflow-x-auto py-2 max-w-full">
                   {fix.snippet.split("\n").map((line, idx) => (
                     <DiffLine key={idx} line={line} />
                   ))}

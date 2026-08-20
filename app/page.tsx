@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { AlertTriangle } from "lucide-react";
+import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import Hero from "@/components/Hero";
 import ScanProgress from "@/components/ScanProgress";
@@ -107,9 +108,7 @@ export default function Home() {
         )}
       </AnimatePresence>
 
-      <footer className="px-6 py-10 text-center text-xs font-mono text-text-secondary/60">
-        Audityxe — audits run live against the URL you enter.
-      </footer>
+      <Footer />
     </main>
   );
 }

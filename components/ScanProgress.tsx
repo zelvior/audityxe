@@ -6,8 +6,8 @@ import { SCAN_STEPS } from "@/lib/constants";
 
 export default function ScanProgress({ activeStep }: { activeStep: number }) {
   return (
-    <section className="px-6 py-16">
-      <div className="max-w-xl mx-auto glass rounded-2xl p-8 relative overflow-hidden">
+    <section className="px-4 sm:px-6 py-10 sm:py-16">
+      <div className="max-w-xl mx-auto glass rounded-2xl p-5 sm:p-8 relative overflow-hidden">
         <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-primary/20 to-transparent pointer-events-none" />
         <div className="absolute left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/60 to-transparent animate-scan" />
 
