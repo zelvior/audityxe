@@ -1,0 +1,179 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { ArrowLeft, LogOut, Loader2, Zap, Mail, ShieldCheck } from "lucide-react";
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
+import { useAuth } from "@/context/AuthContext";
+import { PLANS, PlanId } from "@/lib/plans";
+
+interface UsageData {
+  plan: PlanId;
+  used: number;
+  limit: number;
+  remaining: number;
+}
+
+export default function AccountPage() {
+  const { user, loading, getToken, signOut } = useAuth();
+  const router = useRouter();
+  const [usage, setUsage] = useState<UsageData | null>(null);
+  const [usageError, setUsageError] = useState("");
+  const [fetching, setFetching] = useState(true);
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.replace("/login?redirect=/account");
+    }
+  }, [loading, user, router]);
+
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    (async () => {
+      setFetching(true);
+      setUsageError("");
+      try {
+        const token = await getToken();
+        const res = await fetch("/api/account", {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Couldn't load account usage.");
+        if (!cancelled) setUsage(data);
+      } catch (err) {
+        if (!cancelled) setUsageError(err instanceof Error ? err.message : "Something went wrong.");
+      } finally {
+        if (!cancelled) setFetching(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user, getToken]);
+
+  if (loading || !user) {
+    return (
+      <main className="min-h-screen flex items-center justify-center">
+        <Loader2 size={22} className="animate-spin text-text-secondary" />
+      </main>
+    );
+  }
+
+  const plan = usage ? PLANS[usage.plan] : null;
+  const pct = usage ? Math.min(100, Math.round((usage.used / usage.limit) * 100)) : 0;
+
+  return (
+    <main className="min-h-screen flex flex-col">
+      <Header />
+      <div className="flex-1 px-4 sm:px-6 py-8 sm:py-12">
+        <div className="max-w-lg mx-auto">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-text-secondary hover:text-primary transition mb-6 sm:mb-8"
+          >
+            <ArrowLeft size={14} /> Back to Audityxe
+          </Link>
+
+          <h1 className="font-display font-bold text-2xl sm:text-3xl tracking-tight mb-6">
+            Your account
+          </h1>
+
+          <div className="glass rounded-2xl p-5 sm:p-6 mb-5 space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center font-display font-bold text-sm shrink-0">
+                {(user.displayName || user.email || "?").charAt(0).toUpperCase()}
+              </div>
+              <div className="min-w-0">
+                <p className="font-semibold text-sm truncate">{user.displayName || "Audityxe user"}</p>
+                <p className="text-xs text-text-secondary flex items-center gap-1 truncate">
+                  <Mail size={11} className="shrink-0" /> {user.email}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="glass rounded-2xl p-5 sm:p-6 mb-5">
+            <div className="flex items-center justify-between mb-4">
+              <span className="flex items-center gap-2 text-sm font-semibold">
+                <Zap size={15} className="text-primary" /> Usage today
+              </span>
+              {plan && (
+                <span className="text-xs font-mono px-2.5 py-1 rounded-full bg-primary/15 text-primary">
+                  {plan.name} plan
+                </span>
+              )}
+            </div>
+
+            {fetching && (
+              <div className="flex items-center gap-2 text-sm text-text-secondary py-4">
+                <Loader2 size={14} className="animate-spin" /> Loading usage…
+              </div>
+            )}
+
+            {usageError && !fetching && (
+              <p className="text-sm text-rose">{usageError}</p>
+            )}
+
+            {usage && !fetching && (
+              <>
+                <div className="flex items-end justify-between mb-2">
+                  <span className="font-display font-bold text-2xl">{usage.used}</span>
+                  <span className="text-xs text-text-secondary font-mono">
+                    of {usage.limit} audits used
+                  </span>
+                </div>
+                <div className="h-2 rounded-full bg-surface2 overflow-hidden mb-1">
+                  <div
+                    className={`h-full rounded-full ${pct >= 90 ? "bg-rose" : pct >= 60 ? "bg-amber" : "bg-emerald"}`}
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+                <p className="text-xs text-text-secondary">
+                  {usage.remaining > 0
+                    ? `${usage.remaining} audit${usage.remaining === 1 ? "" : "s"} remaining today.`
+                    : "You've used all your audits for today. Resets at midnight UTC."}
+                </p>
+              </>
+            )}
+          </div>
+
+          {plan && (
+            <div className="glass rounded-2xl p-5 sm:p-6 mb-5">
+              <span className="flex items-center gap-2 text-sm font-semibold mb-3">
+                <ShieldCheck size={15} className="text-emerald" /> Plan features
+              </span>
+              <ul className="space-y-2">
+                {plan.features.map((f) => (
+                  <li key={f} className="text-sm text-text-secondary flex items-start gap-2">
+                    <span className="text-emerald mt-1">•</span> {f}
+                  </li>
+                ))}
+              </ul>
+              <Link
+                href="/pricing"
+                className="mt-4 inline-block text-xs font-mono text-primary hover:underline"
+              >
+                View all plans →
+              </Link>
+            </div>
+          )}
+
+          <button
+            onClick={async () => {
+              await signOut();
+              router.push("/");
+            }}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl glass text-sm font-semibold text-rose hover:bg-rose/10 transition"
+          >
+            <LogOut size={16} />
+            Sign out
+          </button>
+        </div>
+      </div>
+      <Footer />
+    </main>
+  );
+}

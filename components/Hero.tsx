@@ -2,15 +2,20 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, ArrowRight, Plus, X } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Sparkles, ArrowRight, Plus, X, Lock } from "lucide-react";
 import { LIVE_DEMO_PILLS } from "@/lib/constants";
 
 interface HeroProps {
   onAnalyze: (url: string, competitorUrl?: string) => void;
   disabled: boolean;
+  isAuthed: boolean;
+  authLoading: boolean;
+  canCompare: boolean;
 }
 
-export default function Hero({ onAnalyze, disabled }: HeroProps) {
+export default function Hero({ onAnalyze, disabled, isAuthed, authLoading, canCompare }: HeroProps) {
+  const router = useRouter();
   const [url, setUrl] = useState("");
   const [showCompetitor, setShowCompetitor] = useState(false);
   const [competitorUrl, setCompetitorUrl] = useState("");
@@ -18,6 +23,10 @@ export default function Hero({ onAnalyze, disabled }: HeroProps) {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!url.trim() || disabled) return;
+    if (!isAuthed) {
+      router.push("/login?redirect=/");
+      return;
+    }
     onAnalyze(url, showCompetitor ? competitorUrl : undefined);
   }
 
@@ -69,22 +78,41 @@ export default function Hero({ onAnalyze, disabled }: HeroProps) {
           />
           <button
             type="submit"
-            disabled={disabled || !url.trim()}
+            disabled={disabled || !url.trim() || authLoading}
             className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-primary to-accent font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed hover:brightness-110 transition shrink-0"
           >
-            Analyze Now
-            <ArrowRight size={16} />
+            {!isAuthed && !authLoading ? (
+              <>
+                <Lock size={15} />
+                Sign in to analyze
+              </>
+            ) : (
+              <>
+                Analyze Now
+                <ArrowRight size={16} />
+              </>
+            )}
           </button>
         </motion.form>
+
+        {!isAuthed && !authLoading && (
+          <p className="mt-3 text-xs text-text-secondary">
+            <Lock size={11} className="inline -mt-0.5 mr-1" />
+            Free account required — 3 audits a day, no card needed.
+          </p>
+        )}
 
         <div className="mt-3 text-left">
           {!showCompetitor ? (
             <button
               type="button"
               onClick={() => setShowCompetitor(true)}
-              className="inline-flex items-center gap-1.5 text-xs font-mono text-text-secondary hover:text-primary transition mt-2 ml-1"
+              disabled={!canCompare}
+              className="inline-flex items-center gap-1.5 text-xs font-mono text-text-secondary hover:text-primary transition mt-2 ml-1 disabled:opacity-40 disabled:cursor-not-allowed"
+              title={canCompare ? undefined : "Competitor comparison is available on Standard and Pro plans"}
             >
               <Plus size={13} /> Compare with Competitor
+              {!canCompare && <Lock size={11} />}
             </button>
           ) : (
             <AnimatePresence>

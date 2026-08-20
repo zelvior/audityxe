@@ -17,15 +17,37 @@ interface CallOptions {
   timeoutMs?: number;
 }
 
-/** Reads and parses the comma-separated key list for a given task, with fallback to the shared default key. */
+/** Filters out empty strings and obvious unfilled placeholder values (e.g.
+ * "your_verdict_task_key_here") so a real shared key isn't shadowed by a
+ * placeholder left in a task-specific slot. Real Gemini API keys are long
+ * opaque strings — placeholders are short and human-readable. */
+function isPlausibleKey(key: string): boolean {
+  if (!key) return false;
+  const lower = key.toLowerCase();
+  if (lower.includes("your_") || lower.includes("_here") || lower.includes("placeholder")) return false;
+  if (lower.includes(" ")) return false;
+  if (key.length < 20) return false;
+  return true;
+}
+
+/** Reads the comma-separated key list for a given task. Task-specific
+ * keys (GEMINI_API_KEY_<TASK>) are tried first, falling back to the
+ * shared GEMINI_API_KEY list — both lists are merged (not either/or), so
+ * a valid shared key is never shadowed by an unfilled task-specific
+ * placeholder, and a task can also supply extra keys on top of the
+ * shared pool. Duplicates and invalid/placeholder entries are dropped. */
 function keysForTask(task: GeminiTask): string[] {
-  const taskSpecific = process.env[`GEMINI_API_KEY_${task}`];
-  const shared = process.env.GEMINI_API_KEY;
-  const raw = taskSpecific || shared || "";
-  return raw
+  const taskSpecific = (process.env[`GEMINI_API_KEY_${task}`] || "")
     .split(",")
     .map((k) => k.trim())
-    .filter(Boolean);
+    .filter(isPlausibleKey);
+  const shared = (process.env.GEMINI_API_KEY || "")
+    .split(",")
+    .map((k) => k.trim())
+    .filter(isPlausibleKey);
+
+  const merged = [...taskSpecific, ...shared];
+  return Array.from(new Set(merged));
 }
 
 function modelForTask(task: GeminiTask): string {
@@ -49,6 +71,19 @@ interface KeyAttemptResult {
   text?: string;
   retryable: boolean;
   reason?: string;
+}
+
+/** Pulls a JSON object out of a model response even if it's wrapped in
+ * markdown fences or preceded/followed by stray text. */
+function extractJsonBlock(text: string): string {
+  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fenced) return fenced[1].trim();
+  const braceStart = text.indexOf("{");
+  const braceEnd = text.lastIndexOf("}");
+  if (braceStart !== -1 && braceEnd !== -1 && braceEnd > braceStart) {
+    return text.slice(braceStart, braceEnd + 1).trim();
+  }
+  return text.trim();
 }
 
 async function callGeminiWithKey(
@@ -112,7 +147,10 @@ export async function generateJsonForTask<T>(
   options: CallOptions = {}
 ): Promise<T | null> {
   const keys = keysForTask(task);
-  if (keys.length === 0) return null;
+  if (keys.length === 0) {
+    console.warn(`[gemini:${task}] no valid API key configured — set GEMINI_API_KEY or GEMINI_API_KEY_${task} in .env.local`);
+    return null;
+  }
 
   const model = modelForTask(task);
   const timeoutMs = options.timeoutMs ?? timeoutForTask(task);
@@ -125,7 +163,7 @@ export async function generateJsonForTask<T>(
 
     if (result.ok && result.text) {
       try {
-        const cleaned = result.text.replace(/^```json\s*|```$/g, "").trim();
+        const cleaned = extractJsonBlock(result.text);
         return JSON.parse(cleaned) as T;
       } catch {
         failures.push(`key #${i + 1}: malformed JSON`);
@@ -137,7 +175,7 @@ export async function generateJsonForTask<T>(
     if (!result.retryable) break;
   }
 
-  if (process.env.NODE_ENV !== "production") {
+  if (failures.length > 0) {
     console.warn(`[gemini:${task}] all keys failed — ${failures.join("; ")}`);
   }
   return null;

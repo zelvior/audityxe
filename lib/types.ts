@@ -5,7 +5,8 @@ export type CategoryKey =
   | "uiux"
   | "cro"
   | "seo"
-  | "brand";
+  | "brand"
+  | "security";
 
 export interface CategoryScore {
   key: CategoryKey;
@@ -39,6 +40,7 @@ export interface AuditResult {
   xPost: string;
   linkedinPost: string;
   banner: BannerDesign;
+  _usage?: { used: number; limit: number; remaining: number; plan: string };
   competitor?: {
     url: string;
     overall: number;

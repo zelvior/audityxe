@@ -7,6 +7,7 @@ const CATEGORY_META: { key: CategoryKey; label: string }[] = [
   { key: "cro", label: "Conversion Rate Optimization" },
   { key: "seo", label: "Technical & Metadata Health" },
   { key: "brand", label: "Brand Distinctiveness" },
+  { key: "security", label: "Security & Performance" },
 ];
 
 function normalizeUrl(raw: string): string {
@@ -82,6 +83,51 @@ interface Signals {
   hasTwitterCard: boolean;
   hasThemeColor: boolean;
   hasManifest: boolean;
+
+  // Site-wide (fetched separately from /robots.txt and /sitemap.xml)
+  robotsTxt: RobotsSignals;
+  sitemap: SitemapSignals;
+
+  // Security & performance (from the real HTTP response itself)
+  security: SecuritySignals;
+}
+
+interface SecuritySignals {
+  finalIsHttps: boolean;
+  redirectHopCount: number;
+  httpDowngradeDetected: boolean; // https -> http anywhere in the chain
+  responseTimeMs: number;
+  hasHsts: boolean;
+  hasCsp: boolean;
+  hasXFrameOptions: boolean;
+  hasXContentTypeOptions: boolean;
+  hasReferrerPolicy: boolean;
+  hasPermissionsPolicy: boolean;
+  exposesServerHeader: boolean;
+  exposesPoweredBy: boolean;
+  hasCacheControl: boolean;
+  hasCompression: boolean;
+  hasDoctype: boolean;
+  hasMetaRefresh: boolean;
+  mixedContentCount: number;
+}
+
+interface RobotsSignals {
+  fetched: boolean;
+  exists: boolean;
+  blocksAllCrawlers: boolean;
+  referencesSitemap: boolean;
+  sitemapUrls: string[];
+  ruleCount: number;
+}
+
+interface SitemapSignals {
+  fetched: boolean;
+  exists: boolean;
+  isValidXml: boolean;
+  urlCount: number;
+  hasLastmod: boolean;
+  isSitemapIndex: boolean;
 }
 
 function extractSignals(html: string, finalUrl: string): Signals {
@@ -196,6 +242,31 @@ function extractSignals(html: string, finalUrl: string): Signals {
     hasTwitterCard: has(/<meta[^>]+name=["']twitter:card["']/i),
     hasThemeColor: has(/<meta[^>]+name=["']theme-color["']/i),
     hasManifest: has(/<link[^>]+rel=["']manifest["']/i),
+
+    // Populated by auditOne() after this function returns — placeholders here.
+    robotsTxt: { fetched: false, exists: false, blocksAllCrawlers: false, referencesSitemap: false, sitemapUrls: [], ruleCount: 0 },
+    sitemap: { fetched: false, exists: false, isValidXml: false, urlCount: 0, hasLastmod: false, isSitemapIndex: false },
+    security: {
+      finalIsHttps: finalUrl.startsWith("https://"),
+      redirectHopCount: 0,
+      httpDowngradeDetected: false,
+      responseTimeMs: 0,
+      hasHsts: false,
+      hasCsp: false,
+      hasXFrameOptions: false,
+      hasXContentTypeOptions: false,
+      hasReferrerPolicy: false,
+      hasPermissionsPolicy: false,
+      exposesServerHeader: false,
+      exposesPoweredBy: false,
+      hasCacheControl: false,
+      hasCompression: false,
+      hasDoctype: /^\s*<!doctype html/i.test(html),
+      hasMetaRefresh: has(/<meta[^>]+http-equiv\s*=\s*["']refresh["']/i),
+      mixedContentCount: finalUrl.startsWith("https://")
+        ? (html.match(/\b(?:src|href)\s*=\s*["']http:\/\/(?!localhost|127\.0\.0\.1)[^"']+["']/gi) || []).length
+        : 0,
+    },
   };
 }
 
@@ -257,6 +328,12 @@ function scoreFromSignals(s: Signals): CategoryScore[] {
   if (s.hasRobotsMeta && s.robotsBlocksIndexing) seo -= 2.5; // actively blocking search engines
   if (s.renderBlockingStylesheets > 4) seo -= 0.6;
   if (s.externalScriptCount > 12) seo -= 0.5;
+  if (s.robotsTxt.fetched && !s.robotsTxt.exists) seo -= 0.7;
+  if (s.robotsTxt.blocksAllCrawlers) seo -= 3; // entire site disallowed for all bots
+  if (s.robotsTxt.exists && s.robotsTxt.referencesSitemap) seo += 0.6;
+  if (s.sitemap.fetched && !s.sitemap.exists) seo -= 0.8;
+  if (s.sitemap.exists && s.sitemap.urlCount > 0) seo += 1;
+  if (s.sitemap.exists && s.sitemap.hasLastmod) seo += 0.4;
   seo = clamp(seo);
 
   // Brand Distinctiveness
@@ -276,12 +353,38 @@ function scoreFromSignals(s: Signals): CategoryScore[] {
     brand += 0.5;
   brand = clamp(brand);
 
+  // Security & Performance — derived entirely from real response headers,
+  // redirect-chain behavior, and page weight measured during the live fetch.
+  let security = 4.5;
+  if (s.security.finalIsHttps) security += 1;
+  else security -= 3;
+  if (s.security.httpDowngradeDetected) security -= 2; // https redirected to http mid-chain
+  if (s.security.redirectHopCount === 0) security += 0.5;
+  else if (s.security.redirectHopCount >= 3) security -= 1;
+  if (s.security.hasHsts) security += 1;
+  if (s.security.hasCsp) security += 1;
+  if (s.security.hasXFrameOptions) security += 0.5;
+  if (s.security.hasXContentTypeOptions) security += 0.4;
+  if (s.security.hasReferrerPolicy) security += 0.3;
+  if (s.security.exposesServerHeader) security -= 0.3;
+  if (s.security.exposesPoweredBy) security -= 0.5; // leaks tech stack to attackers
+  if (s.security.hasCacheControl) security += 0.4;
+  if (s.security.hasCompression) security += 0.4;
+  if (!s.security.hasDoctype) security -= 0.8; // triggers quirks-mode rendering
+  if (s.security.hasMetaRefresh) security -= 0.6; // legacy/poor-practice redirect method
+  if (s.security.mixedContentCount > 0) security -= Math.min(2, s.security.mixedContentCount * 0.4);
+  if (s.security.responseTimeMs > 3000) security -= 1;
+  else if (s.security.responseTimeMs > 1500) security -= 0.5;
+  else if (s.security.responseTimeMs < 500) security += 0.5;
+  security = clamp(security);
+
   return [
     { key: "messaging", label: CATEGORY_META[0].label, score: Math.round(messaging * 10) / 10 },
     { key: "uiux", label: CATEGORY_META[1].label, score: Math.round(uiux * 10) / 10 },
     { key: "cro", label: CATEGORY_META[2].label, score: Math.round(cro * 10) / 10 },
     { key: "seo", label: CATEGORY_META[3].label, score: Math.round(seo * 10) / 10 },
     { key: "brand", label: CATEGORY_META[4].label, score: Math.round(brand * 10) / 10 },
+    { key: "security", label: CATEGORY_META[5].label, score: Math.round(security * 10) / 10 },
   ];
 }
 
@@ -481,6 +584,210 @@ function buildFixes(s: Signals, categories: CategoryScore[]): FixItem[] {
     });
   }
 
+  if (s.robotsTxt.blocksAllCrawlers) {
+    candidates.push({
+      id: "robots-block-all",
+      category: "Technical & Metadata Health",
+      target: "/robots.txt",
+      problem: {
+        constructive: "robots.txt disallows all crawlers from the entire site (\"Disallow: /\" under User-agent: *).",
+        brutal: "Your robots.txt tells every search engine to stay out. Congratulations, you're invisible on purpose.",
+      },
+      fix: "Remove the blanket Disallow rule unless the whole site is intentionally meant to be unindexed.",
+      snippet: `# robots.txt\n-  User-agent: *\n-  Disallow: /\n+  User-agent: *\n+  Allow: /`,
+      language: "diff",
+    });
+  } else if (s.robotsTxt.fetched && !s.robotsTxt.exists) {
+    candidates.push({
+      id: "robots-missing",
+      category: "Technical & Metadata Health",
+      target: "/robots.txt",
+      problem: {
+        constructive: "No robots.txt file was found at the site root.",
+        brutal: "There's no robots.txt. Crawlers are just guessing what they're allowed to touch.",
+      },
+      fix: "Add a robots.txt at the domain root that allows crawling and references your sitemap.",
+      snippet: `# /robots.txt\n+  User-agent: *\n+  Allow: /\n+  Sitemap: https://yourdomain.com/sitemap.xml`,
+      language: "diff",
+    });
+  }
+
+  if (s.sitemap.fetched && !s.sitemap.exists) {
+    candidates.push({
+      id: "sitemap-missing",
+      category: "Technical & Metadata Health",
+      target: "/sitemap.xml",
+      problem: {
+        constructive: "No valid XML sitemap was found at /sitemap.xml or the location referenced in robots.txt.",
+        brutal: "No sitemap. You're hoping Google finds every page by accident. It won't.",
+      },
+      fix: "Generate an XML sitemap listing your indexable pages and reference it from robots.txt.",
+      snippet: `<!-- /sitemap.xml -->\n+  <?xml version="1.0" encoding="UTF-8"?>\n+  <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n+    <url><loc>https://yourdomain.com/</loc></url>\n+  </urlset>`,
+      language: "diff",
+    });
+  } else if (s.robotsTxt.exists && !s.robotsTxt.referencesSitemap && s.sitemap.exists) {
+    candidates.push({
+      id: "sitemap-not-referenced",
+      category: "Technical & Metadata Health",
+      target: "/robots.txt",
+      problem: {
+        constructive: "A sitemap exists but robots.txt doesn't reference it, so crawlers may not discover it as quickly.",
+        brutal: "You built a sitemap and then didn't tell anyone where it is. It's basically a secret map.",
+      },
+      fix: "Add a Sitemap: line to robots.txt pointing at your sitemap.xml.",
+      snippet: `# robots.txt\n+  Sitemap: https://yourdomain.com/sitemap.xml`,
+      language: "diff",
+    });
+  }
+
+  if (s.security.httpDowngradeDetected) {
+    candidates.push({
+      id: "https-downgrade",
+      category: "Security & Performance",
+      target: "Redirect chain",
+      problem: {
+        constructive: "The redirect chain downgrades from HTTPS to HTTP at some point, exposing traffic in transit.",
+        brutal: "You're bouncing visitors from HTTPS back down to HTTP mid-redirect. That's not a typo, that's a security hole.",
+      },
+      fix: "Ensure every redirect in the chain stays on HTTPS — never redirect an https:// URL to an http:// one.",
+      snippet: `# nginx\n-  return 301 http://$host$request_uri;\n+  return 301 https://$host$request_uri;`,
+      language: "diff",
+    });
+  } else if (!s.security.finalIsHttps) {
+    candidates.push({
+      id: "not-https",
+      category: "Security & Performance",
+      target: "Transport security",
+      problem: {
+        constructive: "The final response is served over HTTP, not HTTPS.",
+        brutal: "This site isn't even on HTTPS in 2026. Browsers are actively warning people away from it.",
+      },
+      fix: "Serve the site over HTTPS with a valid TLS certificate and redirect all HTTP traffic to HTTPS.",
+      snippet: `# nginx\n-  listen 80;\n+  listen 443 ssl;\n+  return 301 https://$host$request_uri;`,
+      language: "diff",
+    });
+  }
+
+  if (!s.security.hasHsts && s.security.finalIsHttps) {
+    candidates.push({
+      id: "hsts",
+      category: "Security & Performance",
+      target: "Strict-Transport-Security header",
+      problem: {
+        constructive: "No Strict-Transport-Security header was found, so browsers won't force HTTPS on repeat visits.",
+        brutal: "No HSTS header. The first request from every visitor is still gambling on plain HTTP.",
+      },
+      fix: "Add a Strict-Transport-Security header with a long max-age.",
+      snippet: `# response header\n+  Strict-Transport-Security: max-age=63072000; includeSubDomains; preload`,
+      language: "diff",
+    });
+  }
+
+  if (!s.security.hasCsp) {
+    candidates.push({
+      id: "csp",
+      category: "Security & Performance",
+      target: "Content-Security-Policy header",
+      problem: {
+        constructive: "No Content-Security-Policy header was found, leaving the site with no defense against injected scripts.",
+        brutal: "Zero CSP header. If someone finds an XSS hole, there's nothing here to stop it running.",
+      },
+      fix: "Add a Content-Security-Policy header scoped to the scripts, styles, and origins the page actually needs.",
+      snippet: `# response header\n+  Content-Security-Policy: default-src 'self'; script-src 'self'`,
+      language: "diff",
+    });
+  }
+
+  if (s.security.exposesPoweredBy) {
+    candidates.push({
+      id: "x-powered-by",
+      category: "Security & Performance",
+      target: "X-Powered-By header",
+      problem: {
+        constructive: "The X-Powered-By header reveals the underlying framework/technology to anyone inspecting responses.",
+        brutal: "You're broadcasting your tech stack in a response header. That's a free hint for anyone looking for known exploits.",
+      },
+      fix: "Disable or strip the X-Powered-By header at the framework or reverse-proxy level.",
+      snippet: `// next.config.js\n  module.exports = {\n+   poweredByHeader: false,\n  };`,
+      language: "diff",
+    });
+  }
+
+  if (s.security.mixedContentCount > 0) {
+    candidates.push({
+      id: "mixed-content",
+      category: "Security & Performance",
+      target: `${s.security.mixedContentCount} http:// resource reference${s.security.mixedContentCount === 1 ? "" : "s"}`,
+      problem: {
+        constructive: `${s.security.mixedContentCount} resource${s.security.mixedContentCount === 1 ? " is" : "s are"} loaded over plain HTTP on an HTTPS page, which browsers will block or flag as insecure.`,
+        brutal: `Found ${s.security.mixedContentCount} plain-HTTP resource${s.security.mixedContentCount === 1 ? "" : "s"} on a supposedly secure page. Half-secure isn't secure.`,
+      },
+      fix: "Change every hardcoded http:// resource URL to https:// (or a protocol-relative // URL).",
+      snippet: `<img\n-  src="http://cdn.example.com/logo.png"\n+  src="https://cdn.example.com/logo.png"\n/>`,
+      language: "diff",
+    });
+  }
+
+  if (!s.security.hasDoctype) {
+    candidates.push({
+      id: "doctype",
+      category: "Security & Performance",
+      target: "<!DOCTYPE html>",
+      problem: {
+        constructive: "No HTML5 doctype declaration was found, which can trigger inconsistent quirks-mode rendering across browsers.",
+        brutal: "No doctype. You're letting every browser guess how to render this page, and they don't all guess the same way.",
+      },
+      fix: "Add <!DOCTYPE html> as the very first line of the document.",
+      snippet: `+  <!DOCTYPE html>\n   <html lang="en">`,
+      language: "diff",
+    });
+  }
+
+  if (s.security.hasMetaRefresh) {
+    candidates.push({
+      id: "meta-refresh",
+      category: "Security & Performance",
+      target: '<meta http-equiv="refresh">',
+      problem: {
+        constructive: "A meta-refresh redirect was found, which is an outdated pattern that hurts SEO and accessibility.",
+        brutal: "You're using meta-refresh redirects like it's 2005. Screen readers and search engines both handle this badly.",
+      },
+      fix: "Replace client-side meta-refresh redirects with a proper server-side 301/302 redirect.",
+      snippet: `<head>\n-  <meta http-equiv="refresh" content="0; url=/new-page" />\n+  <!-- use a server-side redirect instead -->\n</head>`,
+      language: "diff",
+    });
+  }
+
+  if (s.security.redirectHopCount >= 3) {
+    candidates.push({
+      id: "redirect-chain",
+      category: "Security & Performance",
+      target: `Redirect chain (${s.security.redirectHopCount} hops)`,
+      problem: {
+        constructive: `This URL takes ${s.security.redirectHopCount} redirect hops to resolve, adding latency and diluting SEO signal.`,
+        brutal: `${s.security.redirectHopCount} redirects just to load the page. That's not a redirect, that's a scavenger hunt.`,
+      },
+      fix: "Collapse the chain so the URL redirects directly to its final destination in a single hop.",
+      snippet: `# nginx — point the source URL straight at the final destination\n-  /old -> /intermediate -> /newer -> /final\n+  /old -> /final`,
+      language: "diff",
+    });
+  }
+
+  if (s.security.responseTimeMs > 3000) {
+    candidates.push({
+      id: "slow-response",
+      category: "Security & Performance",
+      target: "Server response time",
+      problem: {
+        constructive: `The page took ${(s.security.responseTimeMs / 1000).toFixed(1)}s to respond, well above the ~1s target for a good first impression.`,
+        brutal: `${(s.security.responseTimeMs / 1000).toFixed(1)} seconds just to get bytes back. Visitors are gone before your server wakes up.`,
+      },
+      fix: "Investigate server-side latency — caching, database query time, or cold-start delay on serverless functions.",
+      snippet: `// Add server-side caching for expensive routes\n+  export const revalidate = 3600; // ISR cache for 1 hour`,
+      language: "diff",
+    });
+  }
+
   const lowestCats = [...categories].sort((a, b) => a.score - b.score).map((c) => c.label);
   const ranked = candidates.sort(
     (a, b) => lowestCats.indexOf(a.category) - lowestCats.indexOf(b.category)
@@ -648,7 +955,109 @@ function buildPromo(host: string, overall: number) {
 /* ────────────────────────────────────────────────────────────────
    Live fetch + orchestration
    ──────────────────────────────────────────────────────────────── */
-async function fetchHtml(rawUrl: string): Promise<{ html: string; finalUrl: string }> {
+async function fetchWithTimeout(url: string, timeoutMs: number): Promise<Response | null> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, {
+      signal: controller.signal,
+      redirect: "follow",
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; AudityxeBot/1.0; +https://audityxe.app)",
+      },
+    });
+    return res;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** Fetches and parses the real /robots.txt for the target origin. Never
+ * throws — a missing or unreachable robots.txt is itself a real, valid
+ * finding (and is scored/flagged as such), not an error. */
+async function analyzeRobotsTxt(origin: string): Promise<RobotsSignals> {
+  const res = await fetchWithTimeout(`${origin}/robots.txt`, 8000);
+  if (!res) {
+    return { fetched: false, exists: false, blocksAllCrawlers: false, referencesSitemap: false, sitemapUrls: [], ruleCount: 0 };
+  }
+  if (!res.ok) {
+    return { fetched: true, exists: false, blocksAllCrawlers: false, referencesSitemap: false, sitemapUrls: [], ruleCount: 0 };
+  }
+
+  const text = await res.text();
+  const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+
+  const disallowAllForStar = /User-agent:\s*\*\s*[\r\n]+\s*Disallow:\s*\/\s*$/im.test(text) ||
+    (() => {
+      let currentIsStar = false;
+      for (const line of lines) {
+        if (/^user-agent:/i.test(line)) currentIsStar = /\*\s*$/.test(line);
+        if (currentIsStar && /^disallow:\s*\/\s*$/i.test(line)) return true;
+      }
+      return false;
+    })();
+
+  const sitemapUrls = lines
+    .filter((l) => /^sitemap:/i.test(l))
+    .map((l) => l.replace(/^sitemap:\s*/i, "").trim())
+    .filter(Boolean);
+
+  const ruleCount = lines.filter((l) => /^(disallow|allow):/i.test(l)).length;
+
+  return {
+    fetched: true,
+    exists: true,
+    blocksAllCrawlers: disallowAllForStar,
+    referencesSitemap: sitemapUrls.length > 0,
+    sitemapUrls,
+    ruleCount,
+  };
+}
+
+/** Fetches and parses the real /sitemap.xml (or the URL referenced from
+ * robots.txt, if present) for the target origin. Handles both a plain
+ * <urlset> and a <sitemapindex> of nested sitemaps. */
+async function analyzeSitemap(origin: string, robotsSitemapUrls: string[]): Promise<SitemapSignals> {
+  const candidateUrl = robotsSitemapUrls[0] || `${origin}/sitemap.xml`;
+  const res = await fetchWithTimeout(candidateUrl, 8000);
+
+  if (!res) {
+    return { fetched: false, exists: false, isValidXml: false, urlCount: 0, hasLastmod: false, isSitemapIndex: false };
+  }
+  if (!res.ok) {
+    return { fetched: true, exists: false, isValidXml: false, urlCount: 0, hasLastmod: false, isSitemapIndex: false };
+  }
+
+  const text = await res.text();
+  const isValidXml = /<\?xml/i.test(text) || /<urlset[\s>]/i.test(text) || /<sitemapindex[\s>]/i.test(text);
+  const isSitemapIndex = /<sitemapindex[\s>]/i.test(text);
+  const urlCount = isSitemapIndex
+    ? (text.match(/<sitemap>/gi) || []).length
+    : (text.match(/<url>/gi) || []).length;
+  const hasLastmod = /<lastmod>/i.test(text);
+
+  return {
+    fetched: true,
+    exists: isValidXml && urlCount > 0,
+    isValidXml,
+    urlCount,
+    hasLastmod,
+    isSitemapIndex,
+  };
+}
+
+interface FetchOutcome {
+  html: string;
+  finalUrl: string;
+  headers: Headers;
+  redirectHopCount: number;
+  httpDowngradeDetected: boolean;
+  responseTimeMs: number;
+}
+
+async function fetchHtml(rawUrl: string): Promise<FetchOutcome> {
   const url = normalizeUrl(rawUrl);
 
   let parsed: URL;
@@ -666,27 +1075,72 @@ async function fetchHtml(rawUrl: string): Promise<{ html: string; finalUrl: stri
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 15000);
+  const startedAt = Date.now();
+
   try {
-    const res = await fetch(url, {
-      redirect: "follow",
-      signal: controller.signal,
-      headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; AudityxeBot/1.0; +https://audityxe.app)",
-        Accept: "text/html,application/xhtml+xml",
-      },
-    });
-    if (!res.ok) {
-      throw new Error(`Site responded with status ${res.status}`);
+    // Follow redirects manually (rather than fetch's redirect:"follow") so
+    // we can count real hops and detect an https→http downgrade anywhere
+    // in the chain — both genuine, free signals no third-party tool is
+    // needed for.
+    let currentUrl = url;
+    let hopCount = 0;
+    let downgradeDetected = false;
+    const visited = new Set<string>();
+    let res: Response;
+
+    while (true) {
+      if (visited.has(currentUrl)) {
+        throw new Error("This URL redirects in a loop and never resolves.");
+      }
+      visited.add(currentUrl);
+
+      res = await fetch(currentUrl, {
+        redirect: "manual",
+        signal: controller.signal,
+        headers: {
+          "User-Agent": "Mozilla/5.0 (compatible; AudityxeBot/1.0; +https://audityxe.app)",
+          Accept: "text/html,application/xhtml+xml",
+        },
+      });
+
+      const isRedirect = res.status >= 300 && res.status < 400;
+      const location = res.headers.get("location");
+
+      if (isRedirect && location) {
+        const nextUrl = new URL(location, currentUrl).toString();
+        if (currentUrl.startsWith("https://") && nextUrl.startsWith("http://")) {
+          downgradeDetected = true;
+        }
+        hopCount++;
+        if (hopCount > 8) {
+          throw new Error("This URL redirects too many times (over 8 hops).");
+        }
+        currentUrl = nextUrl;
+        continue;
+      }
+      break;
     }
-    const contentType = res.headers.get("content-type") || "";
+
+    if (!res!.ok) {
+      throw new Error(`Site responded with status ${res!.status}`);
+    }
+    const contentType = res!.headers.get("content-type") || "";
     if (contentType && !/text\/html|application\/xhtml/i.test(contentType)) {
       throw new Error(`URL did not return an HTML page (got ${contentType.split(";")[0]}).`);
     }
-    const html = await res.text();
+    const html = await res!.text();
     if (!html || html.trim().length < 20) {
       throw new Error("The page returned an empty response.");
     }
-    return { html, finalUrl: res.url || url };
+
+    return {
+      html,
+      finalUrl: currentUrl,
+      headers: res!.headers,
+      redirectHopCount: hopCount,
+      httpDowngradeDetected: downgradeDetected,
+      responseTimeMs: Date.now() - startedAt,
+    };
   } catch (err) {
     if (err instanceof Error && err.name === "AbortError") {
       throw new Error("The site took too long to respond (timed out after 15s).");
@@ -697,12 +1151,56 @@ async function fetchHtml(rawUrl: string): Promise<{ html: string; finalUrl: stri
   }
 }
 
+function extractSecurityFromResponse(
+  headers: Headers,
+  finalUrl: string,
+  redirectHopCount: number,
+  httpDowngradeDetected: boolean,
+  responseTimeMs: number
+): Partial<SecuritySignals> {
+  const get = (name: string) => headers.get(name) || "";
+  return {
+    finalIsHttps: finalUrl.startsWith("https://"),
+    redirectHopCount,
+    httpDowngradeDetected,
+    responseTimeMs,
+    hasHsts: !!get("strict-transport-security"),
+    hasCsp: !!get("content-security-policy"),
+    hasXFrameOptions: !!get("x-frame-options"),
+    hasXContentTypeOptions: /nosniff/i.test(get("x-content-type-options")),
+    hasReferrerPolicy: !!get("referrer-policy"),
+    hasPermissionsPolicy: !!get("permissions-policy"),
+    exposesServerHeader: !!get("server") && !/^cloudflare$/i.test(get("server")),
+    exposesPoweredBy: !!get("x-powered-by"),
+    hasCacheControl: !!get("cache-control"),
+    hasCompression: !!get("content-encoding"),
+  };
+}
+
 async function auditOne(rawUrl: string) {
-  const { html, finalUrl } = await fetchHtml(rawUrl);
-  const signals = extractSignals(html, finalUrl);
+  const fetched = await fetchHtml(rawUrl);
+  const signals = extractSignals(fetched.html, fetched.finalUrl);
+
+  signals.security = {
+    ...signals.security,
+    ...extractSecurityFromResponse(
+      fetched.headers,
+      fetched.finalUrl,
+      fetched.redirectHopCount,
+      fetched.httpDowngradeDetected,
+      fetched.responseTimeMs
+    ),
+  };
+
+  const origin = new URL(fetched.finalUrl).origin;
+  const robotsTxt = await analyzeRobotsTxt(origin);
+  const sitemap = await analyzeSitemap(origin, robotsTxt.sitemapUrls);
+  signals.robotsTxt = robotsTxt;
+  signals.sitemap = sitemap;
+
   const categories = scoreFromSignals(signals);
   const overall = Math.round((categories.reduce((sum, c) => sum + c.score, 0) / categories.length) * 10) / 10;
-  const host = hostOf(finalUrl);
+  const host = hostOf(fetched.finalUrl);
   return { host, overall, categories, signals };
 }
 
