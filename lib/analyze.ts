@@ -1,5 +1,8 @@
 import { AuditResult, BannerDesign, CategoryKey, CategoryScore, FixItem } from "./types";
 import { generateJsonForTask } from "./gemini";
+import { extractDeepSignals } from "./deep-signals";
+import { checkBrokenLinks, checkImageSample, checkAdsTxt, checkOgImage } from "./network-checks";
+import { buildAuditModules } from "./audit-modules";
 
 const CATEGORY_META: { key: CategoryKey; label: string }[] = [
   { key: "messaging", label: "Messaging & Copy Clarity" },
@@ -32,7 +35,7 @@ function clamp(n: number, min = 0, max = 10): number {
    Deep real-signal extraction from live HTML — no mocked values.
    Every field below is parsed directly from the fetched response.
    ──────────────────────────────────────────────────────────────── */
-interface Signals {
+export interface Signals {
   // Messaging
   title: string;
   metaDescription: string;
@@ -92,7 +95,7 @@ interface Signals {
   security: SecuritySignals;
 }
 
-interface SecuritySignals {
+export interface SecuritySignals {
   finalIsHttps: boolean;
   redirectHopCount: number;
   httpDowngradeDetected: boolean; // https -> http anywhere in the chain
@@ -112,7 +115,7 @@ interface SecuritySignals {
   mixedContentCount: number;
 }
 
-interface RobotsSignals {
+export interface RobotsSignals {
   fetched: boolean;
   exists: boolean;
   blocksAllCrawlers: boolean;
@@ -121,7 +124,7 @@ interface RobotsSignals {
   ruleCount: number;
 }
 
-interface SitemapSignals {
+export interface SitemapSignals {
   fetched: boolean;
   exists: boolean;
   isValidXml: boolean;
@@ -1201,7 +1204,7 @@ async function auditOne(rawUrl: string) {
   const categories = scoreFromSignals(signals);
   const overall = Math.round((categories.reduce((sum, c) => sum + c.score, 0) / categories.length) * 10) / 10;
   const host = hostOf(fetched.finalUrl);
-  return { host, overall, categories, signals };
+  return { host, overall, categories, signals, html: fetched.html, finalUrl: fetched.finalUrl, origin };
 }
 
 export async function runAudit(rawUrl: string, competitorRawUrl?: string): Promise<AuditResult> {
@@ -1211,12 +1214,26 @@ export async function runAudit(rawUrl: string, competitorRawUrl?: string): Promi
 
   const primary = await auditOne(rawUrl);
   const fixes = buildFixes(primary.signals, primary.categories);
+  const deepSignals = extractDeepSignals(primary.html);
 
-  const [verdictCopy, promoCopy, bannerDesign] = await Promise.all([
+  const [verdictCopy, promoCopy, bannerDesign, brokenLinks, imageSample, adsTxt, ogImage] = await Promise.all([
     generateVerdictWithGemini(primary.host, primary.overall, primary.categories),
     generatePromoWithGemini(primary.host, primary.overall, primary.categories),
     generateBannerDesign(primary.host, primary.overall, primary.categories),
+    checkBrokenLinks(primary.html, primary.finalUrl),
+    checkImageSample(primary.html, primary.finalUrl),
+    checkAdsTxt(primary.origin),
+    checkOgImage(deepSignals.socialMeta.ogImageUrl, primary.finalUrl),
   ]);
+
+  const modules = buildAuditModules({
+    signals: primary.signals,
+    deep: deepSignals,
+    brokenLinks,
+    imageSample,
+    adsTxt,
+    ogImage,
+  });
 
   const verdict = verdictCopy
     ? { constructive: verdictCopy.verdictConstructive, brutal: verdictCopy.verdictBrutal }
@@ -1261,6 +1278,7 @@ export async function runAudit(rawUrl: string, competitorRawUrl?: string): Promi
     xPost,
     linkedinPost,
     banner,
+    modules,
     competitor,
   };
 }

@@ -1,6 +1,6 @@
 import { adminDb } from "./firebase/admin";
 import { DEFAULT_PLAN, PlanId, planLimit } from "./plans";
-import { FieldValue } from "firebase-admin/firestore";
+import { FieldValue, Timestamp } from "firebase-admin/firestore";
 
 function todayKey(): string {
   return new Date().toISOString().slice(0, 10); // YYYY-MM-DD (UTC)
@@ -25,16 +25,41 @@ export async function ensureUserDoc(identity: DecodedIdentity, displayName?: str
       email: identity.email,
       displayName: displayName || null,
       plan: DEFAULT_PLAN,
+      planExpiresAt: null,
       createdAt: FieldValue.serverTimestamp(),
     });
   }
 }
 
+/**
+ * Resolves the EFFECTIVE plan for a user document: a manually-granted
+ * paid plan (Standard/Pro) reverts to Free automatically once
+ * `planExpiresAt` has passed, without needing any background job — the
+ * expiry is just checked at read time. `planExpiresAt` is set manually
+ * in Firestore when an admin approves a 30 or 365-day access request
+ * (see README: "Approving a plan upgrade").
+ */
+function effectivePlan(data: FirebaseFirestore.DocumentData | undefined): { plan: PlanId; expiresAt: Date | null; expired: boolean } {
+  if (!data) return { plan: DEFAULT_PLAN, expiresAt: null, expired: false };
+
+  const rawPlan = data.plan as PlanId | undefined;
+  const plan: PlanId = rawPlan && ["free", "standard", "pro"].includes(rawPlan) ? rawPlan : DEFAULT_PLAN;
+
+  const rawExpiry = data.planExpiresAt;
+  const expiresAt: Date | null =
+    rawExpiry instanceof Timestamp ? rawExpiry.toDate() : rawExpiry ? new Date(rawExpiry) : null;
+
+  if (plan !== "free" && expiresAt && expiresAt.getTime() < Date.now()) {
+    return { plan: DEFAULT_PLAN, expiresAt, expired: true };
+  }
+
+  return { plan, expiresAt, expired: false };
+}
+
 export async function getUserPlan(uid: string): Promise<PlanId> {
   const db = adminDb();
   const snap = await db.collection("users").doc(uid).get();
-  const plan = snap.exists ? (snap.data()?.plan as PlanId) : DEFAULT_PLAN;
-  return plan && ["free", "standard", "pro"].includes(plan) ? plan : DEFAULT_PLAN;
+  return effectivePlan(snap.data()).plan;
 }
 
 export interface UsageResult {
@@ -43,6 +68,8 @@ export interface UsageResult {
   limit: number;
   remaining: number;
   plan: PlanId;
+  planExpiresAt: string | null;
+  planExpired: boolean;
 }
 
 /**
@@ -59,7 +86,7 @@ export async function checkAndIncrementUsage(uid: string): Promise<UsageResult> 
   return db.runTransaction(async (tx) => {
     const [userSnap, usageSnap] = await Promise.all([tx.get(userRef), tx.get(usageRef)]);
 
-    const plan: PlanId = userSnap.exists ? (userSnap.data()?.plan as PlanId) || DEFAULT_PLAN : DEFAULT_PLAN;
+    const { plan, expiresAt, expired } = effectivePlan(userSnap.data());
     const limit = planLimit(plan);
 
     let used = 0;
@@ -69,13 +96,29 @@ export async function checkAndIncrementUsage(uid: string): Promise<UsageResult> 
     }
 
     if (used >= limit) {
-      return { allowed: false, used, limit, remaining: 0, plan };
+      return {
+        allowed: false,
+        used,
+        limit,
+        remaining: 0,
+        plan,
+        planExpiresAt: expiresAt ? expiresAt.toISOString() : null,
+        planExpired: expired,
+      };
     }
 
     const nextUsed = used + 1;
     tx.set(usageRef, { date: today, count: nextUsed, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
 
-    return { allowed: true, used: nextUsed, limit, remaining: Math.max(0, limit - nextUsed), plan };
+    return {
+      allowed: true,
+      used: nextUsed,
+      limit,
+      remaining: Math.max(0, limit - nextUsed),
+      plan,
+      planExpiresAt: expiresAt ? expiresAt.toISOString() : null,
+      planExpired: expired,
+    };
   });
 }
 
@@ -87,7 +130,7 @@ export async function getUsageSnapshot(uid: string): Promise<UsageResult> {
     db.collection("usage").doc(uid).get(),
   ]);
 
-  const plan: PlanId = userSnap.exists ? (userSnap.data()?.plan as PlanId) || DEFAULT_PLAN : DEFAULT_PLAN;
+  const { plan, expiresAt, expired } = effectivePlan(userSnap.data());
   const limit = planLimit(plan);
   const today = todayKey();
 
@@ -97,5 +140,13 @@ export async function getUsageSnapshot(uid: string): Promise<UsageResult> {
     used = data.date === today ? (data.count as number) || 0 : 0;
   }
 
-  return { allowed: used < limit, used, limit, remaining: Math.max(0, limit - used), plan };
+  return {
+    allowed: used < limit,
+    used,
+    limit,
+    remaining: Math.max(0, limit - used),
+    plan,
+    planExpiresAt: expiresAt ? expiresAt.toISOString() : null,
+    planExpired: expired,
+  };
 }

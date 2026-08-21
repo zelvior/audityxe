@@ -12,6 +12,7 @@ import ScoreCard from "@/components/ScoreCard";
 import DiffFixes from "@/components/DiffFixes";
 import PromoKit from "@/components/PromoKit";
 import CompetitorBattle from "@/components/CompetitorBattle";
+import AuditModules from "@/components/AuditModules";
 import { SCAN_STEPS } from "@/lib/constants";
 import { AuditResult, Tone } from "@/lib/types";
 import { useAuth } from "@/context/AuthContext";
@@ -154,6 +155,7 @@ export default function Home() {
               </div>
             )}
             <ScoreCard result={result} tone={tone} onToneChange={setTone} />
+            <AuditModules modules={result.modules} />
             <DiffFixes result={result} tone={tone} />
             <PromoKit result={result} />
             <CompetitorBattle result={result} />

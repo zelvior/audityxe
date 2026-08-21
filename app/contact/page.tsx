@@ -6,7 +6,7 @@ import { ArrowLeft, Mail, Send } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
-const CONTACT_EMAIL = "support@audityxe.app";
+const CONTACT_EMAIL = "zelvior@proton.me";
 
 export default function ContactPage() {
   const [name, setName] = useState("");

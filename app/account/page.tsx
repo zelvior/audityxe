@@ -14,6 +14,8 @@ interface UsageData {
   used: number;
   limit: number;
   remaining: number;
+  planExpiresAt: string | null;
+  planExpired: boolean;
 }
 
 export default function AccountPage() {
@@ -106,6 +108,21 @@ export default function AccountPage() {
                 </span>
               )}
             </div>
+
+            {usage?.planExpired && (
+              <p className="text-xs text-amber bg-amber/10 border border-amber/30 rounded-lg px-3 py-2 mb-3">
+                Your paid plan expired and you've been moved back to Free.{" "}
+                <Link href="/pricing" className="underline">
+                  Renew on the pricing page
+                </Link>
+                .
+              </p>
+            )}
+            {usage?.planExpiresAt && !usage.planExpired && (
+              <p className="text-xs text-text-secondary mb-3">
+                Access expires {new Date(usage.planExpiresAt).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" })}.
+              </p>
+            )}
 
             {fetching && (
               <div className="flex items-center gap-2 text-sm text-text-secondary py-4">

@@ -48,32 +48,57 @@ target URL is ever fetched.
    client — all reads/writes go through the Admin SDK server-side — so the
    rules simply deny all direct client access.
 
-## Plans & rate limiting
+## Plans, pricing & rate limiting
 
 Every account is created on the **Free** plan by default (`lib/plans.ts`).
 Limits are enforced server-side, per account, atomically, via a Firestore
 transaction (`lib/rate-limit.ts`) — never trust-the-client:
 
-| Plan     | Daily audits | Competitor comparison |
-|----------|--------------|------------------------|
-| Free     | 3            | No                     |
-| Standard | 25           | Yes                    |
-| Pro      | 200          | Yes                    |
+| Plan     | Daily audits | Competitor comparison | 30-day price | 365-day price |
+|----------|--------------|------------------------|---------------|----------------|
+| Free     | 3            | No                     | $0            | $0             |
+| Standard | 25           | Yes                    | $19           | $190           |
+| Pro      | 200          | Yes                    | $49           | $490           |
+
+Prices are defined in USD in `lib/plans.ts` and converted to the visitor's
+local currency client-side on `/pricing` using two free, keyless public
+APIs — `ipapi.co` for geolocation and `exchangerate-api.com`'s open
+endpoint for the live conversion rate (see `lib/currency.ts`). If either
+call fails, prices simply stay in USD — never a broken or negative price.
+
+### Manual upgrade flow (no payment gateway wired up)
+
+There's no Stripe/PayPal integration — upgrades are approved manually:
+
+1. A signed-in user picks Standard or Pro and a duration (30 or 365 days)
+   on `/pricing` and clicks "Get Standard"/"Get Pro".
+2. This opens their email client with a `mailto:` to **zelvior@proton.me**,
+   pre-filled with their account email, Firebase UID, display name, the
+   plan/duration requested, and the price shown.
+3. They manually attach a payment screenshot and send it.
+4. **To approve:** open Firebase Console → Firestore → `users/{uid}` (the
+   UID is in the email) and set:
+   - `plan`: `"standard"` or `"pro"`
+   - `planExpiresAt`: an ISO date string (or Firestore Timestamp) 30 or
+     365 days from now, matching what was requested.
+
+Access reverts to Free **automatically** the moment `planExpiresAt`
+passes — checked live on every request in `lib/rate-limit.ts`'s
+`effectivePlan()`, no cron job or background task needed. The account
+page shows the expiry date, and a banner if a plan has just expired.
 
 Firestore layout (created automatically on first use — the project starts
 with no collections):
 
-- `users/{uid}` — `{ email, displayName, plan, createdAt }`, created on
-  first authenticated request via `ensureUserDoc()`.
+- `users/{uid}` — `{ email, displayName, plan, planExpiresAt, createdAt }`,
+  created on first authenticated request via `ensureUserDoc()`.
 - `usage/{uid}` — `{ date: "YYYY-MM-DD", count }`, incremented atomically
   inside a transaction before each audit runs; a stale date is treated as
   zero, giving each account a fresh quota every day at midnight UTC.
 
 `/api/audit` checks-and-increments usage before doing any fetching or AI
 calls, so a request that would exceed the day's quota fails fast with a
-429 and never touches the target site. Plan upgrades are applied by
-changing the `plan` field on a user's Firestore document (no self-serve
-billing is wired up yet — `/pricing` links Standard/Pro to `/contact`).
+429 and never touches the target site.
 
 ## Environment variables
 
@@ -139,20 +164,48 @@ designed fallback (not a blank/placeholder banner).
 
 ## What gets analyzed
 
-Category scores, fixes, and DOM analysis are always computed live from
-the fetched page and never require Gemini. Six categories, each scored
-from real signals:
+Every score, fix, and finding is computed live from the fetched page (plus
+a handful of real follow-up requests) — nothing requires Gemini, and
+nothing is mocked or random.
+
+### 6 top-level score categories (`result.categories`)
 
 - **Messaging & Copy Clarity** — title/meta length, heading text quality, word count.
 - **UI/UX & Visual Hierarchy** — heading structure/order, viewport config, alt-text coverage, ARIA landmarks, font sprawl.
 - **Conversion Rate Optimization** — above-the-fold CTA detection, form field count, contact links.
-- **Technical & Metadata Health** — canonical/meta tags, structured data (JSON-LD), **live `/robots.txt`** (missing file, blanket disallow, sitemap reference), **live `/sitemap.xml`** (validity, URL count, lastmod freshness, sitemap-index support).
+- **Technical & Metadata Health** — canonical/meta tags, structured data (JSON-LD), live `/robots.txt`, live `/sitemap.xml`.
 - **Brand Distinctiveness** — favicon, Open Graph/Twitter Card completeness, theme-color, manifest.
-- **Security & Performance** *(new)* — real HTTP response headers (HSTS, CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, exposed Server/X-Powered-By headers, Cache-Control, Content-Encoding), a **manually-tracked redirect chain** (hop count, HTTPS→HTTP downgrade detection, loop detection), **measured server response time**, mixed-content scanning (hardcoded `http://` resources on an HTTPS page), and doctype/meta-refresh checks.
+- **Security & Performance** — real response headers, redirect-chain tracking, response timing, mixed content.
 
-All of this — including redirect-chain following, header inspection, and
-timing — comes from the live `fetch()` response itself. No third-party
-scanning API, no paid service, nothing beyond the audited site's own
-server responses.
+### 16-area deep audit breakdown (`result.modules`)
 
-See `lib/analyze.ts` for the full signal list and scoring formulas.
+Beyond the 6 headline scores, every audit also runs a full **16-module**
+breakdown (`lib/audit-modules.ts`), each with individual pass/warn/fail
+findings shown in the "Full Deep Audit" section of the results:
+
+1. **SEO** — title/description length, canonical, H1 count, robots/sitemap presence and cross-referencing, structured data presence.
+2. **Performance** — measured response time, HTML weight, render-blocking stylesheet count, external script count, redirect hops, compression, live-sampled image weight.
+3. **Security Headers** — HTTPS, HSTS, CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, X-Powered-By exposure.
+4. **Accessibility** — `lang` attribute, unlabeled form inputs, unnamed buttons/links, missing alt text, positive `tabindex` misuse, `aria-hidden` misuse, landmark regions.
+5. **Mobile Responsiveness** — viewport config, pinch-to-zoom, `@media` query count, Apple touch icon, theme-color.
+6. **UX/UI** — above-the-fold CTA, heading clarity/nesting, div-to-semantic-tag ratio, form length, content depth.
+7. **Technical Stack** — CMS/platform, JS framework, jQuery, analytics tool, and CDN library detection via real markup signatures.
+8. **HTML Structure** — doctype, semantic landmark tags, duplicate IDs, deprecated tags (`<font>`, `<center>`, etc.), lang/charset declarations.
+9. **Meta Tags** — full head-section audit: title, description, language, charset, viewport, canonical, robots meta, generator.
+10. **Sitemap & Robots.txt** — both files **fetched live** from the target origin; existence, blanket-disallow detection, URL count, `<lastmod>` freshness, cross-referencing.
+11. **Structured Data** — JSON-LD blocks parsed and validated per schema.org type (Organization, Product, Article, BreadcrumbList, FAQPage, LocalBusiness, Review), flagging missing required fields per type.
+12. **Broken Links** — a real sample of on-page links (up to 10) is **live HTTP-checked** with HEAD/GET requests; genuine 404/410/5xx responses are flagged separately from ambiguous 401/403/429s (which may just be bot-blocking).
+13. **Image Optimization** — missing width/height, modern-format (WebP/AVIF) usage, lazy-loading, inline base64 bloat, plus a **live-sampled** check of actual image file sizes over HTTP.
+14. **Third-Party Scripts** — every external script domain categorized in real time: analytics, ad networks, chat widgets, font services, tag managers, or uncategorized.
+15. **Social Metadata** — Open Graph/Twitter Card completeness, plus a **live check that the `og:image` URL actually loads** as an image.
+16. **Basic Monetization Setup** — ad network detection (AdSense, Ezoic, Mediavine, etc.), affiliate-link pattern detection, payment processor detection (Stripe, PayPal, Paddle, etc.), donation platform detection, and a **live `/ads.txt` fetch and entry count**.
+
+All of this — redirect-chain following, header inspection, timing,
+robots/sitemap fetches, broken-link sampling, image sampling, and
+`ads.txt` — comes from real HTTP requests the server makes at audit
+time. No third-party scanning API, no paid service, nothing beyond the
+audited site's own server responses (and Gemini, which is optional and
+free-tier — see above).
+
+See `lib/analyze.ts`, `lib/deep-signals.ts`, `lib/network-checks.ts`, and
+`lib/audit-modules.ts` for the full signal list and scoring formulas.

@@ -31,6 +31,21 @@ export interface BannerDesign {
   layout: "centered-badge" | "left-stacked";
 }
 
+export interface AuditModuleFinding {
+  label: string;
+  status: "pass" | "warn" | "fail";
+  detail: string;
+}
+
+export interface AuditModule {
+  id: string;
+  label: string;
+  status: "good" | "warning" | "critical";
+  score: number;
+  summary: string;
+  findings: AuditModuleFinding[];
+}
+
 export interface AuditResult {
   url: string;
   overall: number;
@@ -40,6 +55,7 @@ export interface AuditResult {
   xPost: string;
   linkedinPost: string;
   banner: BannerDesign;
+  modules: AuditModule[];
   _usage?: { used: number; limit: number; remaining: number; plan: string };
   competitor?: {
     url: string;
