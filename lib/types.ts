@@ -57,6 +57,7 @@ export interface AuditResult {
   banner: BannerDesign;
   modules: AuditModule[];
   _usage?: { used: number; limit: number; remaining: number; plan: string };
+  _reportId?: string | null;
   competitor?: {
     url: string;
     overall: number;

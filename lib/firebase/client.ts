@@ -19,4 +19,9 @@ export const firebaseApp = getApps().length ? getApp() : initializeApp(firebaseC
 export const auth = getAuth(firebaseApp);
 
 export const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({ prompt: "select_account" });
+
 export const githubProvider = new GithubAuthProvider();
+// Request email explicitly — some GitHub accounts have a private email,
+// and without this scope Firebase can fail to create/link the account.
+githubProvider.addScope("user:email");

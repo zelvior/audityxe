@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -11,7 +11,7 @@ import OAuthButtons from "@/components/OAuthButtons";
 import { useAuth } from "@/context/AuthContext";
 
 function RegisterForm() {
-  const { signUpWithEmail, signInWithGoogle, signInWithGithub, user } = useAuth();
+  const { signUpWithEmail, signInWithGoogle, signInWithGithub, user, authError } = useAuth();
   const router = useRouter();
   const params = useSearchParams();
   const redirectTo = params.get("redirect") || "/";
@@ -21,6 +21,10 @@ function RegisterForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (authError) setError(authError);
+  }, [authError]);
 
   if (user) {
     router.replace(redirectTo);

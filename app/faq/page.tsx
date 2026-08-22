@@ -1,0 +1,160 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
+
+export const metadata: Metadata = {
+  title: "FAQ — Audityxe",
+  description: "Answers to common questions about how Audityxe works, pricing, and limitations.",
+};
+
+const FAQS: { q: string; a: React.ReactNode }[] = [
+  {
+    q: "Who is Audityxe actually for?",
+    a: (
+      <>
+        Indie makers and solo founders shipping a landing page who want a fast, specific first
+        pass before launch; marketers who need a defensible reason a page underperforms; and
+        small agencies/freelancers who audit client sites and want a repeatable, shareable report
+        instead of a manual checklist. It's not a replacement for a full manual UX/SEO audit —
+        it's the fast first pass before you decide whether one is needed.
+      </>
+    ),
+  },
+  {
+    q: "Is this just a wrapper around an AI model?",
+    a: (
+      <>
+        No — and this is worth being precise about. All 6 category scores and the full 16-area
+        deep audit come from parsing the real live HTML and HTTP response of your page: heading
+        structure, meta tags, security headers, redirect chains, robots.txt/sitemap.xml fetched
+        live, sampled broken-link and image checks over real HTTP requests. None of that touches
+        an AI model. Gemini is used for exactly three things: the one-line verdict text, the
+        social promo copy, and the banner's headline — all optional commentary layered on top of
+        real, deterministic measurements. See the full{" "}
+        <Link href="/methodology" className="text-primary hover:underline">
+          methodology
+        </Link>{" "}
+        page.
+      </>
+    ),
+  },
+  {
+    q: "Do I need to create an account?",
+    a: "Yes. Running an audit requires a free account (email/password, Google, or GitHub) so we can apply fair per-account daily limits instead of one person exhausting shared capacity. It takes about 15 seconds and never requires a card.",
+  },
+  {
+    q: "What's the difference between Free, Standard, and Pro?",
+    a: (
+      <>
+        All three get the identical audit engine — the same 6 scores and 16-area deep audit,
+        nothing is dumbed down on Free. The only differences are daily audit volume (3 / 25 / 200
+        per day) and whether competitor head-to-head comparisons are unlocked (Standard and Pro
+        only). See the full breakdown on{" "}
+        <Link href="/pricing" className="text-primary hover:underline">
+          Pricing
+        </Link>
+        .
+      </>
+    ),
+  },
+  {
+    q: "How do I actually pay and upgrade?",
+    a: "There's no self-serve card checkout yet. Pick a plan and duration on the Pricing page, sign in, and clicking the buy button opens a pre-filled email to zelvior@proton.me with your account details — attach a payment screenshot and send it. Access is granted manually, usually within 24 hours, for the exact 30 or 365-day duration you selected.",
+  },
+  {
+    q: "Can I rerun an audit on the same URL?",
+    a: "Yes, anytime, as many times as your daily quota allows. Each run is a fresh live fetch, so if you've since fixed something, the new score will reflect that — nothing is cached against your account.",
+  },
+  {
+    q: "Why did my score change between two audits of the same page?",
+    a: "That means something about the page's live response actually changed — a deploy, an A/B test, a CDN cache update, or a feature flag. The engine has no randomness in it; identical HTML and headers always produce identical scores.",
+  },
+  {
+    q: "What can't Audityxe check?",
+    a: (
+      <>
+        We fetch raw HTML over HTTP, not a rendered browser — so JavaScript-rendered content,
+        true Core Web Vitals as Chrome measures them, and actual visual color contrast aren't
+        directly measurable. We use real proxies for these (missing width/height attributes,
+        lazy-loading usage, etc.) but we're upfront that they're proxies. Full details on the{" "}
+        <Link href="/methodology" className="text-primary hover:underline">
+          methodology
+        </Link>{" "}
+        page.
+      </>
+    ),
+  },
+  {
+    q: "Are the 'broken links' and 'broken images' checks always accurate?",
+    a: "We flag unambiguous errors (404, 410, 5xx) as broken. Ambiguous responses (401, 403, 429) are reported separately as 'blocked automated checks' rather than 'broken,' since many sites intentionally block bot traffic — that's not the same as a dead link, and we don't want to falsely alarm you.",
+  },
+  {
+    q: "What happens to the URLs and data I submit?",
+    a: (
+      <>
+        We fetch the public HTML of the URL you submit to generate your report — we don't store
+        your target site's HTML long-term, and we don't require any personal data beyond your
+        login email. See the full{" "}
+        <Link href="/privacy" className="text-primary hover:underline">
+          Privacy Policy
+        </Link>{" "}
+        for specifics.
+      </>
+    ),
+  },
+  {
+    q: "Can I share a report with someone else?",
+    a: "Yes — every completed audit can be saved as a public, read-only report page with its own shareable link, viewable by anyone without needing an account. Your account page keeps a history of your past reports.",
+  },
+  {
+    q: "Is there a bulk-audit option for agencies?",
+    a: "Yes — Pro plan accounts get bulk audit: submit up to 20 URLs at once and get back category scores for all of them in one request, ideal for auditing a client's full site map or a portfolio of properties.",
+  },
+  {
+    q: "Why don't you show customer testimonials?",
+    a: "Because Audityxe is new, and we'd rather show you a real, live sample report than fabricate quotes. Check the Sample Report page to see exactly what a real audit looks like before you sign up.",
+  },
+];
+
+export default function FaqPage() {
+  return (
+    <main className="min-h-screen flex flex-col">
+      <Header />
+      <div className="flex-1 px-4 sm:px-6 py-10 sm:py-14">
+        <div className="max-w-3xl mx-auto">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-text-secondary hover:text-primary transition mb-6"
+          >
+            <ArrowLeft size={14} /> Back to Audityxe
+          </Link>
+
+          <p className="text-xs font-mono text-text-secondary mb-3">FAQ</p>
+          <h1 className="font-display font-bold text-3xl sm:text-4xl tracking-tight mb-8">
+            Frequently asked questions
+          </h1>
+
+          <div className="space-y-6">
+            {FAQS.map((item, i) => (
+              <div key={i} className="glass rounded-2xl p-5 sm:p-6">
+                <h2 className="font-display font-semibold text-sm sm:text-base mb-2">{item.q}</h2>
+                <div className="text-sm text-text-secondary leading-relaxed">{item.a}</div>
+              </div>
+            ))}
+          </div>
+
+          <p className="text-sm text-text-secondary text-center mt-10">
+            Still have a question?{" "}
+            <Link href="/contact" className="text-primary hover:underline">
+              Get in touch
+            </Link>
+            .
+          </p>
+        </div>
+      </div>
+      <Footer />
+    </main>
+  );
+}

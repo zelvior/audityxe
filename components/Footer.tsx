@@ -2,6 +2,11 @@ import Link from "next/link";
 
 const links = [
   { href: "/about", label: "About" },
+  { href: "/methodology", label: "Methodology" },
+  { href: "/sample-report", label: "Sample Report" },
+  { href: "/faq", label: "FAQ" },
+  { href: "/pricing", label: "Pricing" },
+  { href: "/bulk", label: "Bulk Audit" },
   { href: "/privacy", label: "Privacy Policy" },
   { href: "/terms", label: "Terms of Service" },
   { href: "/cookies", label: "Cookie Policy" },

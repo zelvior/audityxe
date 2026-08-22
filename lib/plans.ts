@@ -59,6 +59,7 @@ export const PLANS: Record<PlanId, Plan> = {
     features: [
       "200 audits per day",
       "Everything in Standard",
+      "Bulk audit — up to 20 URLs in one request",
       "Highest-priority Gemini queue",
       "Early access to new audit modules",
       "Email support",

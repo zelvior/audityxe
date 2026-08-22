@@ -175,13 +175,13 @@ function extractSignals(html: string, finalUrl: string): Signals {
   const wordCount = visibleText ? visibleText.split(" ").length : 0;
 
   const buttonWords =
-    /(get started|sign up|try (it )?free|book a demo|contact sales|buy now|start free|subscribe|join now|download|add to cart|request a quote)/gi;
+    /(get started|sign up|sign in|log in|try (it )?free|book a demo|contact sales|buy now|start free|subscribe|join now|download|add to cart|request a quote|analyze now|learn more|shop now|order now|schedule a call)/gi;
   const buttonTags = bodyHtml.match(/<button\b[^>]*>[\s\S]*?<\/button>/gi) || [];
   const ctaAnchors = bodyHtml.match(/<a\b[^>]*class=["'][^"']*(btn|button|cta)[^"']*["'][^>]*>/gi) || [];
   const ctaButtonCount = buttonTags.length + ctaAnchors.length + (bodyHtml.match(buttonWords) || []).length;
 
   // Above-the-fold approximation: first 15% of body markup contains a CTA signal.
-  const foldSlice = bodyHtml.slice(0, Math.max(1200, Math.floor(bodyHtml.length * 0.15)));
+  const foldSlice = bodyHtml.slice(0, Math.max(1800, Math.floor(bodyHtml.length * 0.2)));
   const hasAboveFoldCta = buttonWords.test(foldSlice) || /<button\b/i.test(foldSlice) || /class=["'][^"']*(btn|button|cta)/i.test(foldSlice);
 
   const scriptTags = [...html.matchAll(/<script\b([^>]*)>/gi)];

@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { Download } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Download, Loader2 } from "lucide-react";
 import { AuditResult } from "@/lib/types";
 
 const W = 1200;
@@ -97,12 +97,40 @@ function wrapText(
   return curY;
 }
 
-function drawBackground(ctx: CanvasRenderingContext2D, accentColor: string) {
-  const bg = ctx.createLinearGradient(0, 0, W, H);
-  bg.addColorStop(0, "#0A0A0A");
-  bg.addColorStop(1, "#141018");
-  ctx.fillStyle = bg;
-  ctx.fillRect(0, 0, W, H);
+function drawBackground(ctx: CanvasRenderingContext2D, accentColor: string, aiImage: HTMLImageElement | null) {
+  if (aiImage) {
+    // Real AI-generated background (Pollinations.ai), cover-fit into the frame.
+    const imgRatio = aiImage.width / aiImage.height;
+    const frameRatio = W / H;
+    let drawW = W;
+    let drawH = H;
+    let offsetX = 0;
+    let offsetY = 0;
+    if (imgRatio > frameRatio) {
+      drawH = H;
+      drawW = H * imgRatio;
+      offsetX = (W - drawW) / 2;
+    } else {
+      drawW = W;
+      drawH = W / imgRatio;
+      offsetY = (H - drawH) / 2;
+    }
+    ctx.drawImage(aiImage, offsetX, offsetY, drawW, drawH);
+
+    // Dark scrim so headline/badge text stays fully readable over the art.
+    const scrim = ctx.createLinearGradient(0, 0, W, H);
+    scrim.addColorStop(0, "rgba(10,10,10,0.88)");
+    scrim.addColorStop(0.55, "rgba(10,10,10,0.72)");
+    scrim.addColorStop(1, "rgba(10,10,10,0.55)");
+    ctx.fillStyle = scrim;
+    ctx.fillRect(0, 0, W, H);
+  } else {
+    const bg = ctx.createLinearGradient(0, 0, W, H);
+    bg.addColorStop(0, "#0A0A0A");
+    bg.addColorStop(1, "#141018");
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, W, H);
+  }
 
   const glow1 = ctx.createRadialGradient(180, 120, 0, 180, 120, 420);
   glow1.addColorStop(0, accentColor + "59"); // ~35% alpha
@@ -116,19 +144,21 @@ function drawBackground(ctx: CanvasRenderingContext2D, accentColor: string) {
   ctx.fillStyle = glow2;
   ctx.fillRect(0, 0, W, H);
 
-  ctx.strokeStyle = "rgba(255,255,255,0.04)";
-  ctx.lineWidth = 1;
-  for (let x = 0; x < W; x += 40) {
-    ctx.beginPath();
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, H);
-    ctx.stroke();
-  }
-  for (let y = 0; y < H; y += 40) {
-    ctx.beginPath();
-    ctx.moveTo(0, y);
-    ctx.lineTo(W, y);
-    ctx.stroke();
+  if (!aiImage) {
+    ctx.strokeStyle = "rgba(255,255,255,0.04)";
+    ctx.lineWidth = 1;
+    for (let x = 0; x < W; x += 40) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, H);
+      ctx.stroke();
+    }
+    for (let y = 0; y < H; y += 40) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(W, y);
+      ctx.stroke();
+    }
   }
 }
 
@@ -233,13 +263,13 @@ function drawLeftStackedLayout(ctx: CanvasRenderingContext2D, result: AuditResul
   ctx.fillText("OVERALL SCORE / 10", 84, H - 74);
 }
 
-function draw(canvas: HTMLCanvasElement, result: AuditResult) {
+function draw(canvas: HTMLCanvasElement, result: AuditResult, aiImage: HTMLImageElement | null) {
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
 
   ctx.clearRect(0, 0, W, H);
   const accentColor = scoreColorFor(result.overall);
-  drawBackground(ctx, accentColor);
+  drawBackground(ctx, accentColor, aiImage);
 
   if (result.banner.layout === "left-stacked") {
     drawLeftStackedLayout(ctx, result, accentColor);
@@ -254,12 +284,55 @@ function draw(canvas: HTMLCanvasElement, result: AuditResult) {
   ctx.fillText("audityxe.app", 64, H - 50);
 }
 
+function bannerPrompt(result: AuditResult): string {
+  const mood =
+    result.overall >= 8
+      ? "bright, optimistic, clean futuristic"
+      : result.overall >= 5
+      ? "moody, atmospheric, tech-noir"
+      : "dark, dramatic, cautionary";
+  return `abstract ${mood} digital background, indigo and violet gradients, subtle circuit and network patterns, no text, no logos, no UI elements, cinematic lighting, 4k wallpaper`;
+}
+
+function hashSeed(input: string): number {
+  let h = 0;
+  for (let i = 0; i < input.length; i++) h = (h * 31 + input.charCodeAt(i)) >>> 0;
+  return h % 100000;
+}
+
 export default function BannerCanvas({ result }: { result: AuditResult }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [aiImage, setAiImage] = useState<HTMLImageElement | null>(null);
+  const [aiState, setAiState] = useState<"loading" | "ready" | "unavailable">("loading");
 
   useEffect(() => {
-    if (canvasRef.current) draw(canvasRef.current, result);
+    let cancelled = false;
+    setAiState("loading");
+    setAiImage(null);
+
+    const prompt = bannerPrompt(result);
+    const seed = hashSeed(result.url);
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      if (cancelled) return;
+      setAiImage(img);
+      setAiState("ready");
+    };
+    img.onerror = () => {
+      if (cancelled) return;
+      setAiState("unavailable");
+    };
+    img.src = `/api/banner-bg?prompt=${encodeURIComponent(prompt)}&seed=${seed}`;
+
+    return () => {
+      cancelled = true;
+    };
   }, [result]);
+
+  useEffect(() => {
+    if (canvasRef.current) draw(canvasRef.current, result, aiImage);
+  }, [result, aiImage]);
 
   function download() {
     const canvas = canvasRef.current;
@@ -272,12 +345,19 @@ export default function BannerCanvas({ result }: { result: AuditResult }) {
 
   return (
     <div className="glass rounded-2xl p-4 sm:p-5">
-      <canvas
-        ref={canvasRef}
-        width={W}
-        height={H}
-        className="w-full h-auto rounded-xl border border-border"
-      />
+      <div className="relative">
+        <canvas
+          ref={canvasRef}
+          width={W}
+          height={H}
+          className="w-full h-auto rounded-xl border border-border"
+        />
+        {aiState === "loading" && (
+          <div className="absolute top-3 right-3 flex items-center gap-1.5 text-[10px] font-mono px-2.5 py-1 rounded-full bg-black/60 text-text-secondary">
+            <Loader2 size={10} className="animate-spin" /> Generating AI background…
+          </div>
+        )}
+      </div>
       <button
         onClick={download}
         className="mt-4 w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-primary to-accent font-semibold text-sm hover:brightness-110 transition"

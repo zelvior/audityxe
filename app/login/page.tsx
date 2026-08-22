@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -11,7 +11,7 @@ import OAuthButtons from "@/components/OAuthButtons";
 import { useAuth } from "@/context/AuthContext";
 
 function LoginForm() {
-  const { signInWithEmail, signInWithGoogle, signInWithGithub, user } = useAuth();
+  const { signInWithEmail, signInWithGoogle, signInWithGithub, user, authError } = useAuth();
   const router = useRouter();
   const params = useSearchParams();
   const redirectTo = params.get("redirect") || "/";
@@ -19,6 +19,10 @@ function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (authError) setError(authError);
+  }, [authError]);
   const [busy, setBusy] = useState(false);
 
   if (user) {

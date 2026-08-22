@@ -2,11 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { AlertTriangle, Lock, Zap } from "lucide-react";
+import { AlertTriangle, Lock, Zap, Share2 } from "lucide-react";
 import Link from "next/link";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import Hero from "@/components/Hero";
+import TrustSection from "@/components/TrustSection";
 import ScanProgress from "@/components/ScanProgress";
 import ScoreCard from "@/components/ScoreCard";
 import DiffFixes from "@/components/DiffFixes";
@@ -104,6 +105,8 @@ export default function Home() {
         canCompare={canCompare}
       />
 
+      {phase === "idle" && <TrustSection />}
+
       <AnimatePresence mode="wait">
         {phase === "scanning" && (
           <motion.div key="scan" exit={{ opacity: 0 }}>
@@ -143,7 +146,7 @@ export default function Home() {
             transition={{ duration: 0.4 }}
           >
             {result._usage && (
-              <div className="px-4 sm:px-6 max-w-4xl mx-auto -mb-2 pt-6">
+              <div className="px-4 sm:px-6 max-w-4xl mx-auto -mb-2 pt-6 flex flex-wrap items-center gap-x-4 gap-y-1">
                 <p className="text-[11px] font-mono text-text-secondary/70 flex items-center gap-1.5">
                   <Lock size={11} />
                   {result._usage.remaining} of {result._usage.limit} audits left today on the{" "}
@@ -152,6 +155,15 @@ export default function Home() {
                     Upgrade
                   </Link>
                 </p>
+                {result._reportId && (
+                  <Link
+                    href={`/report/${result._reportId}`}
+                    target="_blank"
+                    className="text-[11px] font-mono text-primary hover:underline flex items-center gap-1"
+                  >
+                    <Share2 size={11} /> View shareable report
+                  </Link>
+                )}
               </div>
             )}
             <ScoreCard result={result} tone={tone} onToneChange={setTone} />

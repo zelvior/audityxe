@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, LogOut, Loader2, Zap, Mail, ShieldCheck } from "lucide-react";
+import { ArrowLeft, LogOut, Loader2, Zap, Mail, ShieldCheck, History, ExternalLink } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useAuth } from "@/context/AuthContext";
@@ -18,12 +18,27 @@ interface UsageData {
   planExpired: boolean;
 }
 
+interface ReportSummary {
+  id: string;
+  url: string;
+  overall: number;
+  createdAt: string;
+}
+
+function scoreColor(score: number) {
+  if (score >= 8) return "text-emerald";
+  if (score >= 5) return "text-amber";
+  return "text-rose";
+}
+
 export default function AccountPage() {
   const { user, loading, getToken, signOut } = useAuth();
   const router = useRouter();
   const [usage, setUsage] = useState<UsageData | null>(null);
   const [usageError, setUsageError] = useState("");
   const [fetching, setFetching] = useState(true);
+  const [reports, setReports] = useState<ReportSummary[] | null>(null);
+  const [reportsFetching, setReportsFetching] = useState(true);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -49,6 +64,29 @@ export default function AccountPage() {
         if (!cancelled) setUsageError(err instanceof Error ? err.message : "Something went wrong.");
       } finally {
         if (!cancelled) setFetching(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user, getToken]);
+
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    (async () => {
+      setReportsFetching(true);
+      try {
+        const token = await getToken();
+        const res = await fetch("/api/reports", {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        const data = await res.json();
+        if (res.ok && !cancelled) setReports(data.reports || []);
+      } catch {
+        // History is a nice-to-have — fail silently rather than blocking the page.
+      } finally {
+        if (!cancelled) setReportsFetching(false);
       }
     })();
     return () => {
@@ -177,6 +215,52 @@ export default function AccountPage() {
               </Link>
             </div>
           )}
+
+          <div className="glass rounded-2xl p-5 sm:p-6 mb-5">
+            <span className="flex items-center gap-2 text-sm font-semibold mb-3">
+              <History size={15} className="text-primary" /> Audit history
+            </span>
+            {reportsFetching && (
+              <div className="flex items-center gap-2 text-sm text-text-secondary py-2">
+                <Loader2 size={14} className="animate-spin" /> Loading history…
+              </div>
+            )}
+            {!reportsFetching && reports && reports.length === 0 && (
+              <p className="text-sm text-text-secondary">
+                No audits yet — run your first one from the homepage.
+              </p>
+            )}
+            {!reportsFetching && reports && reports.length > 0 && (
+              <ul className="space-y-2">
+                {reports.map((r) => (
+                  <li key={r.id}>
+                    <Link
+                      href={`/report/${r.id}`}
+                      target="_blank"
+                      className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 transition group"
+                    >
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">{r.url}</p>
+                        <p className="text-[11px] text-text-secondary">
+                          {new Date(r.createdAt).toLocaleDateString(undefined, {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                          })}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className={`font-display font-bold text-sm ${scoreColor(r.overall)}`}>
+                          {r.overall.toFixed(1)}
+                        </span>
+                        <ExternalLink size={13} className="text-text-secondary group-hover:text-primary transition" />
+                      </div>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
 
           <button
             onClick={async () => {

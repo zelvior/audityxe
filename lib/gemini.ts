@@ -51,11 +51,19 @@ function keysForTask(task: GeminiTask): string[] {
 }
 
 function modelForTask(task: GeminiTask): string {
-  return (
-    process.env[`GEMINI_MODEL_${task}`] ||
-    process.env.GEMINI_MODEL ||
-    "gemini-2.0-flash"
-  );
+  return process.env[`GEMINI_MODEL_${task}`] || process.env.GEMINI_MODEL || "gemini-2.0-flash";
+}
+
+/** If the configured/default model is unavailable for a given key (wrong
+ * name, deprecated, or not enabled for that key's project), these are
+ * tried next, in order, before giving up on that key. All three are
+ * free-tier eligible via Google AI Studio as of this writing. */
+const MODEL_FALLBACK_CHAIN = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-flash-8b"];
+
+function modelsToTry(task: GeminiTask): string[] {
+  const preferred = modelForTask(task);
+  const chain = [preferred, ...MODEL_FALLBACK_CHAIN.filter((m) => m !== preferred)];
+  return chain;
 }
 
 function timeoutForTask(task: GeminiTask): number {
@@ -70,6 +78,7 @@ interface KeyAttemptResult {
   ok: boolean;
   text?: string;
   retryable: boolean;
+  modelProblem: boolean; // true if trying a different model for the SAME key might help
   reason?: string;
 }
 
@@ -112,25 +121,47 @@ async function callGeminiWithKey(
 
     if (res.status === 429 || res.status === 503) {
       // Rate-limited or overloaded — safe to retry with the next key.
-      return { ok: false, retryable: true, reason: `status ${res.status}` };
+      return { ok: false, retryable: true, modelProblem: false, reason: `rate-limited/overloaded (${res.status})` };
     }
     if (res.status === 401 || res.status === 403) {
+      const body = await res.json().catch(() => null);
+      const apiMessage = body?.error?.message ? ` — ${body.error.message}` : "";
       // Bad/revoked key for this task — try the next key, not this one again.
-      return { ok: false, retryable: true, reason: `auth error ${res.status}` };
+      return { ok: false, retryable: true, modelProblem: false, reason: `auth error ${res.status}${apiMessage}` };
+    }
+    if (res.status === 404 || res.status === 400) {
+      const body = await res.json().catch(() => null);
+      const apiMessage = body?.error?.message || "";
+      // Wrong/unavailable model name is the most common cause here — try
+      // a different model on the SAME key before giving up on the key.
+      return {
+        ok: false,
+        retryable: true,
+        modelProblem: true,
+        reason: `status ${res.status}${apiMessage ? ` — ${apiMessage}` : ""}`,
+      };
     }
     if (!res.ok) {
-      return { ok: false, retryable: true, reason: `status ${res.status}` };
+      const body = await res.json().catch(() => null);
+      const apiMessage = body?.error?.message ? ` — ${body.error.message}` : "";
+      return { ok: false, retryable: true, modelProblem: false, reason: `status ${res.status}${apiMessage}` };
     }
 
     const data = await res.json();
     const text: string | undefined = data?.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!text) {
-      return { ok: false, retryable: true, reason: "empty response" };
+      const blockReason = data?.promptFeedback?.blockReason;
+      return {
+        ok: false,
+        retryable: true,
+        modelProblem: false,
+        reason: blockReason ? `blocked (${blockReason})` : "empty response",
+      };
     }
-    return { ok: true, text, retryable: false };
+    return { ok: true, text, retryable: false, modelProblem: false };
   } catch (err) {
     const aborted = err instanceof Error && err.name === "AbortError";
-    return { ok: false, retryable: true, reason: aborted ? "timeout" : "network error" };
+    return { ok: false, retryable: true, modelProblem: false, reason: aborted ? "timeout" : "network error" };
   } finally {
     clearTimeout(timer);
   }
@@ -152,27 +183,34 @@ export async function generateJsonForTask<T>(
     return null;
   }
 
-  const model = modelForTask(task);
+  const models = modelsToTry(task);
   const timeoutMs = options.timeoutMs ?? timeoutForTask(task);
   const temperature = options.temperature ?? 0.8;
 
   const failures: string[] = [];
 
   for (let i = 0; i < keys.length; i++) {
-    const result = await callGeminiWithKey(keys[i], model, prompt, timeoutMs, temperature);
+    for (let m = 0; m < models.length; m++) {
+      const result = await callGeminiWithKey(keys[i], models[m], prompt, timeoutMs, temperature);
 
-    if (result.ok && result.text) {
-      try {
-        const cleaned = extractJsonBlock(result.text);
-        return JSON.parse(cleaned) as T;
-      } catch {
-        failures.push(`key #${i + 1}: malformed JSON`);
-        continue; // try next key
+      if (result.ok && result.text) {
+        try {
+          const cleaned = extractJsonBlock(result.text);
+          return JSON.parse(cleaned) as T;
+        } catch {
+          failures.push(`key #${i + 1} (${models[m]}): malformed JSON`);
+          break; // malformed JSON won't be fixed by a different model — move to next key
+        }
       }
-    }
 
-    failures.push(`key #${i + 1}: ${result.reason}`);
-    if (!result.retryable) break;
+      failures.push(`key #${i + 1} (${models[m]}): ${result.reason}`);
+
+      if (result.modelProblem && m < models.length - 1) {
+        continue; // try the next model with this same key
+      }
+      if (!result.retryable) break;
+      break; // move to next key (either non-retryable, or retryable-but-not-a-model-issue)
+    }
   }
 
   if (failures.length > 0) {

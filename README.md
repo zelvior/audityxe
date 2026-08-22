@@ -1,6 +1,8 @@
 # Audityxe
 
-Instant AI site audit & viral promo generator.
+Instant AI site audit & viral promo generator — with a live, deterministic
+scoring engine underneath the AI commentary, full public methodology, a
+real sample report, and shareable public audit pages.
 
 ## Setup
 
@@ -14,21 +16,59 @@ Auditing requires a signed-in account (email/password, Google, or GitHub via
 Firebase Auth). See **Authentication & accounts** below before running
 locally, or `/api/audit` will reject every request with a 401.
 
+## Pages
+
+| Route | Purpose |
+|---|---|
+| `/` | Landing + audit tool (gated behind sign-in) + trust/differentiation section |
+| `/login`, `/register` | Auth (email/password, Google, GitHub) |
+| `/account` | Plan, usage, expiry, and real audit history |
+| `/pricing` | Plans, dynamic local-currency pricing, manual upgrade flow |
+| `/bulk` | Pro-only bulk audit (up to 20 URLs) |
+| `/methodology` | Full transparency on what's measured, how, and its limits |
+| `/faq` | Common questions, answered honestly |
+| `/sample-report` | A real, live, unedited audit — regenerated hourly |
+| `/report/[id]` | Public, read-only shareable report for a completed audit |
+| `/about`, `/contact`, `/privacy`, `/terms`, `/cookies`, `/disclaimer` | Standard/legal pages |
+
 ## Authentication & accounts
 
 Audityxe requires sign-in to use the audit tool at all — there is no
 anonymous/guest path. Three sign-in methods, each on their own page:
 
-- `/register` — email + password, or Google / GitHub via Firebase Auth popup.
+- `/register` — email + password, or Google / GitHub via Firebase Auth.
 - `/login` — same three methods for returning users.
-- `/account` — shows the signed-in user, current plan, and today's usage.
+- `/account` — shows the signed-in user, current plan, today's usage, and
+  a real history of past audits with shareable links.
 
 Firebase Auth (client SDK) handles identity. Every authenticated request to
-`/api/audit` and `/api/account` sends the user's Firebase ID token as
-`Authorization: Bearer <token>`; the server verifies it with the Firebase
-Admin SDK (`lib/auth-server.ts`) before doing any work — a request with no
-token, an expired token, or a forged token is rejected with 401 before the
-target URL is ever fetched.
+`/api/audit`, `/api/account`, `/api/reports`, and `/api/audit/bulk` sends
+the user's Firebase ID token as `Authorization: Bearer <token>`; the
+server verifies it with the Firebase Admin SDK (`lib/auth-server.ts`)
+before doing any work — a request with no token, an expired token, or a
+forged token is rejected with 401 before the target URL is ever fetched.
+
+### OAuth reliability (Google & GitHub)
+
+Google/GitHub sign-in tries a popup first, and **automatically falls back
+to a full-page redirect** (`signInWithRedirect`) if the popup is blocked,
+closed, or fails for reasons unrelated to your Firebase config — this
+covers the most common real-world failure mode: Safari's Intelligent
+Tracking Prevention, in-app browsers (Instagram/TikTok/LinkedIn webviews),
+and some corporate networks block third-party popups even when
+everything on the Firebase Console side is configured correctly. The
+redirect result is picked up automatically on the next page load
+(`getRedirectResult()` in `context/AuthContext.tsx`).
+
+If sign-in still fails, the error message shown is the *real* Firebase
+error, mapped to plain English — check it against this list:
+
+| Error you see | What it means |
+|---|---|
+| "This domain isn't authorized for sign-in yet" | Add your domain in Firebase Console → Authentication → Settings → Authorized domains (include `localhost` for local dev). |
+| "This sign-in method isn't enabled yet" | Enable Google/GitHub in Firebase Console → Authentication → Sign-in method. |
+| "Firebase rejected the request — check that the OAuth provider is fully configured" | For GitHub specifically: the callback URL in your GitHub OAuth App must exactly match `https://<your-project>.firebaseapp.com/__/auth/handler`, and the Client ID/Secret must be pasted into the Firebase Console's GitHub provider settings (not just left in `.env.local` — that copy is for your own reference only). |
+| "An account already exists with this email using a different sign-in method" | The user previously signed up with email/password (or the other OAuth provider) using the same email — have them use that method instead. |
 
 ### Required setup in the Firebase Console
 
@@ -38,15 +78,24 @@ target URL is ever fetched.
    callback URL) and paste its Client ID/Secret into the GitHub provider
    config in the Firebase Console — Firebase handles the OAuth exchange
    itself once configured there.
-3. **Project settings → Service accounts** → generate a private key and
+3. **Authentication → Settings → Authorized domains** → add every domain
+   you'll actually sign in from (`localhost` is included by default;
+   add your production domain when you deploy).
+4. **Project settings → Service accounts** → generate a private key and
    fill `FIREBASE_PROJECT_ID` / `FIREBASE_CLIENT_EMAIL` / `FIREBASE_PRIVATE_KEY`
    in `.env.local`. This is what lets the server verify ID tokens and read/
    write Firestore.
-4. **Firestore Database** → create a database (if not already created for
+5. **Firestore Database** → create a database (if not already created for
    this project), then deploy `firestore.rules` (or paste its contents into
    the console's Rules tab). The app never talks to Firestore from the
    client — all reads/writes go through the Admin SDK server-side — so the
    rules simply deny all direct client access.
+6. **Firestore index** → the report-history query (`reports` collection,
+   filtered by `uid` and ordered by `createdAt`) needs a composite index.
+   Firestore will throw an error containing a direct "create this index"
+   link the first time the query runs — click it once, or create it
+   manually: collection `reports`, fields `uid` (Ascending) + `createdAt`
+   (Descending).
 
 ## Plans, pricing & rate limiting
 
@@ -209,3 +258,68 @@ free-tier — see above).
 
 See `lib/analyze.ts`, `lib/deep-signals.ts`, `lib/network-checks.ts`, and
 `lib/audit-modules.ts` for the full signal list and scoring formulas.
+
+## Shareable reports & audit history
+
+Every completed audit is saved to Firestore (`reports/{id}`, via
+`lib/reports.ts`) as a real snapshot of that result — not a live pointer
+that changes later. This powers three things:
+
+- A **"View shareable report"** link appears after every audit, opening
+  `/report/[id]` — a public, read-only page anyone can view without an
+  account, showing the exact scores/modules/fixes from that run.
+- `/account` shows a real **audit history** list (via `/api/reports`,
+  scoped to the signed-in user's own `uid`) linking back to each past
+  report.
+- `/sample-report` uses the same rendering path against a fixed public
+  demo target (`https://github.com` by default), regenerated at most
+  once an hour (`revalidate = 3600`) — a genuinely live example visitors
+  can see before creating an account.
+
+Saving a report is best-effort: if it fails for any reason, the audit
+itself still succeeds and returns normally — history/sharing never blocks
+the core feature.
+
+## Bulk audit (Pro plan)
+
+`/bulk` accepts up to 20 URLs (one per line) and audits all of them in a
+single request (`/api/audit/bulk`, `lib/audit-modules.ts`/`lib/analyze.ts`
+reused as-is, 4 concurrent fetches). It's gated to the Pro plan, checked
+against the account's real, non-expired plan server-side — not by
+anything the client sends. Each URL consumes one slot from the same daily
+quota as single audits, checked and reserved transactionally *before* any
+network work starts, so a request that would exceed the day's quota fails
+fast without partially running.
+
+## Security headers on Audityxe itself
+
+Beyond auditing *other* sites for security headers, Audityxe sets its own
+via `next.config.js`: a scoped Content-Security-Policy, HSTS,
+X-Frame-Options, X-Content-Type-Options, Referrer-Policy, and a
+Permissions-Policy — plus `poweredByHeader: false` so it doesn't leak
+`X-Powered-By: Next.js`. If you add new third-party scripts/domains,
+update the CSP's `script-src`/`connect-src`/`frame-src` directives in
+`next.config.js` accordingly, or they'll be silently blocked.
+
+## AI-generated banner backgrounds
+
+The shareable banner's background art is a real AI-generated image, not
+a stock template — generated on demand via
+[Pollinations.ai](https://pollinations.ai) (free, keyless, Stable
+Diffusion-based) using a prompt derived from the audit's score and tone.
+Requests are proxied server-side through `/api/banner-bg` rather than
+fetched directly from the client, because Pollinations doesn't reliably
+send CORS headers — fetching it client-side would taint the `<canvas>`
+and break `canvas.toDataURL()` (the PNG download). If image generation
+is slow or unavailable, the banner falls back to the original
+gradient/grid design — the download button always produces a complete,
+correctly-composited image either way.
+
+## Zelvior Runtime
+
+Audityxe loads [`zelvior-runtime`](https://www.npmjs.com/package/zelvior-runtime)
+from jsDelivr via `next/script` (`strategy="afterInteractive"`) in the
+root layout, for lightweight client-side performance instrumentation. If
+you fork this project without needing it, remove the two `<Script>` tags
+in `app/layout.tsx` and drop `https://cdn.jsdelivr.net` from the CSP's
+`script-src` in `next.config.js`.

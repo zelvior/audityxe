@@ -3,6 +3,7 @@ import { runAudit } from "@/lib/analyze";
 import { requireAuth, AuthError } from "@/lib/auth-server";
 import { ensureUserDoc, checkAndIncrementUsage } from "@/lib/rate-limit";
 import { PLANS } from "@/lib/plans";
+import { saveReport } from "@/lib/reports";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -68,9 +69,20 @@ export async function POST(req: NextRequest) {
 
   try {
     const result = await runAudit(url, competitorUrl);
+
+    let reportId: string | null = null;
+    try {
+      reportId = await saveReport(identity.uid, result);
+    } catch {
+      // Saving the shareable report is best-effort — never fail an
+      // otherwise-successful audit just because history couldn't be
+      // persisted.
+    }
+
     return NextResponse.json({
       ...result,
       _usage: { used: usage.used, limit: usage.limit, remaining: usage.remaining, plan: usage.plan },
+      _reportId: reportId,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to fetch and analyze the site.";
