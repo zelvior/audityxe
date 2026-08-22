@@ -144,7 +144,11 @@ export async function checkOgImage(ogImageUrl: string | null, baseUrl: string): 
   if (!ogImageUrl) return { checked: false, exists: false, isImage: false, sizeKb: null };
   const resolved = resolveUrl(ogImageUrl, baseUrl);
   if (!resolved) return { checked: false, exists: false, isImage: false, sizeKb: null };
-  const result = await probe(resolved, "HEAD");
+  // GET rather than HEAD: many dynamic/edge image endpoints (including
+  // Audityxe's own /opengraph-image) stream their response and don't
+  // reliably support HEAD, which would otherwise produce a false
+  // "couldn't verify" result for a perfectly working image.
+  const result = await probe(resolved, "GET");
   return {
     checked: true,
     exists: result.ok,

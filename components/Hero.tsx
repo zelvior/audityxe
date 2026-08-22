@@ -73,6 +73,7 @@ export default function Hero({ onAnalyze, disabled, isAuthed, authLoading, canCo
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             placeholder="Enter a website URL, e.g. yoursite.com"
+            aria-label="Website URL to audit"
             className="flex-1 min-w-0 bg-transparent px-3.5 sm:px-4 py-3 text-sm sm:text-base placeholder:text-text-secondary/60 outline-none"
             disabled={disabled}
           />
@@ -127,6 +128,7 @@ export default function Hero({ onAnalyze, disabled, isAuthed, authLoading, canCo
                   value={competitorUrl}
                   onChange={(e) => setCompetitorUrl(e.target.value)}
                   placeholder="Competitor URL"
+                  aria-label="Competitor website URL"
                   className="flex-1 glass rounded-xl px-4 py-2.5 text-sm outline-none placeholder:text-text-secondary/60"
                   disabled={disabled}
                 />

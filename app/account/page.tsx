@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, LogOut, Loader2, Zap, Mail, ShieldCheck, History, ExternalLink } from "lucide-react";
+import { ArrowLeft, LogOut, Loader2, Zap, Mail, ShieldCheck, History, ExternalLink, RefreshCw } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useAuth } from "@/context/AuthContext";
@@ -46,53 +46,55 @@ export default function AccountPage() {
     }
   }, [loading, user, router]);
 
-  useEffect(() => {
+  const fetchUsage = useCallback(async () => {
     if (!user) return;
-    let cancelled = false;
-    (async () => {
-      setFetching(true);
-      setUsageError("");
-      try {
-        const token = await getToken();
-        const res = await fetch("/api/account", {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Couldn't load account usage.");
-        if (!cancelled) setUsage(data);
-      } catch (err) {
-        if (!cancelled) setUsageError(err instanceof Error ? err.message : "Something went wrong.");
-      } finally {
-        if (!cancelled) setFetching(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
+    setFetching(true);
+    setUsageError("");
+    try {
+      const token = await getToken();
+      const res = await fetch("/api/account", {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Couldn't load account usage.");
+      setUsage(data);
+    } catch (err) {
+      setUsageError(err instanceof Error ? err.message : "Something went wrong.");
+    } finally {
+      setFetching(false);
+    }
+  }, [user, getToken]);
+
+  const fetchReports = useCallback(async () => {
+    if (!user) return;
+    setReportsFetching(true);
+    try {
+      const token = await getToken();
+      const res = await fetch("/api/reports", {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      const data = await res.json();
+      if (res.ok) setReports(data.reports || []);
+    } catch {
+      // History is a nice-to-have — fail silently rather than blocking the page.
+    } finally {
+      setReportsFetching(false);
+    }
   }, [user, getToken]);
 
   useEffect(() => {
-    if (!user) return;
-    let cancelled = false;
-    (async () => {
-      setReportsFetching(true);
-      try {
-        const token = await getToken();
-        const res = await fetch("/api/reports", {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        });
-        const data = await res.json();
-        if (res.ok && !cancelled) setReports(data.reports || []);
-      } catch {
-        // History is a nice-to-have — fail silently rather than blocking the page.
-      } finally {
-        if (!cancelled) setReportsFetching(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [user, getToken]);
+    fetchUsage();
+    fetchReports();
+    // Refresh whenever the tab regains focus, so a plan change made
+    // directly in Firestore (manual approval) is reflected without
+    // requiring a logout/login or manual page reload.
+    function onFocus() {
+      fetchUsage();
+      fetchReports();
+    }
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [fetchUsage, fetchReports]);
 
   if (loading || !user) {
     return (
@@ -140,11 +142,25 @@ export default function AccountPage() {
               <span className="flex items-center gap-2 text-sm font-semibold">
                 <Zap size={15} className="text-primary" /> Usage today
               </span>
-              {plan && (
-                <span className="text-xs font-mono px-2.5 py-1 rounded-full bg-primary/15 text-primary">
-                  {plan.name} plan
-                </span>
-              )}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    fetchUsage();
+                    fetchReports();
+                  }}
+                  disabled={fetching}
+                  className="text-text-secondary hover:text-primary transition disabled:opacity-40"
+                  title="Refresh"
+                  aria-label="Refresh account status"
+                >
+                  <RefreshCw size={14} className={fetching ? "animate-spin" : ""} />
+                </button>
+                {plan && (
+                  <span className="text-xs font-mono px-2.5 py-1 rounded-full bg-primary/15 text-primary">
+                    {plan.name} plan
+                  </span>
+                )}
+              </div>
             </div>
 
             {usage?.planExpired && (

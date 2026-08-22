@@ -33,6 +33,21 @@ export default function DiffFixes({ result, tone }: { result: AuditResult; tone:
         </p>
 
         <div className="space-y-4">
+          {result.fixes.length === 0 && (
+            <div className="glass rounded-2xl p-6 sm:p-8 text-center">
+              <p className="text-sm sm:text-base font-medium mb-1">
+                No urgent fixes found on this pass.
+              </p>
+              <p className="text-xs sm:text-sm text-text-secondary">
+                None of the specific problems we check for were detected on this page. That
+                doesn't guarantee perfection — see the{" "}
+                <a href="/methodology" className="text-primary hover:underline">
+                  methodology
+                </a>{" "}
+                for what we can and can't measure — but it's a genuinely good sign.
+              </p>
+            </div>
+          )}
           {result.fixes.map((fix, i) => (
             <motion.div
               key={fix.id}

@@ -108,6 +108,7 @@ export interface MobileSignals {
   viewportHasWidthDevice: boolean;
   viewportAllowsUserScaling: boolean;
   mediaQueryCount: number;
+  responsiveClassHintCount: number;
   appleTouchIconCount: number;
   hasMaskIcon: boolean;
   touchIconSizes: string[];
@@ -498,6 +499,14 @@ export function extractDeepSignals(html: string): DeepSignals {
   const viewportContent = viewportMatch ? viewportMatch[1] : null;
   const inlineStyleBlocks = [...html.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/gi)].map((m) => m[1]).join("\n");
   const mediaQueryCount = (inlineStyleBlocks.match(/@media[^{]+\{/gi) || []).length;
+  // Utility-class responsive frameworks (Tailwind, Bootstrap, Bulma, etc.)
+  // apply their breakpoints from an external stylesheet we don't fetch —
+  // but the responsive intent is still real and visible right in the
+  // class names on real elements, so it's a legitimate proxy signal when
+  // no inline @media rules are present to inspect directly.
+  const responsiveClassHintCount = (
+    html.match(/class\s*=\s*["'][^"']*\b(?:sm|md|lg|xl|2xl):[a-z-]|class\s*=\s*["'][^"']*\b(?:col-(?:sm|md|lg|xl)-\d|is-mobile|is-tablet|is-desktop)\b/gi) || []
+  ).length;
   const touchIconSizes = [...html.matchAll(/<link[^>]+rel=["']apple-touch-icon["'][^>]*sizes=["']([^"']+)["']/gi)].map(
     (m) => m[1]
   );
@@ -507,6 +516,7 @@ export function extractDeepSignals(html: string): DeepSignals {
     viewportHasWidthDevice: !!viewportContent && /width\s*=\s*device-width/i.test(viewportContent),
     viewportAllowsUserScaling: !viewportContent || !/user-scalable\s*=\s*no|maximum-scale\s*=\s*1(?:\.0)?\b/i.test(viewportContent),
     mediaQueryCount,
+    responsiveClassHintCount,
     appleTouchIconCount: (html.match(/<link[^>]+rel=["']apple-touch-icon["']/gi) || []).length,
     hasMaskIcon: /<link[^>]+rel=["']mask-icon["']/i.test(html),
     touchIconSizes,

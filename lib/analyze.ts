@@ -958,30 +958,36 @@ function buildPromo(host: string, overall: number) {
 /* ────────────────────────────────────────────────────────────────
    Live fetch + orchestration
    ──────────────────────────────────────────────────────────────── */
-async function fetchWithTimeout(url: string, timeoutMs: number): Promise<Response | null> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const res = await fetch(url, {
-      signal: controller.signal,
-      redirect: "follow",
-      headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; AudityxeBot/1.0; +https://audityxe.app)",
-      },
-    });
-    return res;
-  } catch {
-    return null;
-  } finally {
-    clearTimeout(timer);
+async function fetchWithTimeout(url: string, timeoutMs: number, retries = 1): Promise<Response | null> {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const res = await fetch(url, {
+        signal: controller.signal,
+        redirect: "follow",
+        headers: {
+          "User-Agent": "Mozilla/5.0 (compatible; AudityxeBot/1.0; +https://audityxe.app)",
+        },
+      });
+      return res;
+    } catch {
+      if (attempt === retries) return null;
+      // One quick retry absorbs transient DNS/TLS/connection hiccups —
+      // without this, a single dropped packet could wrongly report a
+      // real robots.txt/sitemap.xml as "could not be checked."
+    } finally {
+      clearTimeout(timer);
+    }
   }
+  return null;
 }
 
 /** Fetches and parses the real /robots.txt for the target origin. Never
  * throws — a missing or unreachable robots.txt is itself a real, valid
  * finding (and is scored/flagged as such), not an error. */
 async function analyzeRobotsTxt(origin: string): Promise<RobotsSignals> {
-  const res = await fetchWithTimeout(`${origin}/robots.txt`, 8000);
+  const res = await fetchWithTimeout(`${origin}/robots.txt`, 6000);
   if (!res) {
     return { fetched: false, exists: false, blocksAllCrawlers: false, referencesSitemap: false, sitemapUrls: [], ruleCount: 0 };
   }
@@ -1024,7 +1030,7 @@ async function analyzeRobotsTxt(origin: string): Promise<RobotsSignals> {
  * <urlset> and a <sitemapindex> of nested sitemaps. */
 async function analyzeSitemap(origin: string, robotsSitemapUrls: string[]): Promise<SitemapSignals> {
   const candidateUrl = robotsSitemapUrls[0] || `${origin}/sitemap.xml`;
-  const res = await fetchWithTimeout(candidateUrl, 8000);
+  const res = await fetchWithTimeout(candidateUrl, 6000);
 
   if (!res) {
     return { fetched: false, exists: false, isValidXml: false, urlCount: 0, hasLastmod: false, isSitemapIndex: false };

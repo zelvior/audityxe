@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Script from "next/script";
+import { Analytics } from "@vercel/analytics/react";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 
@@ -12,6 +13,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: "Audityxe — Instant AI Site Audit & Viral Promo Generator",
   description: SITE_DESCRIPTION,
+  generator: "Next.js",
   alternates: { canonical: "/" },
   openGraph: {
     title: "Audityxe — Instant AI Site Audit & Viral Promo Generator",
@@ -24,6 +26,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Audityxe — Instant AI Site Audit & Viral Promo Generator",
     description: SITE_DESCRIPTION,
+    site: "@audityxe",
   },
 };
 
@@ -75,6 +78,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="font-body antialiased min-h-screen">
         <AuthProvider>{children}</AuthProvider>
+        <Analytics />
         {/* Zelvior Runtime — lightweight client-side performance instrumentation. */}
         <Script src="https://cdn.jsdelivr.net/npm/zelvior-runtime/dist/zelvior.min.js" strategy="afterInteractive" />
         <Script id="zelvior-enable" strategy="afterInteractive">

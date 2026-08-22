@@ -196,7 +196,12 @@ export function buildAuditModules(ctx: ModuleContext): AuditModule[] {
           : fail("Pinch-to-zoom", "Disabled via user-scalable=no or maximum-scale=1 — an accessibility violation."),
         d.mobile.mediaQueryCount > 0
           ? pass("Responsive CSS", `${d.mobile.mediaQueryCount} @media quer${d.mobile.mediaQueryCount === 1 ? "y" : "ies"} found in inline styles.`)
-          : warn("Responsive CSS", "No @media queries found in inline <style> blocks (external stylesheets not inspected)."),
+          : d.mobile.responsiveClassHintCount > 0
+          ? pass(
+              "Responsive CSS",
+              `No inline @media rules, but ${d.mobile.responsiveClassHintCount} responsive utility-class usage(s) found (e.g. Tailwind-style sm:/md:/lg: breakpoints) — real evidence of a responsive framework, even though its rules live in an external stylesheet we don't fetch.`
+            )
+          : warn("Responsive CSS", "No @media queries found in inline <style> blocks, and no responsive utility-class framework detected (external stylesheets aren't inspected)."),
         d.mobile.appleTouchIconCount > 0
           ? pass("Apple touch icon", `${d.mobile.appleTouchIconCount} declared.`)
           : warn("Apple touch icon", "Missing — iOS home-screen bookmarks fall back to a screenshot."),
@@ -233,7 +238,11 @@ export function buildAuditModules(ctx: ModuleContext): AuditModule[] {
   /* 7. Technical stack ────────────────────────────────────────────── */
   const stackFindings: AuditModuleFinding[] = [];
   if (d.techStack.detectedCMS) stackFindings.push(pass("CMS / platform", `Detected: ${d.techStack.detectedCMS}.`));
-  else stackFindings.push(warn("CMS / platform", "No known CMS/platform signature detected — likely custom-built."));
+  else if (d.techStack.detectedFrameworks.length > 0)
+    stackFindings.push(
+      pass("CMS / platform", `No traditional CMS — custom-built with ${d.techStack.detectedFrameworks.join(", ")}, which is a legitimate and common approach.`)
+    );
+  else stackFindings.push(warn("CMS / platform", "No known CMS or JS framework signature detected — stack couldn't be identified."));
   if (d.techStack.detectedFrameworks.length > 0)
     stackFindings.push(pass("Frontend framework", `Detected: ${d.techStack.detectedFrameworks.join(", ")}.`));
   else stackFindings.push(warn("Frontend framework", "No known JS framework signature detected."));

@@ -1,16 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Check, Mail, Globe, Loader2 } from "lucide-react";
+import { Check, Mail, Globe, Loader2, ShieldCheck } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useAuth } from "@/context/AuthContext";
-import { PLANS, PlanDuration, priceForDuration } from "@/lib/plans";
+import { PLANS, PlanDuration, PlanId, priceForDuration } from "@/lib/plans";
 import { useCurrency, formatPrice } from "@/lib/currency";
 
 const ADMIN_EMAIL = "zelvior@proton.me";
+
+interface AccountStatus {
+  plan: PlanId;
+  planExpiresAt: string | null;
+  planExpired: boolean;
+}
 
 function buildBuyMailto(params: {
   planName: string;
@@ -39,10 +45,46 @@ function buildBuyMailto(params: {
 }
 
 export default function PricingPage() {
-  const { user } = useAuth();
+  const { user, getToken } = useAuth();
   const router = useRouter();
   const currency = useCurrency();
   const [duration, setDuration] = useState<PlanDuration>(30);
+  const [status, setStatus] = useState<AccountStatus | null>(null);
+  const [statusLoading, setStatusLoading] = useState(false);
+
+  const refreshStatus = useCallback(async () => {
+    if (!user) {
+      setStatus(null);
+      return;
+    }
+    setStatusLoading(true);
+    try {
+      const token = await getToken();
+      const res = await fetch("/api/account", {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setStatus({ plan: data.plan, planExpiresAt: data.planExpiresAt, planExpired: data.planExpired });
+      }
+    } catch {
+      // Non-critical — the buy flow still works even if we can't show current plan.
+    } finally {
+      setStatusLoading(false);
+    }
+  }, [user, getToken]);
+
+  // Fetch on mount/sign-in, and again whenever the tab regains focus —
+  // so a plan change made directly in Firestore (manual approval) shows
+  // up here without needing to log out and back in.
+  useEffect(() => {
+    refreshStatus();
+    function onFocus() {
+      refreshStatus();
+    }
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [refreshStatus]);
 
   function handleBuy(planId: "standard" | "pro") {
     if (!user) {
@@ -85,6 +127,16 @@ export default function PricingPage() {
                 ? "Prices shown in USD"
                 : `Prices converted to ${currency.currencyCode} at today's rate`}
             </p>
+            {status && (
+              <p className="text-[11px] font-mono text-emerald mt-2 flex items-center justify-center gap-1.5">
+                <ShieldCheck size={12} />
+                You're currently on the {PLANS[status.plan].name} plan
+                {status.planExpiresAt && !status.planExpired
+                  ? ` (until ${new Date(status.planExpiresAt).toLocaleDateString()})`
+                  : ""}
+                {statusLoading ? "…" : ""}
+              </p>
+            )}
           </div>
 
           <div className="flex items-center justify-center gap-1 p-1 rounded-full glass w-fit mx-auto mb-8 sm:mb-10 text-xs font-mono">
@@ -106,18 +158,25 @@ export default function PricingPage() {
             {Object.values(PLANS).map((plan) => {
               const usdPrice = priceForDuration(plan, duration);
               const isFree = plan.id === "free";
+              const isCurrentPlan = status?.plan === plan.id;
 
               return (
                 <div
                   key={plan.id}
-                  className={`glass rounded-2xl p-6 sm:p-7 flex flex-col ${
+                  className={`glass rounded-2xl p-6 sm:p-7 flex flex-col relative ${
                     plan.id === "standard" ? "border-primary/50 shadow-glow" : ""
-                  }`}
+                  } ${isCurrentPlan ? "ring-2 ring-emerald/50" : ""}`}
                 >
-                  {plan.id === "standard" && (
-                    <span className="self-start text-[10px] font-mono px-2.5 py-1 rounded-full bg-primary/20 text-primary mb-3">
-                      MOST POPULAR
+                  {isCurrentPlan ? (
+                    <span className="self-start text-[10px] font-mono px-2.5 py-1 rounded-full bg-emerald/20 text-emerald mb-3">
+                      YOUR CURRENT PLAN
                     </span>
+                  ) : (
+                    plan.id === "standard" && (
+                      <span className="self-start text-[10px] font-mono px-2.5 py-1 rounded-full bg-primary/20 text-primary mb-3">
+                        MOST POPULAR
+                      </span>
+                    )
                   )}
                   <h2 className="font-display font-bold text-xl mb-1">{plan.name}</h2>
                   <p className="text-3xl font-display font-bold mb-1 flex items-center gap-2">
@@ -144,7 +203,14 @@ export default function PricingPage() {
                       href={user ? "/account" : "/register"}
                       className="w-full text-center py-3 rounded-xl glass font-semibold text-sm hover:border-white/20 transition"
                     >
-                      {user ? "You're on Free" : "Get started free"}
+                      {isCurrentPlan ? "You're on Free" : user ? "Downgrade automatically at expiry" : "Get started free"}
+                    </Link>
+                  ) : isCurrentPlan ? (
+                    <Link
+                      href="/account"
+                      className="w-full text-center py-3 rounded-xl glass font-semibold text-sm hover:border-white/20 transition"
+                    >
+                      Manage in account
                     </Link>
                   ) : (
                     <button
@@ -172,7 +238,11 @@ export default function PricingPage() {
                 </a>
                 .
               </li>
-              <li>Access is granted manually within 24 hours for the duration you selected.</li>
+              <li>
+                Access is granted manually within 24 hours for the duration you selected. Once
+                granted, this page updates automatically the next time you load it or switch back
+                to this tab.
+              </li>
             </ol>
           </div>
 
