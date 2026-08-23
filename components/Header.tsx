@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { User, LogOut, ChevronDown } from "lucide-react";
+import { User, LogOut, ChevronDown, Settings } from "lucide-react";
 import Logo from "./Logo";
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
@@ -64,6 +64,13 @@ export default function Header() {
                     className="flex items-center gap-2 px-3.5 py-2 text-sm hover:bg-white/5 transition"
                   >
                     <User size={14} /> Account
+                  </Link>
+                  <Link
+                    href="/settings"
+                    onClick={() => setMenuOpen(false)}
+                    className="flex items-center gap-2 px-3.5 py-2 text-sm hover:bg-white/5 transition"
+                  >
+                    <Settings size={14} /> Settings
                   </Link>
                   <button
                     onClick={async () => {

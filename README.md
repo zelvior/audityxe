@@ -23,6 +23,7 @@ locally, or `/api/audit` will reject every request with a 401.
 | `/` | Landing + audit tool (gated behind sign-in) + trust/differentiation section |
 | `/login`, `/register` | Auth (email/password, Google, GitHub) |
 | `/account` | Plan, usage, expiry, and real audit history |
+| `/settings` | Profile, password, linked providers, default tone preference, data export, account deletion |
 | `/pricing` | Plans, dynamic local-currency pricing, manual upgrade flow |
 | `/bulk` | Pro-only bulk audit (up to 20 URLs) |
 | `/methodology` | Full transparency on what's measured, how, and its limits |
@@ -111,6 +112,37 @@ error, mapped to plain English — check it against this list:
    link the first time the query runs — click it once, or create it
    manually: collection `reports`, fields `uid` (Ascending) + `createdAt`
    (Descending).
+
+## Settings
+
+`/settings` (`app/settings/page.tsx`) — every control on it is fully wired
+to a real backend, nothing is a placeholder:
+
+- **Profile** — display name, updated via the Firebase client SDK
+  (`updateProfile`) and mirrored server-side for admin visibility
+  (`PATCH /api/settings`).
+- **Security** — shows which sign-in methods are linked
+  (`user.providerData`: Google/GitHub/email-password); password change
+  for email/password accounts re-authenticates with the current password
+  (`reauthenticateWithCredential`) before calling `updatePassword` —
+  federated-only accounts see an explanatory message instead, since
+  Firebase has no password to change for them.
+- **Preferences** — a default report tone (Constructive/Brutal Roast),
+  persisted in Firestore (`users/{uid}.defaultTone` via `GET`/`PATCH
+  /api/settings`) and applied automatically the next time the homepage
+  loads results for that account.
+- **Plan & billing** — links out to `/account` (live usage) and
+  `/pricing` (upgrade) rather than duplicating that state.
+- **Data & privacy** — "Export my data" bundles the account's profile,
+  usage snapshot, and full report history into one downloadable JSON
+  file, built entirely from data the existing `/api/account` and
+  `/api/reports` endpoints already return. "Delete my account" is a real,
+  two-step deletion: `POST /api/account/delete` removes the Firestore
+  `users/{uid}` doc, `usage/{uid}` doc, and every `reports/{id}` the
+  account owns (server-side, via `lib/user-settings.ts`), and only after
+  that succeeds does the client call Firebase's `deleteUser()` to remove
+  the Auth account itself — ordered this way so a failure never leaves an
+  Auth account that can no longer reach its own data to retry.
 
 ## Plans, pricing & rate limiting
 

@@ -20,6 +20,10 @@ import {
   getRedirectResult,
   AuthProvider as FirebaseAuthProvider,
   updateProfile,
+  updatePassword,
+  reauthenticateWithCredential,
+  EmailAuthProvider,
+  deleteUser,
   sendEmailVerification,
   reload,
 } from "firebase/auth";
@@ -41,6 +45,9 @@ interface AuthContextValue {
   signOut: () => Promise<void>;
   resendVerificationEmail: () => Promise<void>;
   refreshEmailVerified: () => Promise<boolean>;
+  updateDisplayName: (name: string) => Promise<void>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
+  deleteAccount: (currentPassword?: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -67,6 +74,8 @@ function friendlyAuthError(err: unknown): string {
     "auth/cancelled-popup-request": "Sign-in was interrupted. Please try again.",
     "auth/invalid-api-key": "Firebase API key is invalid or missing.",
     "auth/internal-error": "Firebase rejected the request — check that the OAuth provider is fully configured (Client ID/Secret and callback URL).",
+    "auth/requires-recent-login": "For security, please sign out and back in, then try this again.",
+    "auth/user-mismatch": "That doesn't match the signed-in account.",
   };
   return map[code] || `Something went wrong (${code || "unknown error"}). Please try again.`;
 }
@@ -202,6 +211,59 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const needsEmailVerification = !!user && !user.emailVerified;
 
+  const updateDisplayNameFn = useCallback(async (name: string) => {
+    if (!auth.currentUser) throw new Error("You're not signed in.");
+    try {
+      await updateProfile(auth.currentUser, { displayName: name.trim() || null });
+      setUser(auth.currentUser);
+      setVerifiedTick((t) => t + 1);
+    } catch (err) {
+      throw new Error(friendlyAuthError(err));
+    }
+  }, []);
+
+  const changePassword = useCallback(async (currentPassword: string, newPassword: string) => {
+    const current = auth.currentUser;
+    if (!current || !current.email) throw new Error("You're not signed in with an email/password account.");
+    try {
+      const credential = EmailAuthProvider.credential(current.email, currentPassword);
+      await reauthenticateWithCredential(current, credential);
+      await updatePassword(current, newPassword);
+    } catch (err) {
+      throw new Error(friendlyAuthError(err));
+    }
+  }, []);
+
+  const deleteAccount = useCallback(async (currentPassword?: string) => {
+    const current = auth.currentUser;
+    if (!current) throw new Error("You're not signed in.");
+
+    try {
+      if (currentPassword && current.email) {
+        const credential = EmailAuthProvider.credential(current.email, currentPassword);
+        await reauthenticateWithCredential(current, credential);
+      }
+
+      // Delete all server-side data FIRST, while the token is still
+      // valid — deleting the Auth account first would leave orphaned
+      // Firestore data with no way to authenticate and clean it up.
+      const token = await current.getIdToken();
+      const res = await fetch("/api/account/delete", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to delete account data.");
+      }
+
+      await deleteUser(current);
+    } catch (err) {
+      if (err instanceof Error && !err.message.includes("auth/")) throw err;
+      throw new Error(friendlyAuthError(err));
+    }
+  }, []);
+
   return (
     <AuthContext.Provider
       value={{
@@ -217,6 +279,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signOut,
         resendVerificationEmail,
         refreshEmailVerified,
+        updateDisplayName: updateDisplayNameFn,
+        changePassword,
+        deleteAccount,
       }}
     >
       {children}

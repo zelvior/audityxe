@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, LogOut, Loader2, Zap, Mail, ShieldCheck, History, ExternalLink, RefreshCw, BadgeCheck } from "lucide-react";
+import { ArrowLeft, LogOut, Loader2, Zap, Mail, ShieldCheck, History, ExternalLink, RefreshCw, BadgeCheck, Settings as SettingsIcon } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useAuth } from "@/context/AuthContext";
@@ -286,6 +286,14 @@ export default function AccountPage() {
               </ul>
             )}
           </div>
+
+          <Link
+            href="/settings"
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl glass text-sm font-semibold hover:border-white/20 transition mb-3"
+          >
+            <SettingsIcon size={16} />
+            Settings
+          </Link>
 
           <button
             onClick={async () => {

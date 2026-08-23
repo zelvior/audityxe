@@ -35,6 +35,29 @@ export default function Home() {
   const userPlan: PlanId = (result?._usage?.plan as PlanId) || "free";
   const canCompare = PLANS[userPlan].competitorAudits;
 
+  // Apply the account's saved default tone preference (set in /settings)
+  // once, when we know who's signed in — a real audit already in
+  // progress or displayed shouldn't be yanked back to constructive.
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const token = await getToken();
+        const res = await fetch("/api/settings", { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+        const data = await res.json();
+        if (!cancelled && res.ok && (data.defaultTone === "brutal" || data.defaultTone === "constructive")) {
+          setTone(data.defaultTone);
+        }
+      } catch {
+        // Non-critical — falls back to "constructive".
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user, getToken]);
+
   async function handleAnalyze(url: string, competitorUrl?: string) {
     if (!user || needsEmailVerification) return;
 
