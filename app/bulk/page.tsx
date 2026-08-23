@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Loader2, Layers, Lock, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Loader2, Layers, Lock, AlertTriangle, FileDown } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useAuth } from "@/context/AuthContext";
@@ -20,6 +20,32 @@ function scoreColor(score: number) {
   if (score >= 8) return "text-emerald";
   if (score >= 5) return "text-amber";
   return "text-rose";
+}
+
+function csvEscape(value: string): string {
+  if (/[",\n]/.test(value)) return `"${value.replace(/"/g, '""')}"`;
+  return value;
+}
+
+function downloadCsv(results: BulkResultItem[]) {
+  const categoryLabels = results.find((r) => r.ok && r.categories)?.categories?.map((c) => c.label) || [];
+  const header = ["URL", "Overall Score", ...categoryLabels, "Error"];
+  const rows = results.map((r) => {
+    const categoryScores = categoryLabels.map((label) => {
+      const cat = r.categories?.find((c) => c.label === label);
+      return cat ? cat.score.toFixed(1) : "";
+    });
+    return [r.url, r.ok ? (r.overall?.toFixed(1) ?? "") : "", ...categoryScores, r.ok ? "" : r.error || ""];
+  });
+
+  const csv = [header, ...rows].map((row) => row.map((cell) => csvEscape(String(cell))).join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `audityxe-bulk-audit-${new Date().toISOString().slice(0, 10)}.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
 }
 
 export default function BulkAuditPage() {
@@ -137,6 +163,17 @@ export default function BulkAuditPage() {
 
           {results && (
             <div className="glass rounded-2xl overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+                <span className="text-xs font-mono text-text-secondary">{results.length} URL(s)</span>
+                <button
+                  onClick={() => downloadCsv(results)}
+                  className="flex items-center gap-1.5 text-xs font-mono text-text-secondary hover:text-primary transition"
+                  aria-label="Export results as CSV"
+                  title="Export as CSV"
+                >
+                  <FileDown size={13} /> Export CSV
+                </button>
+              </div>
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border text-xs font-mono text-text-secondary">

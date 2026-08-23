@@ -10,11 +10,12 @@ interface HeroProps {
   onAnalyze: (url: string, competitorUrl?: string) => void;
   disabled: boolean;
   isAuthed: boolean;
+  hasAccount: boolean;
   authLoading: boolean;
   canCompare: boolean;
 }
 
-export default function Hero({ onAnalyze, disabled, isAuthed, authLoading, canCompare }: HeroProps) {
+export default function Hero({ onAnalyze, disabled, isAuthed, hasAccount, authLoading, canCompare }: HeroProps) {
   const router = useRouter();
   const [url, setUrl] = useState("");
   const [showCompetitor, setShowCompetitor] = useState(false);
@@ -24,7 +25,9 @@ export default function Hero({ onAnalyze, disabled, isAuthed, authLoading, canCo
     e.preventDefault();
     if (!url.trim() || disabled) return;
     if (!isAuthed) {
-      router.push("/login?redirect=/");
+      if (!hasAccount) router.push("/login?redirect=/");
+      // Logged in but unverified: do nothing — the verify-email banner
+      // above already tells them exactly what to do next.
       return;
     }
     onAnalyze(url, showCompetitor ? competitorUrl : undefined);
@@ -85,7 +88,7 @@ export default function Hero({ onAnalyze, disabled, isAuthed, authLoading, canCo
             {!isAuthed && !authLoading ? (
               <>
                 <Lock size={15} />
-                Sign in to analyze
+                {hasAccount ? "Verify email first" : "Sign in to analyze"}
               </>
             ) : (
               <>
@@ -96,7 +99,7 @@ export default function Hero({ onAnalyze, disabled, isAuthed, authLoading, canCo
           </button>
         </motion.form>
 
-        {!isAuthed && !authLoading && (
+        {!isAuthed && !authLoading && !hasAccount && (
           <p className="mt-3 text-xs text-text-secondary">
             <Lock size={11} className="inline -mt-0.5 mr-1" />
             Free account required — 3 audits a day, no card needed.

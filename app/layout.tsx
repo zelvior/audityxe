@@ -4,7 +4,7 @@ import { Analytics } from "@vercel/analytics/react";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 
-const SITE_URL = "https://audityxe.app";
+const SITE_URL = "https://audityxe.vercel.app";
 const SITE_NAME = "Audityxe";
 const SITE_DESCRIPTION =
   "Run a deep AI audit on any website and generate viral social promo kits in seconds.";

@@ -7,15 +7,26 @@ import { saveReport } from "@/lib/reports";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
+
+const MAX_BODY_BYTES = 10 * 1024; // this endpoint only ever needs two short URLs
+const MAX_URL_LENGTH = 2048;
 
 export async function POST(req: NextRequest) {
-  // Every audit requires a signed-in account — no anonymous usage.
+  // Reject oversized request bodies before even parsing JSON.
+  const contentLength = Number(req.headers.get("content-length") || 0);
+  if (contentLength > MAX_BODY_BYTES) {
+    return NextResponse.json({ error: "Request body is too large." }, { status: 413 });
+  }
+
+  // Every audit requires a signed-in, email-verified account — no
+  // anonymous usage, and no unverified accounts running real audits.
   let identity;
   try {
-    identity = await requireAuth(req);
+    identity = await requireAuth(req, { requireEmailVerified: true });
   } catch (err) {
     if (err instanceof AuthError) {
-      return NextResponse.json({ error: err.message }, { status: err.status });
+      return NextResponse.json({ error: err.message, code: err.code }, { status: err.status });
     }
     return NextResponse.json({ error: "Authentication failed." }, { status: 401 });
   }
@@ -30,6 +41,12 @@ export async function POST(req: NextRequest) {
   const url = (body.url || "").trim();
   if (!url) {
     return NextResponse.json({ error: "A URL is required." }, { status: 400 });
+  }
+  if (url.length > MAX_URL_LENGTH) {
+    return NextResponse.json({ error: "That URL is too long." }, { status: 400 });
+  }
+  if (typeof body.competitorUrl === "string" && body.competitorUrl.length > MAX_URL_LENGTH) {
+    return NextResponse.json({ error: "The competitor URL is too long." }, { status: 400 });
   }
 
   try {
@@ -62,10 +79,6 @@ export async function POST(req: NextRequest) {
   }
 
   const competitorUrl = PLANS[usage.plan].competitorAudits ? body.competitorUrl : undefined;
-  if (body.competitorUrl && !PLANS[usage.plan].competitorAudits) {
-    // Silently drop rather than fail the whole audit — the free plan
-    // still gets a full single-site audit back.
-  }
 
   try {
     const result = await runAudit(url, competitorUrl);

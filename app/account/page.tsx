@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, LogOut, Loader2, Zap, Mail, ShieldCheck, History, ExternalLink, RefreshCw } from "lucide-react";
+import { ArrowLeft, LogOut, Loader2, Zap, Mail, ShieldCheck, History, ExternalLink, RefreshCw, BadgeCheck } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useAuth } from "@/context/AuthContext";
@@ -134,6 +134,15 @@ export default function AccountPage() {
                   <Mail size={11} className="shrink-0" /> {user.email}
                 </p>
               </div>
+              {user.emailVerified ? (
+                <span className="ml-auto shrink-0 text-[10px] font-mono px-2 py-1 rounded-full bg-emerald/15 text-emerald flex items-center gap-1">
+                  <BadgeCheck size={11} /> Verified
+                </span>
+              ) : (
+                <span className="ml-auto shrink-0 text-[10px] font-mono px-2 py-1 rounded-full bg-amber/15 text-amber">
+                  Unverified
+                </span>
+              )}
             </div>
           </div>
 

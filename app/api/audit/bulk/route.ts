@@ -6,9 +6,12 @@ import { PLANS } from "@/lib/plans";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 120; // bulk runs several real audits; ask the platform for headroom (capped by your hosting plan regardless)
 
 const MAX_BULK_URLS = 20;
 const CONCURRENCY = 4;
+const MAX_URL_LENGTH = 2048;
+const MAX_BODY_BYTES = 50 * 1024; // 20 URLs at 2048 chars each, generously bounded
 
 interface BulkResultItem {
   url: string;
@@ -32,12 +35,17 @@ async function runWithConcurrency<T, R>(items: T[], limit: number, worker: (item
 }
 
 export async function POST(req: NextRequest) {
+  const contentLength = Number(req.headers.get("content-length") || 0);
+  if (contentLength > MAX_BODY_BYTES) {
+    return NextResponse.json({ error: "Request body is too large." }, { status: 413 });
+  }
+
   let identity;
   try {
-    identity = await requireAuth(req);
+    identity = await requireAuth(req, { requireEmailVerified: true });
   } catch (err) {
     if (err instanceof AuthError) {
-      return NextResponse.json({ error: err.message }, { status: err.status });
+      return NextResponse.json({ error: err.message, code: err.code }, { status: err.status });
     }
     return NextResponse.json({ error: "Authentication failed." }, { status: 401 });
   }
@@ -49,12 +57,27 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
   }
 
-  const urls = Array.from(new Set((body.urls || []).map((u) => u.trim()).filter(Boolean)));
+  if (!Array.isArray(body.urls)) {
+    return NextResponse.json({ error: "A list of URLs is required." }, { status: 400 });
+  }
+
+  const urls = Array.from(
+    new Set(
+      body.urls
+        .filter((u): u is string => typeof u === "string")
+        .map((u) => u.trim())
+        .filter(Boolean)
+    )
+  );
+
   if (urls.length === 0) {
     return NextResponse.json({ error: "At least one URL is required." }, { status: 400 });
   }
   if (urls.length > MAX_BULK_URLS) {
     return NextResponse.json({ error: `Bulk audits are limited to ${MAX_BULK_URLS} URLs at once.` }, { status: 400 });
+  }
+  if (urls.some((u) => u.length > MAX_URL_LENGTH)) {
+    return NextResponse.json({ error: "One or more URLs are too long." }, { status: 400 });
   }
 
   try {

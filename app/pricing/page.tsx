@@ -49,6 +49,14 @@ export default function PricingPage() {
   const router = useRouter();
   const currency = useCurrency();
   const [duration, setDuration] = useState<PlanDuration>(30);
+
+  const maxAnnualSavingsPct = Math.round(
+    Math.max(
+      ...Object.values(PLANS)
+        .filter((p) => p.priceUsd30 > 0)
+        .map((p) => (1 - p.priceUsd365 / (p.priceUsd30 * 12)) * 100)
+    )
+  );
   const [status, setStatus] = useState<AccountStatus | null>(null);
   const [statusLoading, setStatusLoading] = useState(false);
 
@@ -150,7 +158,7 @@ export default function PricingPage() {
               onClick={() => setDuration(365)}
               className={`px-4 py-1.5 rounded-full transition ${duration === 365 ? "bg-primary/20 text-primary" : "text-text-secondary"}`}
             >
-              365 days <span className="text-emerald">· save ~17%</span>
+              365 days <span className="text-emerald">· save up to {maxAnnualSavingsPct}%</span>
             </button>
           </div>
 

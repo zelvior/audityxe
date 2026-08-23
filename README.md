@@ -48,6 +48,21 @@ server verifies it with the Firebase Admin SDK (`lib/auth-server.ts`)
 before doing any work — a request with no token, an expired token, or a
 forged token is rejected with 401 before the target URL is ever fetched.
 
+### Email verification required before running audits
+
+New email/password accounts get a verification email on sign-up
+(`sendEmailVerification`). Until it's clicked, a banner on the homepage
+blocks the audit form and offers "Resend email" / "I've verified — check
+again" (the latter calls Firebase's `reload()` so the app notices without
+requiring a logout/login). This is enforced **server-side**, not just in
+the UI: `/api/audit` and `/api/audit/bulk` call `requireAuth(req, {
+requireEmailVerified: true })`, which checks the `email_verified` claim
+on the decoded ID token and rejects with a 403 (`code:
+"EMAIL_NOT_VERIFIED"`) if it's false — a request forged or replayed
+without going through the UI gate is rejected just the same. Google and
+GitHub sign-ins are effectively pre-verified by their provider in almost
+all cases, so this mostly affects email/password sign-ups.
+
 ### OAuth reliability (Google & GitHub)
 
 Google/GitHub sign-in tries a popup first, and **automatically falls back
@@ -106,8 +121,8 @@ transaction (`lib/rate-limit.ts`) — never trust-the-client:
 | Plan     | Daily audits | Competitor comparison | 30-day price | 365-day price |
 |----------|--------------|------------------------|---------------|----------------|
 | Free     | 3            | No                     | $0            | $0             |
-| Standard | 25           | Yes                    | $19           | $190           |
-| Pro      | 200          | Yes                    | $49           | $490           |
+| Standard | 25           | Yes                    | $5            | $39            |
+| Pro      | 200          | Yes                    | $12           | $99            |
 
 Prices are defined in USD in `lib/plans.ts` and converted to the visitor's
 local currency client-side on `/pricing` using two free, keyless public
@@ -280,6 +295,71 @@ Saving a report is best-effort: if it fails for any reason, the audit
 itself still succeeds and returns normally — history/sharing never blocks
 the core feature.
 
+## SSRF hardening & abuse prevention
+
+Every outbound fetch to a user- or site-supplied URL — the audited page
+itself, each redirect hop, robots.txt/sitemap.xml, sampled links/images,
+and `og:image` — is validated by `lib/url-safety.ts` before the request
+is made:
+
+- Only `http:`/`https:` schemes are allowed.
+- Known-internal hostnames (`localhost`, `*.local`, `*.internal`, etc.)
+  are blocked outright.
+- Every hostname is resolved via DNS, and **every** resolved address is
+  checked against the full private/loopback/link-local/reserved IPv4 and
+  IPv6 ranges — including `169.254.169.254` (the AWS/GCP/Azure cloud
+  metadata endpoint), a classic SSRF target.
+- This check runs again on **every redirect hop**, not just the initial
+  URL — otherwise a legitimate public URL could redirect straight to an
+  internal address and be fetched anyway. Native `fetch(..., {redirect:
+  "follow"})` is deliberately avoided everywhere for this reason; redirects
+  are followed manually so each one can be re-validated.
+- A sitemap URL declared inside a site's own `robots.txt` is treated as
+  attacker-controlled content and validated the same way before being
+  fetched.
+
+**Known limitation:** this validates the resolved IP at check time, not
+at the moment the socket actually connects — a malicious/compromised DNS
+server could in theory change its answer between the two (DNS
+rebinding). Full protection requires pinning the connection to the
+validated IP at the socket level, which isn't exposed by native `fetch`.
+Re-validating on every redirect hop closes the most common practical
+exploitation path; this residual gap is disclosed here rather than left
+implicit.
+
+Additional abuse prevention:
+
+- **Response size cap** — the target page's HTML is read via a streamed,
+  capped reader (8MB max) rather than buffered in one shot, so a hostile
+  or oversized response can't exhaust memory.
+- **Overall audit timeout** — the whole audit pipeline (main fetch + all
+  parallel checks + AI calls) is wrapped in a 45-second ceiling
+  (`withOverallTimeout` in `lib/analyze.ts`), independent of the
+  per-request timeouts each individual fetch already has.
+- **Input validation** — URLs are capped at 2048 characters, bulk audit
+  requests are capped at 20 URLs with a request body size limit, and
+  malformed JSON/oversized bodies are rejected with 400/413 before any
+  work starts.
+- **`/api/banner-bg` requires authentication.** It proxies a real
+  (non-free-to-us) AI image generation call — without an auth
+  requirement, it would be an open, unmetered image-generation proxy for
+  anyone on the internet, not just Audityxe's own banner feature.
+
+## Copy, export, share & email
+
+Every audit view (the main results page, `/sample-report`, and public
+`/report/[id]` pages) includes an icon-only action bar
+(`components/AuditActionBar.tsx`) — Copy, Export, Share, Email — so
+results are easy to reuse without leaving the page:
+
+- **Copy** copies the report's shareable link.
+- **Export** downloads a complete JSON snapshot (scores, all 16 modules,
+  fixes) for your own records or tooling.
+- **Share** uses the native Web Share API on supported devices (mobile
+  share sheets), falling back to a clipboard copy elsewhere.
+- **Email** opens a pre-filled `mailto:` with a plain-text summary and
+  the report link.
+
 ## Bulk audit (Pro plan)
 
 `/bulk` accepts up to 20 URLs (one per line) and audits all of them in a
@@ -289,7 +369,9 @@ against the account's real, non-expired plan server-side — not by
 anything the client sends. Each URL consumes one slot from the same daily
 quota as single audits, checked and reserved transactionally *before* any
 network work starts, so a request that would exceed the day's quota fails
-fast without partially running.
+fast without partially running. Results include a **CSV export** button
+(client-side, no extra request) with per-category score columns — built
+for agencies compiling client reports.
 
 ## Security headers on Audityxe itself
 

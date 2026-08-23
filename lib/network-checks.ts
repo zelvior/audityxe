@@ -3,35 +3,62 @@
  * makes an actual HTTP request to the target site (or a resource it
  * references) — nothing is simulated. Kept fast and bounded: small
  * samples, short per-request timeouts, run concurrently.
+ *
+ * Every URL probed here is extracted from the audited page's own HTML —
+ * i.e. attacker/site-owner-controlled content — so each one goes through
+ * the same SSRF validation as the main page fetch, including on every
+ * redirect hop (native fetch's redirect:"follow" would otherwise bypass
+ * that check entirely).
  */
 
+import { assertSafeUrl } from "./url-safety";
+
 const PROBE_TIMEOUT_MS = 5000;
-const UA = "Mozilla/5.0 (compatible; AudityxeBot/1.0; +https://audityxe.app)";
+const UA = "Mozilla/5.0 (compatible; AudityxeBot/1.0; +https://audityxe.vercel.app)";
+const MAX_PROBE_REDIRECTS = 5;
 
 async function probe(url: string, method: "HEAD" | "GET" = "HEAD"): Promise<{ ok: boolean; status: number; contentType: string; contentLength: number | null }> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), PROBE_TIMEOUT_MS);
   try {
-    let res = await fetch(url, {
-      method,
-      redirect: "follow",
-      signal: controller.signal,
-      headers: {
-        "User-Agent": UA,
-        Accept: "text/html,image/*,application/xhtml+xml,*/*;q=0.8",
-      },
-    });
-    // Some servers reject HEAD (405/501), and some WAFs/CDNs return a
-    // generic 403 for HEAD specifically while allowing GET — retry once
-    // with GET in both cases before concluding the resource is broken.
-    if (method === "HEAD" && (res.status === 405 || res.status === 501 || res.status === 403)) {
-      res = await fetch(url, {
-        method: "GET",
-        redirect: "follow",
+    let currentUrl = url;
+    let currentMethod = method;
+    let res: Response | null = null;
+
+    for (let hop = 0; hop <= MAX_PROBE_REDIRECTS; hop++) {
+      try {
+        await assertSafeUrl(currentUrl);
+      } catch {
+        return { ok: false, status: 0, contentType: "", contentLength: null };
+      }
+
+      res = await fetch(currentUrl, {
+        method: currentMethod,
+        redirect: "manual",
         signal: controller.signal,
         headers: { "User-Agent": UA, Accept: "text/html,image/*,application/xhtml+xml,*/*;q=0.8" },
       });
+
+      // Some servers reject HEAD (405/501), and some WAFs/CDNs return a
+      // generic 403 for HEAD specifically while allowing GET — retry once
+      // with GET in both cases before concluding the resource is broken.
+      if (currentMethod === "HEAD" && (res.status === 405 || res.status === 501 || res.status === 403)) {
+        currentMethod = "GET";
+        continue;
+      }
+
+      if (res.status >= 300 && res.status < 400) {
+        const location = res.headers.get("location");
+        if (location && hop < MAX_PROBE_REDIRECTS) {
+          currentUrl = new URL(location, currentUrl).toString();
+          continue;
+        }
+      }
+      break;
     }
+
+    if (!res) return { ok: false, status: 0, contentType: "", contentLength: null };
+
     return {
       ok: res.ok,
       status: res.status,
@@ -121,14 +148,19 @@ export async function checkAdsTxt(origin: string): Promise<AdsTxtResult> {
   if (!result.ok) return { fetched: true, exists: false, entryCount: 0 };
   // Re-fetch with GET to actually count lines (probe() with GET already
   // consumed the body internally via fetch, but we didn't read text there
-  // to keep probe() generic — do a light dedicated fetch here).
+  // to keep probe() generic — do a light dedicated fetch here). The URL
+  // was already validated safe by probe() immediately above.
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), PROBE_TIMEOUT_MS);
   try {
-    const res = await fetch(`${origin}/ads.txt`, { headers: { "User-Agent": UA } });
+    const res = await fetch(`${origin}/ads.txt`, { headers: { "User-Agent": UA }, signal: controller.signal });
     const text = await res.text();
     const entryCount = text.split(/\r?\n/).filter((l) => l.trim() && !l.trim().startsWith("#")).length;
     return { fetched: true, exists: true, entryCount };
   } catch {
     return { fetched: true, exists: true, entryCount: 0 };
+  } finally {
+    clearTimeout(timer);
   }
 }
 

@@ -6,6 +6,6 @@ export default function robots(): MetadataRoute.Robots {
       userAgent: "*",
       allow: "/",
     },
-    sitemap: "https://audityxe.app/sitemap.xml",
+    sitemap: "https://audityxe.vercel.app/sitemap.xml",
   };
 }

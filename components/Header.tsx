@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Radar, User, LogOut, ChevronDown } from "lucide-react";
+import { User, LogOut, ChevronDown } from "lucide-react";
+import Logo from "./Logo";
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 
@@ -26,9 +27,7 @@ export default function Header() {
     <header className="px-4 sm:px-6 py-4 sm:py-5">
       <div className="max-w-5xl mx-auto flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2 shrink-0">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-            <Radar size={16} />
-          </div>
+          <Logo size={32} />
           <span className="font-display font-bold text-lg tracking-tight">Audityxe</span>
         </Link>
 

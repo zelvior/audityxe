@@ -3,6 +3,7 @@ import { generateJsonForTask } from "./gemini";
 import { extractDeepSignals } from "./deep-signals";
 import { checkBrokenLinks, checkImageSample, checkAdsTxt, checkOgImage } from "./network-checks";
 import { buildAuditModules } from "./audit-modules";
+import { assertSafeUrl } from "./url-safety";
 
 const CATEGORY_META: { key: CategoryKey; label: string }[] = [
   { key: "messaging", label: "Messaging & Copy Clarity" },
@@ -959,17 +960,43 @@ function buildPromo(host: string, overall: number) {
    Live fetch + orchestration
    ──────────────────────────────────────────────────────────────── */
 async function fetchWithTimeout(url: string, timeoutMs: number, retries = 1): Promise<Response | null> {
+  try {
+    // The sitemap URL in particular can come from inside a site's own
+    // robots.txt (the "Sitemap:" directive), which is attacker-controlled
+    // content — validate it the same as any other user/site-supplied URL
+    // before ever fetching it.
+    await assertSafeUrl(url);
+  } catch {
+    return null;
+  }
+
   for (let attempt = 0; attempt <= retries; attempt++) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
       const res = await fetch(url, {
         signal: controller.signal,
-        redirect: "follow",
-        headers: {
-          "User-Agent": "Mozilla/5.0 (compatible; AudityxeBot/1.0; +https://audityxe.app)",
-        },
+        redirect: "manual",
+        headers: { "User-Agent": USER_AGENT },
       });
+      // Manually validate a redirect target too, same SSRF rationale as
+      // the main page fetch — then follow it ourselves.
+      if (res.status >= 300 && res.status < 400) {
+        const location = res.headers.get("location");
+        if (location) {
+          const nextUrl = new URL(location, url).toString();
+          try {
+            await assertSafeUrl(nextUrl);
+          } catch {
+            return null;
+          }
+          return fetch(nextUrl, {
+            signal: controller.signal,
+            redirect: "manual",
+            headers: { "User-Agent": USER_AGENT },
+          });
+        }
+      }
       return res;
     } catch {
       if (attempt === retries) return null;
@@ -1066,19 +1093,45 @@ interface FetchOutcome {
   responseTimeMs: number;
 }
 
+const MAX_HTML_BYTES = 8 * 1024 * 1024; // 8MB — generous for real pages, protects against a hostile/oversized response
+const USER_AGENT = "Mozilla/5.0 (compatible; AudityxeBot/1.0; +https://audityxe.vercel.app)";
+
+async function readBodyCapped(res: Response, maxBytes: number): Promise<string> {
+  const reader = res.body?.getReader();
+  if (!reader) return res.text();
+
+  const decoder = new TextDecoder();
+  let received = 0;
+  let out = "";
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    received += value.byteLength;
+    if (received > maxBytes) {
+      reader.cancel().catch(() => {});
+      throw new Error("The page response was too large to analyze (over 8MB).");
+    }
+    out += decoder.decode(value, { stream: true });
+  }
+  out += decoder.decode();
+  return out;
+}
+
 async function fetchHtml(rawUrl: string): Promise<FetchOutcome> {
   const url = normalizeUrl(rawUrl);
 
-  let parsed: URL;
-  try {
-    parsed = new URL(url);
-  } catch {
-    throw new Error(`"${rawUrl}" doesn't look like a valid URL. Try something like example.com.`);
+  if (url.length > 2048) {
+    throw new Error("That URL is too long.");
   }
-  if (!/^https?:$/.test(parsed.protocol)) {
-    throw new Error("Only http:// and https:// URLs can be audited.");
-  }
-  if (!parsed.hostname || !parsed.hostname.includes(".")) {
+
+  // Validates protocol, hostname, and (via DNS resolution) that it's not
+  // a private/internal address — see lib/url-safety.ts for the full
+  // SSRF threat model this defends against.
+  const initialParsed = await assertSafeUrl(url);
+  if (!initialParsed.hostname.includes(".") && initialParsed.hostname !== "localhost") {
+    // "localhost" itself is already blocked by assertSafeUrl; this extra
+    // check catches bare single-word hosts (e.g. "foo") that resolve
+    // publicly but are almost certainly a typo, not a real audit target.
     throw new Error(`"${rawUrl}" doesn't look like a valid domain. Try something like example.com.`);
   }
 
@@ -1088,9 +1141,11 @@ async function fetchHtml(rawUrl: string): Promise<FetchOutcome> {
 
   try {
     // Follow redirects manually (rather than fetch's redirect:"follow") so
-    // we can count real hops and detect an https→http downgrade anywhere
-    // in the chain — both genuine, free signals no third-party tool is
-    // needed for.
+    // we can count real hops, detect an https→http downgrade, and — most
+    // importantly — re-validate every single hop against the SSRF
+    // allowlist before following it. A malicious site could otherwise
+    // redirect a perfectly safe public URL straight to
+    // http://169.254.169.254/ and have us fetch it anyway.
     let currentUrl = url;
     let hopCount = 0;
     let downgradeDetected = false;
@@ -1102,12 +1157,13 @@ async function fetchHtml(rawUrl: string): Promise<FetchOutcome> {
         throw new Error("This URL redirects in a loop and never resolves.");
       }
       visited.add(currentUrl);
+      await assertSafeUrl(currentUrl);
 
       res = await fetch(currentUrl, {
         redirect: "manual",
         signal: controller.signal,
         headers: {
-          "User-Agent": "Mozilla/5.0 (compatible; AudityxeBot/1.0; +https://audityxe.app)",
+          "User-Agent": USER_AGENT,
           Accept: "text/html,application/xhtml+xml",
         },
       });
@@ -1137,7 +1193,11 @@ async function fetchHtml(rawUrl: string): Promise<FetchOutcome> {
     if (contentType && !/text\/html|application\/xhtml/i.test(contentType)) {
       throw new Error(`URL did not return an HTML page (got ${contentType.split(";")[0]}).`);
     }
-    const html = await res!.text();
+    const declaredLength = Number(res!.headers.get("content-length") || 0);
+    if (declaredLength > MAX_HTML_BYTES) {
+      throw new Error("The page response was too large to analyze (over 8MB).");
+    }
+    const html = await readBodyCapped(res!, MAX_HTML_BYTES);
     if (!html || html.trim().length < 20) {
       throw new Error("The page returned an empty response.");
     }
@@ -1213,11 +1273,36 @@ async function auditOne(rawUrl: string) {
   return { host, overall, categories, signals, html: fetched.html, finalUrl: fetched.finalUrl, origin };
 }
 
+const MAX_URL_LENGTH = 2048;
+const OVERALL_AUDIT_TIMEOUT_MS = 45000;
+
+function withOverallTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout>;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(message)), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer)) as Promise<T>;
+}
+
 export async function runAudit(rawUrl: string, competitorRawUrl?: string): Promise<AuditResult> {
   if (!rawUrl || !rawUrl.trim()) {
     throw new Error("A URL is required.");
   }
+  if (rawUrl.length > MAX_URL_LENGTH) {
+    throw new Error("That URL is too long.");
+  }
+  if (competitorRawUrl && competitorRawUrl.length > MAX_URL_LENGTH) {
+    throw new Error("The competitor URL is too long.");
+  }
 
+  return withOverallTimeout(
+    runAuditInner(rawUrl, competitorRawUrl),
+    OVERALL_AUDIT_TIMEOUT_MS,
+    "This audit took too long overall and was stopped. Please try again — some sites are slower to fully analyze than others."
+  );
+}
+
+async function runAuditInner(rawUrl: string, competitorRawUrl?: string): Promise<AuditResult> {
   const primary = await auditOne(rawUrl);
   const fixes = buildFixes(primary.signals, primary.categories);
   const deepSignals = extractDeepSignals(primary.html);

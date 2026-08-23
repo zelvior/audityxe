@@ -20,6 +20,8 @@ import {
   getRedirectResult,
   AuthProvider as FirebaseAuthProvider,
   updateProfile,
+  sendEmailVerification,
+  reload,
 } from "firebase/auth";
 import { auth, googleProvider, githubProvider } from "@/lib/firebase/client";
 
@@ -27,12 +29,18 @@ interface AuthContextValue {
   user: User | null;
   loading: boolean;
   authError: string | null;
+  /** True once we've confirmed the account either doesn't need email
+   * verification (federated sign-in) or has completed it. Email/password
+   * accounts start unverified until they click the link we send. */
+  needsEmailVerification: boolean;
   getToken: () => Promise<string | null>;
   signUpWithEmail: (name: string, email: string, password: string) => Promise<void>;
   signInWithEmail: (email: string, password: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   signInWithGithub: () => Promise<void>;
   signOut: () => Promise<void>;
+  resendVerificationEmail: () => Promise<void>;
+  refreshEmailVerified: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -131,6 +139,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (name.trim()) {
         await updateProfile(cred.user, { displayName: name.trim() });
       }
+      await sendEmailVerification(cred.user);
     } catch (err) {
       console.error("[auth] email sign-up failed:", err);
       throw new Error(friendlyAuthError(err));
@@ -168,18 +177,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await firebaseSignOut(auth);
   }, []);
 
+  const resendVerificationEmail = useCallback(async () => {
+    if (!auth.currentUser) throw new Error("You're not signed in.");
+    try {
+      await sendEmailVerification(auth.currentUser);
+    } catch (err) {
+      throw new Error(friendlyAuthError(err));
+    }
+  }, []);
+
+  const [verifiedTick, setVerifiedTick] = useState(0);
+
+  const refreshEmailVerified = useCallback(async () => {
+    if (!auth.currentUser) return false;
+    try {
+      await reload(auth.currentUser);
+      setUser(auth.currentUser);
+      setVerifiedTick((t) => t + 1); // force a re-render even if the User object reference is unchanged
+      return auth.currentUser.emailVerified;
+    } catch {
+      return false;
+    }
+  }, []);
+
+  const needsEmailVerification = !!user && !user.emailVerified;
+
   return (
     <AuthContext.Provider
       value={{
         user,
         loading,
         authError,
+        needsEmailVerification,
         getToken,
         signUpWithEmail,
         signInWithEmail,
         signInWithGoogle,
         signInWithGithub,
         signOut,
+        resendVerificationEmail,
+        refreshEmailVerified,
       }}
     >
       {children}

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Download, Loader2 } from "lucide-react";
 import { AuditResult } from "@/lib/types";
+import { useAuth } from "@/context/AuthContext";
 
 const W = 1200;
 const H = 630;
@@ -281,7 +282,7 @@ function draw(canvas: HTMLCanvasElement, result: AuditResult, aiImage: HTMLImage
   ctx.fillStyle = "#6366F1";
   ctx.font = "700 24px Manrope, sans-serif";
   ctx.textAlign = "left";
-  ctx.fillText("audityxe.app", 64, H - 50);
+  ctx.fillText("audityxe.vercel.app", 64, H - 50);
 }
 
 function bannerPrompt(result: AuditResult): string {
@@ -301,34 +302,66 @@ function hashSeed(input: string): number {
 }
 
 export default function BannerCanvas({ result }: { result: AuditResult }) {
+  const { user, getToken } = useAuth();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [aiImage, setAiImage] = useState<HTMLImageElement | null>(null);
-  const [aiState, setAiState] = useState<"loading" | "ready" | "unavailable">("loading");
+  const [aiState, setAiState] = useState<"loading" | "ready" | "unavailable" | "skipped">("loading");
 
   useEffect(() => {
     let cancelled = false;
+    let objectUrl: string | null = null;
+
+    // Public report/sample-report pages can be viewed by anyone without
+    // an account — /api/banner-bg requires auth (it has a real
+    // generation cost per call), so anonymous viewers simply get the
+    // designed gradient fallback instead of attempting (and failing) an
+    // authenticated request.
+    if (!user) {
+      setAiState("skipped");
+      setAiImage(null);
+      return;
+    }
+
     setAiState("loading");
     setAiImage(null);
 
     const prompt = bannerPrompt(result);
     const seed = hashSeed(result.url);
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.onload = () => {
-      if (cancelled) return;
-      setAiImage(img);
-      setAiState("ready");
-    };
-    img.onerror = () => {
-      if (cancelled) return;
-      setAiState("unavailable");
-    };
-    img.src = `/api/banner-bg?prompt=${encodeURIComponent(prompt)}&seed=${seed}`;
+
+    (async () => {
+      try {
+        const token = await getToken();
+        if (!token) {
+          if (!cancelled) setAiState("unavailable");
+          return;
+        }
+        const res = await fetch(`/api/banner-bg?prompt=${encodeURIComponent(prompt)}&seed=${seed}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) throw new Error("banner-bg request failed");
+        const blob = await res.blob();
+        if (cancelled) return;
+        objectUrl = URL.createObjectURL(blob);
+        const img = new Image();
+        img.onload = () => {
+          if (cancelled) return;
+          setAiImage(img);
+          setAiState("ready");
+        };
+        img.onerror = () => {
+          if (!cancelled) setAiState("unavailable");
+        };
+        img.src = objectUrl;
+      } catch {
+        if (!cancelled) setAiState("unavailable");
+      }
+    })();
 
     return () => {
       cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [result]);
+  }, [result, user, getToken]);
 
   useEffect(() => {
     if (canvasRef.current) draw(canvasRef.current, result, aiImage);

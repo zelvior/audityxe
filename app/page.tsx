@@ -14,6 +14,7 @@ import DiffFixes from "@/components/DiffFixes";
 import PromoKit from "@/components/PromoKit";
 import CompetitorBattle from "@/components/CompetitorBattle";
 import AuditModules from "@/components/AuditModules";
+import VerifyEmailBanner from "@/components/VerifyEmailBanner";
 import { SCAN_STEPS } from "@/lib/constants";
 import { AuditResult, Tone } from "@/lib/types";
 import { useAuth } from "@/context/AuthContext";
@@ -22,7 +23,7 @@ import { PLANS, PlanId } from "@/lib/plans";
 type Phase = "idle" | "scanning" | "results" | "error";
 
 export default function Home() {
-  const { user, loading: authLoading, getToken } = useAuth();
+  const { user, loading: authLoading, needsEmailVerification, getToken } = useAuth();
   const [phase, setPhase] = useState<Phase>("idle");
   const [activeStep, setActiveStep] = useState(0);
   const [result, setResult] = useState<AuditResult | null>(null);
@@ -35,7 +36,7 @@ export default function Home() {
   const canCompare = PLANS[userPlan].competitorAudits;
 
   async function handleAnalyze(url: string, competitorUrl?: string) {
-    if (!user) return;
+    if (!user || needsEmailVerification) return;
 
     setPhase("scanning");
     setActiveStep(0);
@@ -100,11 +101,13 @@ export default function Home() {
       <Hero
         onAnalyze={handleAnalyze}
         disabled={phase === "scanning"}
-        isAuthed={!!user}
+        isAuthed={!!user && !needsEmailVerification}
+        hasAccount={!!user}
         authLoading={authLoading}
         canCompare={canCompare}
       />
 
+      {user && needsEmailVerification && <VerifyEmailBanner />}
       {phase === "idle" && <TrustSection />}
 
       <AnimatePresence mode="wait">

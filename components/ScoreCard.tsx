@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { AuditResult, Tone } from "@/lib/types";
 import ToneToggle from "./ToneToggle";
+import AuditActionBar from "./AuditActionBar";
 
 function colorFor(score: number) {
   if (score >= 8) return { bar: "bg-emerald", text: "text-emerald", ring: "#10B981" };
@@ -31,7 +32,10 @@ export default function ScoreCard({
             <p className="text-xs font-mono text-text-secondary">AUDIT RESULT FOR</p>
             <p className="font-display font-semibold text-lg sm:text-xl break-all">{result.url}</p>
           </div>
-          <ToneToggle tone={tone} onChange={onToneChange} />
+          <div className="flex items-center gap-3 flex-wrap">
+            <ToneToggle tone={tone} onChange={onToneChange} />
+            <AuditActionBar result={result} />
+          </div>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-6 sm:gap-8 items-center sm:items-start mb-8 sm:mb-10">

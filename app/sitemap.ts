@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-const BASE_URL = "https://audityxe.app";
+const BASE_URL = "https://audityxe.vercel.app";
 
 interface RouteEntry {
   path: string;
