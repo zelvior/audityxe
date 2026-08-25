@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { AlertTriangle, Lock, Zap, Share2 } from "lucide-react";
+import { AlertTriangle, Lock, Zap } from "lucide-react";
 import Link from "next/link";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
@@ -16,7 +16,7 @@ import CompetitorBattle from "@/components/CompetitorBattle";
 import AuditModules from "@/components/AuditModules";
 import VerifyEmailBanner from "@/components/VerifyEmailBanner";
 import { SCAN_STEPS } from "@/lib/constants";
-import { AuditResult, Tone } from "@/lib/types";
+import { AuditResult } from "@/lib/types";
 import { useAuth } from "@/context/AuthContext";
 import { PLANS, PlanId } from "@/lib/plans";
 
@@ -29,34 +29,10 @@ export default function Home() {
   const [result, setResult] = useState<AuditResult | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
   const [rateLimited, setRateLimited] = useState<{ plan: PlanId; limit: number } | null>(null);
-  const [tone, setTone] = useState<Tone>("constructive");
   const stepTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const userPlan: PlanId = (result?._usage?.plan as PlanId) || "free";
   const canCompare = PLANS[userPlan].competitorAudits;
-
-  // Apply the account's saved default tone preference (set in /settings)
-  // once, when we know who's signed in — a real audit already in
-  // progress or displayed shouldn't be yanked back to constructive.
-  useEffect(() => {
-    if (!user) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const token = await getToken();
-        const res = await fetch("/api/settings", { headers: token ? { Authorization: `Bearer ${token}` } : {} });
-        const data = await res.json();
-        if (!cancelled && res.ok && (data.defaultTone === "brutal" || data.defaultTone === "constructive")) {
-          setTone(data.defaultTone);
-        }
-      } catch {
-        // Non-critical — falls back to "constructive".
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [user, getToken]);
 
   async function handleAnalyze(url: string, competitorUrl?: string) {
     if (!user || needsEmailVerification) return;
@@ -172,7 +148,7 @@ export default function Home() {
             transition={{ duration: 0.4 }}
           >
             {result._usage && (
-              <div className="px-4 sm:px-6 max-w-4xl mx-auto -mb-2 pt-6 flex flex-wrap items-center gap-x-4 gap-y-1">
+              <div className="px-4 sm:px-6 max-w-4xl mx-auto -mb-2 pt-6">
                 <p className="text-[11px] font-mono text-text-secondary/70 flex items-center gap-1.5">
                   <Lock size={11} />
                   {result._usage.remaining} of {result._usage.limit} audits left today on the{" "}
@@ -181,20 +157,11 @@ export default function Home() {
                     Upgrade
                   </Link>
                 </p>
-                {result._reportId && (
-                  <Link
-                    href={`/report/${result._reportId}`}
-                    target="_blank"
-                    className="text-[11px] font-mono text-primary hover:underline flex items-center gap-1"
-                  >
-                    <Share2 size={11} /> View shareable report
-                  </Link>
-                )}
               </div>
             )}
-            <ScoreCard result={result} tone={tone} onToneChange={setTone} />
+            <ScoreCard result={result} />
             <AuditModules modules={result.modules} />
-            <DiffFixes result={result} tone={tone} />
+            <DiffFixes result={result} />
             <PromoKit result={result} />
             <CompetitorBattle result={result} />
           </motion.div>

@@ -48,5 +48,5 @@ export async function requireAuth(req: NextRequest, options: RequireAuthOptions 
     );
   }
 
-  return { uid: decoded.uid, email: decoded.email || null };
+  return { uid: decoded.uid, email: decoded.email || null, emailVerified: !!decoded.email_verified };
 }

@@ -9,10 +9,9 @@ interface RouteEntry {
 }
 
 // Every real, publicly indexable route in the app. Auth-gated pages
-// (/account, /bulk) and individually-generated public report pages
-// (/report/[id] — one per completed audit, not enumerable in advance)
-// are intentionally excluded; login/register are included since they're
-// public and legitimately land-able from search.
+// (/account, /settings, /bulk) are intentionally excluded — audits
+// themselves are never stored server-side or given a public URL at
+// all, by design (see the Privacy section of the README).
 const ROUTES: RouteEntry[] = [
   { path: "", priority: 1.0, changeFrequency: "daily" },
   { path: "/pricing", priority: 0.9, changeFrequency: "weekly" },

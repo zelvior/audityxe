@@ -1,5 +1,3 @@
-export type Tone = "constructive" | "brutal";
-
 export type CategoryKey =
   | "messaging"
   | "uiux"
@@ -18,7 +16,8 @@ export interface FixItem {
   id: string;
   category: string;
   target: string;
-  problem: { constructive: string; brutal: string };
+  problem: string;
+  evidence: string;
   fix: string;
   snippet: string;
   language: string;
@@ -35,6 +34,11 @@ export interface AuditModuleFinding {
   label: string;
   status: "pass" | "warn" | "fail";
   detail: string;
+  /** Concrete, checkable proof behind this finding — an exact URL that
+   * was fetched, an HTTP status returned, a literal count of elements
+   * found, or a snippet of real markup. Every finding should be provable
+   * from this field, not just asserted in `detail`. */
+  evidence?: string;
 }
 
 export interface AuditModule {
@@ -46,18 +50,34 @@ export interface AuditModule {
   findings: AuditModuleFinding[];
 }
 
+export interface PageSpeedSummary {
+  fetched: boolean;
+  performanceScore: number | null;
+  accessibilityScore: number | null;
+  bestPracticesScore: number | null;
+  seoScore: number | null;
+  coreWebVitals: {
+    lcpMs: number | null;
+    clsScore: number | null;
+    tbtMs: number | null;
+    fcpMs: number | null;
+    speedIndexMs: number | null;
+  };
+  topIssues: { id: string; title: string; description: string }[];
+}
+
 export interface AuditResult {
   url: string;
   overall: number;
-  verdict: { constructive: string; brutal: string };
+  verdict: string;
   categories: CategoryScore[];
   fixes: FixItem[];
   xPost: string;
   linkedinPost: string;
   banner: BannerDesign;
   modules: AuditModule[];
+  pageSpeed: PageSpeedSummary;
   _usage?: { used: number; limit: number; remaining: number; plan: string };
-  _reportId?: string | null;
   competitor?: {
     url: string;
     overall: number;

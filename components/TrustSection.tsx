@@ -10,13 +10,13 @@ export default function TrustSection() {
         <div className="text-center mb-10 sm:mb-12">
           <p className="text-xs font-mono text-text-secondary mb-3">WHY AUDITYXE IS DIFFERENT</p>
           <h2 className="font-display font-bold text-2xl sm:text-3xl tracking-tight mb-4">
-            Real measurements first. AI commentary second.
+            Real measurements first. Everything else second.
           </h2>
           <p className="text-text-secondary text-sm sm:text-base max-w-2xl mx-auto">
-            Most "AI audit" tools ask a language model to guess a score from a screenshot. Audityxe
-            doesn't — every score comes from parsing your site's actual HTML, HTTP headers,
-            redirect chain, robots.txt, sitemap.xml, and live-sampled links and images. AI only
-            writes the commentary layered on top.{" "}
+            Most audit tools guess a score from a screenshot. Audityxe doesn't — every score comes
+            from parsing your site's actual HTML, HTTP headers, redirect chain, robots.txt,
+            sitemap.xml, live-sampled links and images, and a real browser-rendered performance and
+            accessibility pass.{" "}
             <Link href="/methodology" className="text-primary hover:underline">
               See exactly how →
             </Link>
@@ -105,9 +105,9 @@ export default function TrustSection() {
             </thead>
             <tbody className="text-text-secondary">
               {[
-                ["All 6 score categories + 16-area deep audit", true, true, true],
+                ["All 6 score categories + 17-area deep audit", true, true, true],
                 ["Shareable public report links", true, true, true],
-                ["AI verdict + promo copy", true, true, true],
+                ["Written verdict + promo copy", true, true, true],
                 ["Daily audits", "3", "25", "200"],
                 ["Competitor comparison", false, true, true],
                 ["Bulk audit (up to 20 URLs)", false, false, true],

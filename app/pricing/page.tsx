@@ -124,7 +124,7 @@ export default function PricingPage() {
               Simple, usage-based plans
             </h1>
             <p className="text-text-secondary text-sm sm:text-base max-w-lg mx-auto">
-              Every plan gets the full audit engine — all 6 score categories and the full 16-area
+              Every plan gets the full audit engine — all 6 score categories and the full 17-area
               deep audit. Higher tiers get more audits per day and competitor comparisons.
             </p>
             <p className="text-[11px] font-mono text-text-secondary/60 mt-3 flex items-center justify-center gap-1.5">

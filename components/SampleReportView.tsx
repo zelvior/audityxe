@@ -1,22 +1,19 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import ScoreCard from "@/components/ScoreCard";
 import AuditModules from "@/components/AuditModules";
 import DiffFixes from "@/components/DiffFixes";
 import PromoKit from "@/components/PromoKit";
-import { AuditResult, Tone } from "@/lib/types";
+import { AuditResult } from "@/lib/types";
 
 export default function SampleReportView({ result }: { result: AuditResult }) {
-  const [tone, setTone] = useState<Tone>("constructive");
-
   return (
     <div>
-      <ScoreCard result={result} tone={tone} onToneChange={setTone} />
+      <ScoreCard result={result} />
       <AuditModules modules={result.modules} />
-      <DiffFixes result={result} tone={tone} />
+      <DiffFixes result={result} />
       <PromoKit result={result} />
 
       <div className="px-4 sm:px-6 py-10 sm:py-14">

@@ -1,33 +1,31 @@
+import Image from "next/image";
+
 interface LogoProps {
   size?: number;
   className?: string;
 }
 
+// Real trimmed pixel dimensions of the source PNG — used to preserve
+// its actual aspect ratio (it's not perfectly square) rather than
+// stretching it into a square box.
+const MARK_ASPECT_RATIO = 266 / 236;
+
 /**
- * Audityxe's brand mark: a radar sweep inside a rounded gradient square.
- * This is the single source of truth for the mark's shape — the same
- * geometry is mirrored (as raw SVG, since those routes can't import
- * React components) in app/icon.tsx, app/apple-icon.tsx, and
- * app/opengraph-image.tsx. If you change the mark here, update those
- * three files to match.
+ * Audityxe's real brand mark (the uploaded PNG, transparent background,
+ * auto-trimmed of padding). This is the single source of truth for the
+ * mark used across the Header, loading screen, and other in-app spots.
+ * The favicon (app/icon.png) and Apple touch icon (app/apple-icon.png)
+ * are separately-sized static exports of the same source image.
  */
 export default function Logo({ size = 32, className = "" }: LogoProps) {
   return (
-    <div
-      className={`shrink-0 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center ${className}`}
-      style={{ width: size, height: size }}
-      aria-hidden="true"
-    >
-      <svg width={size * 0.62} height={size * 0.62} viewBox="0 0 24 24" fill="none">
-        <circle cx="12" cy="12" r="3" fill="#F4F4F5" />
-        <path
-          d="M12 3a9 9 0 0 1 9 9M12 6.5A5.5 5.5 0 0 1 17.5 12"
-          stroke="#F4F4F5"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-          fill="none"
-        />
-      </svg>
-    </div>
+    <Image
+      src="/logo-mark-trimmed.png"
+      alt="Audityxe"
+      width={Math.round(size * MARK_ASPECT_RATIO)}
+      height={size}
+      className={`shrink-0 object-contain ${className}`}
+      priority
+    />
   );
 }

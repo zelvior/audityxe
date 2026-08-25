@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft, CheckCircle2, XCircle, Sparkles } from "lucide-react";
+import { ArrowLeft, CheckCircle2, XCircle, PenSquare } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
 export const metadata: Metadata = {
   title: "Methodology — How Audityxe measures your site",
   description:
-    "A transparent breakdown of exactly what Audityxe measures, how each score is calculated, what's automated vs. AI-generated, and where the limits are.",
+    "A transparent breakdown of exactly what Audityxe measures, how each score is calculated, what's deterministic vs. written commentary, and where the limits are.",
 };
 
 function Section({ title, id, children }: { title: string; id?: string; children: React.ReactNode }) {
@@ -38,8 +38,7 @@ export default function MethodologyPage() {
           </h1>
           <p className="text-text-secondary text-sm sm:text-base mb-10">
             No black box. Here's exactly what happens between you pasting a URL and getting a
-            score — what's measured directly, what's AI-generated commentary, and where the
-            limits are.
+            score — what's measured directly, what's written commentary, and where the limits are.
           </p>
 
           <Section title="1. What happens on submit">
@@ -53,12 +52,13 @@ export default function MethodologyPage() {
             <p>
               In parallel, we also fetch your site's real <code>/robots.txt</code> and{" "}
               <code>/sitemap.xml</code>, sample a handful of your on-page links and images with
-              live HTTP HEAD requests, and check for a real <code>/ads.txt</code> file. Nothing
-              here is simulated — see the "Live network requests" section below for the exact list.
+              live HTTP requests, check for a real <code>/ads.txt</code> file, and run a real
+              browser-rendered performance and accessibility pass. Nothing here is simulated — see
+              the "Live network requests" section below for the exact list.
             </p>
           </Section>
 
-          <Section title="2. Automated measurements vs. AI-generated commentary">
+          <Section title="2. Deterministic measurements vs. written commentary">
             <p>
               This distinction matters, so we keep it explicit everywhere in the product:
             </p>
@@ -68,22 +68,21 @@ export default function MethodologyPage() {
                   <CheckCircle2 size={15} /> Deterministic measurements
                 </p>
                 <p className="text-xs sm:text-sm">
-                  All 6 category scores, all 16 deep-audit modules, and every "pass/warn/fail"
-                  finding come from parsing the real HTML and HTTP responses — regex/DOM pattern
-                  matching against real markup and headers. Run the same audit twice against an
-                  unchanged page and you'll get the same score. No AI model touches these numbers.
+                  All 6 category scores, all 17 deep-audit modules, and every "pass/warn/fail"
+                  finding come from parsing the real HTML and HTTP responses, or from a real
+                  browser-rendered audit pass — never from guesswork. Run the same audit twice
+                  against an unchanged page and you'll get the same score.
                 </p>
               </div>
               <div className="glass rounded-xl p-4">
                 <p className="flex items-center gap-2 font-semibold text-sm mb-2 text-accent">
-                  <Sparkles size={15} /> AI-generated commentary
+                  <PenSquare size={15} /> Written commentary
                 </p>
                 <p className="text-xs sm:text-sm">
-                  The one-line "verdict" (constructive and brutal-roast versions), the X/LinkedIn
-                  promo copy, and the banner's headline/tagline are written by Gemini, given your
-                  real scores as input. If no AI key is configured or the API is unavailable, a
-                  built-in rule-based generator writes equivalent copy from the same real data —
-                  the scores never change, only the wording.
+                  The one-line verdict, the X/LinkedIn promo copy, and the banner's headline/
+                  tagline are generated based on your real scores as input. If that generation is
+                  ever unavailable, a built-in rule-based writer produces equivalent copy from the
+                  same real data — the scores never change, only the wording.
                 </p>
               </div>
             </div>
@@ -98,6 +97,7 @@ export default function MethodologyPage() {
               <li>Up to 10 on-page links, checked live via HEAD/GET for broken (404/410/5xx) responses</li>
               <li>Up to 8 on-page images, checked live via HEAD for actual file size and content-type</li>
               <li>The declared <code>og:image</code> URL, checked live to confirm it actually loads as an image</li>
+              <li>A full render of the page in real Chrome (via Google's PageSpeed Insights service) for performance, accessibility, and Core Web Vitals</li>
             </ul>
           </Section>
 
@@ -113,18 +113,33 @@ export default function MethodologyPage() {
             </p>
           </Section>
 
-          <Section title="5. How code/copy fixes are generated">
+          <Section title="5. Real browser-rendered auditing">
             <p>
-              Fixes are template-based, triggered by specific real findings — e.g. "no meta
-              description found" always produces the same category of fix with a concrete before/
-              after snippet. They are <strong>not</strong> independently validated against your
-              live codebase (we don't have access to it) — they're the standard, correct fix for
-              the specific problem detected, written by us, not generated per-request by an AI
-              model. Always test a fix in a staging environment before shipping to production.
+              Beyond parsing HTML, Audityxe also has your page actually rendered in real Chrome —
+              via Google's free PageSpeed Insights service, the same underlying engine (Lighthouse)
+              that powers Chrome DevTools. This measures things static HTML parsing simply can't:
+              real Largest Contentful Paint, Cumulative Layout Shift, Total Blocking Time, and a
+              full rendered accessibility audit (contrast, focus order, ARIA correctness against
+              the actual rendered DOM). Every specific issue it flags is shown as its own finding
+              with a description, not folded into a single opaque score.
             </p>
           </Section>
 
-          <Section title="6. Competitor comparison methodology">
+          <Section title="6. How code/copy fixes are generated, with evidence">
+            <p>
+              Fixes are template-based, triggered by specific real findings — e.g. "no meta
+              description found" always produces the same category of fix with a concrete before/
+              after snippet. Every fix also carries an <strong>evidence</strong> line stating
+              exactly what was checked and what was found — "sent a live GET request to
+              /sitemap.xml — no successful response," for example — so you can verify it yourself
+              rather than take our word for it. Fixes are <strong>not</strong> independently
+              validated against your live codebase (we don't have access to it) — they're the
+              standard, correct fix for the specific problem detected. Always test a fix in a
+              staging environment before shipping to production.
+            </p>
+          </Section>
+
+          <Section title="7. Competitor comparison methodology">
             <p>
               When a competitor URL is provided (Standard/Pro plans), we run the exact same audit
               pipeline against it independently, then compare category-by-category. A category is
@@ -133,25 +148,22 @@ export default function MethodologyPage() {
             </p>
           </Section>
 
-          <Section id="7-what-audityxe-cannot-measure-limitations" title="7. What Audityxe cannot measure (limitations)">
+          <Section id="8-what-audityxe-cannot-measure-limitations" title="8. What Audityxe cannot measure (limitations)">
             <div className="flex items-start gap-2">
               <XCircle size={16} className="text-rose mt-0.5 shrink-0" />
               <p>
-                We fetch raw HTML over HTTP — we do not run a headless browser. That means we
-                can't measure things that only exist after JavaScript executes: client-side
-                rendered content, real Core Web Vitals (LCP/CLS/INP as Chrome measures them),
-                actual color-contrast ratios, or truly rendered layout shift. Signals like "missing
-                width/height attributes" and "lazy loading usage" are real proxies for these, not
-                the metrics themselves.
+                The HTML-parsing checks can't see anything that only exists after JavaScript
+                executes on top of the raw response — though the real browser-rendered pass
+                (section 5) covers most of that gap for performance and accessibility.
               </p>
             </div>
             <div className="flex items-start gap-2">
               <XCircle size={16} className="text-rose mt-0.5 shrink-0" />
               <p>
                 Some link/image checks may show as "ambiguous" (401/403/429) rather than
-                "broken" — this is intentional. Many sites block automated HEAD requests from bots
-                as a matter of policy, which looks identical to a broken link from our side. We
-                label these separately rather than falsely reporting them as dead links.
+                "broken" — this is intentional. Many sites block automated requests from bots as a
+                matter of policy, which looks identical to a broken link from our side. We label
+                these separately rather than falsely reporting them as dead links.
               </p>
             </div>
             <div className="flex items-start gap-2">
@@ -164,13 +176,13 @@ export default function MethodologyPage() {
             </div>
           </Section>
 
-          <Section title="8. AI limitations">
+          <Section title="9. Your privacy">
             <p>
-              Gemini-generated verdict and promo copy can occasionally be generic, miss nuance a
-              human reviewer would catch, or (rarely) be unavailable due to provider-side rate
-              limits — in which case Audityxe automatically falls back to rule-based copy rather
-              than failing the audit. AI copy is commentary on top of the real scores, never a
-              substitute for them.
+              Audits are not stored on our servers once the result is returned to your browser —
+              there's no public report page, no cross-account history, and no database of who
+              audited what. Everything you see is computed fresh for you, for that request, and
+              belongs to you: use the copy/export/share buttons on any result to keep your own
+              copy.
             </p>
           </Section>
 

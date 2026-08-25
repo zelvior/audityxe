@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Check, Copy, MapPin, Wrench } from "lucide-react";
-import { AuditResult, Tone } from "@/lib/types";
+import { Check, Copy, MapPin, Wrench, Search } from "lucide-react";
+import { AuditResult } from "@/lib/types";
 
 function DiffLine({ line }: { line: string }) {
   if (line.startsWith("+")) {
@@ -15,11 +15,26 @@ function DiffLine({ line }: { line: string }) {
   return <div className="text-text-secondary px-3 py-0.5">{line}</div>;
 }
 
-export default function DiffFixes({ result, tone }: { result: AuditResult; tone: Tone }) {
+/** The rendered snippet is diff-formatted (+/- markers) for readability,
+ * but pasting that literally into a real file would break it — the "+"
+ * characters aren't part of the actual code. This extracts the clean,
+ * paste-ready version: keeps added/context lines, drops removed lines,
+ * and strips the leading diff marker. */
+function cleanSnippetForCopy(snippet: string): string {
+  const lines = snippet.split("\n");
+  const hasMarkers = lines.some((l) => l.startsWith("+") || l.startsWith("-"));
+  if (!hasMarkers) return snippet;
+  return lines
+    .filter((l) => !l.startsWith("-"))
+    .map((l) => (l.startsWith("+") ? l.slice(1).replace(/^ /, "") : l))
+    .join("\n");
+}
+
+export default function DiffFixes({ result }: { result: AuditResult }) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   function copy(id: string, snippet: string) {
-    navigator.clipboard?.writeText(snippet).catch(() => {});
+    navigator.clipboard?.writeText(cleanSnippetForCopy(snippet)).catch(() => {});
     setCopiedId(id);
     setTimeout(() => setCopiedId((c) => (c === id ? null : c)), 1600);
   }
@@ -29,7 +44,7 @@ export default function DiffFixes({ result, tone }: { result: AuditResult; tone:
       <div className="max-w-4xl mx-auto">
         <h2 className="font-display font-semibold text-xl sm:text-2xl mb-1">Priority Fixes</h2>
         <p className="text-text-secondary text-xs sm:text-sm mb-5 sm:mb-6">
-          Your lowest-scoring areas, with exact code and copy to ship.
+          Your lowest-scoring areas, with real evidence and exact code to ship.
         </p>
 
         <div className="space-y-4">
@@ -68,9 +83,17 @@ export default function DiffFixes({ result, tone }: { result: AuditResult; tone:
                 <span className="break-words">{fix.target}</span>
               </div>
 
-              <p className="text-sm sm:text-base mb-3 break-words">
-                {tone === "brutal" ? fix.problem.brutal : fix.problem.constructive}
-              </p>
+              <p className="text-sm sm:text-base mb-3 break-words">{fix.problem}</p>
+
+              {fix.evidence && (
+                <div className="flex items-start gap-2 text-xs sm:text-sm mb-3 bg-surface2/60 rounded-lg px-3 py-2">
+                  <Search size={13} className="mt-0.5 shrink-0 text-primary" />
+                  <span className="text-text-secondary break-words">
+                    <span className="font-semibold text-text-primary">Evidence: </span>
+                    {fix.evidence}
+                  </span>
+                </div>
+              )}
 
               <div className="flex items-start gap-2 text-xs sm:text-sm mb-3">
                 <Wrench size={14} className="mt-0.5 shrink-0 text-emerald" />

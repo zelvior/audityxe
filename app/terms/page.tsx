@@ -34,10 +34,10 @@ export default function TermsPage() {
       <h2>3. No warranty on audit accuracy</h2>
       <p>
         Audit scores, fixes, and verdicts are generated automatically using heuristic analysis of
-        publicly available HTML and, where configured, AI-generated commentary. They are provided
-        for informational purposes only and do not constitute professional design, legal,
-        accessibility, or SEO consulting advice. Scores may vary between runs and are not a
-        certification of any kind.
+        publicly available HTML and HTTP responses, a real browser-rendered performance/
+        accessibility pass, and generated written commentary. They are provided for informational
+        purposes only and do not constitute professional design, legal, accessibility, or SEO
+        consulting advice. Scores may vary between runs and are not a certification of any kind.
       </p>
 
       <h2>4. Intellectual property</h2>

@@ -1,8 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { AuditResult, Tone } from "@/lib/types";
-import ToneToggle from "./ToneToggle";
+import { AuditResult } from "@/lib/types";
 import AuditActionBar from "./AuditActionBar";
 
 function colorFor(score: number) {
@@ -11,15 +10,7 @@ function colorFor(score: number) {
   return { bar: "bg-rose", text: "text-rose", ring: "#F43F5E" };
 }
 
-export default function ScoreCard({
-  result,
-  tone,
-  onToneChange,
-}: {
-  result: AuditResult;
-  tone: Tone;
-  onToneChange: (t: Tone) => void;
-}) {
+export default function ScoreCard({ result }: { result: AuditResult }) {
   const overallColor = colorFor(result.overall);
   const circumference = 2 * Math.PI * 54;
   const dash = (result.overall / 10) * circumference;
@@ -32,10 +23,7 @@ export default function ScoreCard({
             <p className="text-xs font-mono text-text-secondary">AUDIT RESULT FOR</p>
             <p className="font-display font-semibold text-lg sm:text-xl break-all">{result.url}</p>
           </div>
-          <div className="flex items-center gap-3 flex-wrap">
-            <ToneToggle tone={tone} onChange={onToneChange} />
-            <AuditActionBar result={result} />
-          </div>
+          <AuditActionBar result={result} />
         </div>
 
         <div className="flex flex-col sm:flex-row gap-6 sm:gap-8 items-center sm:items-start mb-8 sm:mb-10">
@@ -64,7 +52,7 @@ export default function ScoreCard({
 
           <div className="flex-1 text-center sm:text-left min-w-0">
             <p className={`font-display font-semibold text-base sm:text-lg md:text-xl leading-snug ${overallColor.text}`}>
-              {tone === "brutal" ? result.verdict.brutal : result.verdict.constructive}
+              {result.verdict}
             </p>
           </div>
         </div>

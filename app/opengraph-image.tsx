@@ -1,11 +1,16 @@
 import { ImageResponse } from "next/og";
+import { readFileSync } from "fs";
+import { join } from "path";
 
-export const runtime = "edge";
-export const alt = "Audityxe — Instant AI Site Audit & Viral Promo Generator";
+export const runtime = "nodejs";
+export const alt = "Audityxe — Instant Site Audit & Viral Promo Generator";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
 export default async function OpengraphImage() {
+  const logoBuffer = readFileSync(join(process.cwd(), "public", "logo-mark-trimmed.png"));
+  const logoDataUri = `data:image/png;base64,${logoBuffer.toString("base64")}`;
+
   return new ImageResponse(
     (
       <div
@@ -24,24 +29,12 @@ export default async function OpengraphImage() {
           style={{
             display: "flex",
             alignItems: "center",
-            gap: 14,
+            gap: 16,
             marginBottom: 36,
           }}
         >
-          <div
-            style={{
-              width: 56,
-              height: 56,
-              borderRadius: 16,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              background: "linear-gradient(135deg, #6366F1, #8B5CF6)",
-              fontSize: 30,
-            }}
-          >
-            🛰️
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={logoDataUri} width={56} height={50} alt="" />
           <div style={{ display: "flex", fontSize: 36, fontWeight: 700, color: "#F4F4F5" }}>
             Audityxe
           </div>
@@ -56,7 +49,7 @@ export default async function OpengraphImage() {
             maxWidth: 980,
           }}
         >
-          Instant AI Site Audit &amp; Viral Promo Generator
+          Instant Site Audit &amp; Viral Promo Generator
         </div>
         <div
           style={{
@@ -67,7 +60,7 @@ export default async function OpengraphImage() {
             maxWidth: 860,
           }}
         >
-          Live-measured scores, 16-area deep audits, and ready-to-post promo kits — for any URL.
+          Live-measured scores, a 17-area deep audit, and ready-to-post promo kits — for any URL.
         </div>
       </div>
     ),

@@ -1,4 +1,4 @@
-import { AuditModule, AuditModuleFinding } from "./types";
+import { AuditModule, AuditModuleFinding, PageSpeedSummary } from "./types";
 import { Signals } from "./analyze";
 import { DeepSignals } from "./deep-signals";
 import { BrokenLinkResult, ImageSampleResult, AdsTxtResult, OgImageResult } from "./network-checks";
@@ -10,16 +10,17 @@ export interface ModuleContext {
   imageSample: ImageSampleResult;
   adsTxt: AdsTxtResult;
   ogImage: OgImageResult;
+  pageSpeed: PageSpeedSummary;
 }
 
-function pass(label: string, detail: string): AuditModuleFinding {
-  return { label, status: "pass", detail };
+function pass(label: string, detail: string, evidence?: string): AuditModuleFinding {
+  return { label, status: "pass", detail, evidence };
 }
-function warn(label: string, detail: string): AuditModuleFinding {
-  return { label, status: "warn", detail };
+function warn(label: string, detail: string, evidence?: string): AuditModuleFinding {
+  return { label, status: "warn", detail, evidence };
 }
-function fail(label: string, detail: string): AuditModuleFinding {
-  return { label, status: "fail", detail };
+function fail(label: string, detail: string, evidence?: string): AuditModuleFinding {
+  return { label, status: "fail", detail, evidence };
 }
 
 function statusFromFindings(findings: AuditModuleFinding[]): { status: AuditModule["status"]; score: number } {
@@ -40,7 +41,7 @@ function makeModule(id: string, label: string, summary: string, findings: AuditM
 }
 
 export function buildAuditModules(ctx: ModuleContext): AuditModule[] {
-  const { signals: s, deep: d, brokenLinks, imageSample, adsTxt, ogImage } = ctx;
+  const { signals: s, deep: d, brokenLinks, imageSample, adsTxt, ogImage, pageSpeed } = ctx;
   const modules: AuditModule[] = [];
 
   /* 1. SEO ────────────────────────────────────────────────────────── */
@@ -328,17 +329,33 @@ export function buildAuditModules(ctx: ModuleContext): AuditModule[] {
       [
         s.robotsTxt.fetched
           ? s.robotsTxt.exists
-            ? pass("robots.txt exists", `${s.robotsTxt.ruleCount} allow/disallow rule(s).`)
-            : fail("robots.txt exists", "Not found at the domain root.")
-          : warn("robots.txt exists", "Could not be checked."),
+            ? pass(
+                "robots.txt exists",
+                `${s.robotsTxt.ruleCount} allow/disallow rule(s).`,
+                `Sent a live GET request to ${s.robotsTxt.checkedUrl} \u2014 received HTTP ${s.robotsTxt.httpStatus}.`
+              )
+            : fail(
+                "robots.txt exists",
+                "Not found at the domain root.",
+                `Sent a live GET request to ${s.robotsTxt.checkedUrl} \u2014 received HTTP ${s.robotsTxt.httpStatus ?? "no response"}.`
+              )
+          : warn("robots.txt exists", "Could not be checked.", `Request to ${s.robotsTxt.checkedUrl} timed out or failed to connect.`),
         s.robotsTxt.exists && s.robotsTxt.blocksAllCrawlers
-          ? fail("Crawler access", "Disallow: / blocks all crawlers site-wide.")
+          ? fail("Crawler access", "Disallow: / blocks all crawlers site-wide.", `Parsed the fetched ${s.robotsTxt.checkedUrl}: found a "User-agent: *" block containing "Disallow: /".`)
           : pass("Crawler access", "Not globally blocked."),
         s.sitemap.fetched
           ? s.sitemap.exists
-            ? pass("sitemap.xml exists", `Valid XML, ${s.sitemap.urlCount} entr${s.sitemap.urlCount === 1 ? "y" : "ies"}.`)
-            : fail("sitemap.xml exists", "Not found or not valid XML.")
-          : warn("sitemap.xml exists", "Could not be checked."),
+            ? pass(
+                "sitemap.xml exists",
+                `Valid XML, ${s.sitemap.urlCount} entr${s.sitemap.urlCount === 1 ? "y" : "ies"}.`,
+                `Sent a live GET request to ${s.sitemap.checkedUrl} \u2014 received HTTP ${s.sitemap.httpStatus}, parsed as valid sitemap XML.`
+              )
+            : fail(
+                "sitemap.xml exists",
+                "Not found or not valid XML.",
+                `Sent a live GET request to ${s.sitemap.checkedUrl} \u2014 received HTTP ${s.sitemap.httpStatus ?? "no response"}${s.sitemap.httpStatus && s.sitemap.httpStatus < 300 ? ", but the body did not parse as valid sitemap XML" : ""}.`
+              )
+          : warn("sitemap.xml exists", "Could not be checked.", `Request to ${s.sitemap.checkedUrl} timed out or failed to connect.`),
         s.sitemap.exists && s.sitemap.hasLastmod
           ? pass("Freshness data", "<lastmod> present in sitemap entries.")
           : s.sitemap.exists
@@ -563,6 +580,64 @@ export function buildAuditModules(ctx: ModuleContext): AuditModule[] {
       ]
     )
   );
+
+  /* 17. Real browser-rendered audit (PageSpeed Insights / Lighthouse) ── */
+  if (pageSpeed.fetched) {
+    const cwv = pageSpeed.coreWebVitals;
+    modules.push(
+      makeModule(
+        "browser-audit",
+        "Browser-Rendered Audit",
+        "Measured by actually rendering this page in real Chrome and running a full audit \u2014 not estimated from HTML alone.",
+        [
+          pageSpeed.performanceScore !== null
+            ? (pageSpeed.performanceScore >= 90 ? pass : pageSpeed.performanceScore >= 50 ? warn : fail)(
+                "Rendered performance score",
+                `${pageSpeed.performanceScore}/100.`,
+                `Real Chrome rendered this page end-to-end and scored it ${pageSpeed.performanceScore}/100 on performance.`
+              )
+            : warn("Rendered performance score", "Could not be measured for this run."),
+          pageSpeed.accessibilityScore !== null
+            ? (pageSpeed.accessibilityScore >= 90 ? pass : pageSpeed.accessibilityScore >= 50 ? warn : fail)(
+                "Rendered accessibility score",
+                `${pageSpeed.accessibilityScore}/100.`,
+                `Real Chrome ran a full accessibility audit (contrast, ARIA, labels, focus order) against the rendered page and scored ${pageSpeed.accessibilityScore}/100.`
+              )
+            : warn("Rendered accessibility score", "Could not be measured for this run."),
+          pageSpeed.bestPracticesScore !== null
+            ? (pageSpeed.bestPracticesScore >= 90 ? pass : pageSpeed.bestPracticesScore >= 50 ? warn : fail)(
+                "Best practices score",
+                `${pageSpeed.bestPracticesScore}/100.`
+              )
+            : warn("Best practices score", "Could not be measured for this run."),
+          cwv.lcpMs !== null
+            ? (cwv.lcpMs <= 2500 ? pass : cwv.lcpMs <= 4000 ? warn : fail)(
+                "Largest Contentful Paint",
+                `${(cwv.lcpMs / 1000).toFixed(1)}s (target: under 2.5s).`,
+                `Measured the actual time for the largest visible element to render in a real browser: ${cwv.lcpMs}ms.`
+              )
+            : warn("Largest Contentful Paint", "Not measured."),
+          cwv.clsScore !== null
+            ? (cwv.clsScore <= 0.1 ? pass : cwv.clsScore <= 0.25 ? warn : fail)(
+                "Cumulative Layout Shift",
+                `${cwv.clsScore.toFixed(3)} (target: under 0.1).`,
+                `Measured actual visual instability during page load in a real browser: a CLS score of ${cwv.clsScore.toFixed(3)}.`
+              )
+            : warn("Cumulative Layout Shift", "Not measured."),
+          cwv.tbtMs !== null
+            ? (cwv.tbtMs <= 200 ? pass : cwv.tbtMs <= 600 ? warn : fail)(
+                "Total Blocking Time",
+                `${cwv.tbtMs}ms (target: under 200ms).`,
+                `Measured actual main-thread blocking time between first paint and interactivity in a real browser: ${cwv.tbtMs}ms.`
+              )
+            : warn("Total Blocking Time", "Not measured."),
+          ...pageSpeed.topIssues.slice(0, 4).map((issue) =>
+            warn(issue.title, issue.description.slice(0, 200), `Flagged by a real browser-rendered audit (check id: ${issue.id}).`)
+          ),
+        ]
+      )
+    );
+  }
 
   return modules;
 }

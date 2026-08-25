@@ -27,13 +27,12 @@ export default function DisclaimerPage() {
         of a site's quality, and a high score is not a guarantee of commercial performance.
       </p>
 
-      <h2>AI-generated commentary</h2>
+      <h2>Generated commentary</h2>
       <p>
-        Where configured, verdict text and social promo copy are generated using a third-party AI
-        model. AI-generated text may occasionally be inaccurate, generic, or fail to reflect
-        nuance a human reviewer would catch. If AI generation is unavailable, the Service falls
-        back to a rule-based text generator, which is deliberately conservative but similarly not
-        a substitute for expert review.
+        Verdict text and social promo copy are generated based on your computed scores, and may
+        occasionally be generic or fail to reflect nuance a human reviewer would catch. If that
+        generation is ever unavailable, the Service falls back to a rule-based text generator,
+        which is deliberately conservative but similarly not a substitute for expert review.
       </p>
 
       <h2>No professional relationship</h2>

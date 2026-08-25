@@ -8,8 +8,31 @@ import BannerCanvas from "./BannerCanvas";
 export default function PromoKit({ result }: { result: AuditResult }) {
   const [copied, setCopied] = useState<"x" | "li" | null>(null);
 
-  function copy(which: "x" | "li", text: string) {
-    navigator.clipboard?.writeText(text).catch(() => {});
+  async function copy(which: "x" | "li", text: string) {
+    let ok = false;
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+        ok = true;
+      }
+    } catch {
+      // fall through to legacy fallback
+    }
+    if (!ok) {
+      try {
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+      } catch {
+        return;
+      }
+    }
     setCopied(which);
     setTimeout(() => setCopied((c) => (c === which ? null : c)), 1600);
   }

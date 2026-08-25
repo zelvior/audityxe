@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 export default function PrivacyPage() {
   return (
-    <LegalLayout title="Privacy Policy" updated="August 20, 2026">
+    <LegalLayout title="Privacy Policy" updated="August 2026">
       <p>
         This Privacy Policy explains what information Audityxe ("we", "us", "our") collects when
         you use the site-audit tool at this domain, and how that information is used, stored, and
@@ -16,70 +16,89 @@ export default function PrivacyPage() {
       </p>
 
       <h2>1. Information we collect</h2>
-      <p>When you submit a URL for audit, we process:</p>
+      <p>Running an audit requires a free account. We collect:</p>
       <ul>
-        <li>The URL you enter, and any competitor URL you optionally provide.</li>
-        <li>The publicly available HTML of the pages you submit, fetched at request time.</li>
+        <li>
+          Your email address and authentication identifier, via Firebase Authentication
+          (email/password, Google, or GitHub sign-in).
+        </li>
+        <li>Your display name, if you set one.</li>
+        <li>
+          Your plan tier and daily usage count, so we can enforce fair per-account rate limits.
+        </li>
+        <li>The URL you enter, and any competitor URL you optionally provide, for that request.</li>
+        <li>The publicly available HTML and HTTP response of the pages you submit, fetched at request time.</li>
         <li>
           Standard technical data such as your IP address, browser type, and request timestamps,
           collected automatically by our hosting infrastructure for security and abuse
           prevention.
         </li>
       </ul>
-      <p>We do not require an account, email address, or payment information to run an audit.</p>
 
-      <h2>2. How we use information</h2>
+      <h2>2. What we deliberately don't store</h2>
+      <p>
+        Audit results — scores, findings, fixes — are computed fresh for each request and returned
+        directly to your browser. We do not save a copy of your audit results on our servers, and
+        there is no public report page or cross-account history feature. Once the response reaches
+        your browser, keeping a copy (via the copy/export/share/email buttons on the results page)
+        is entirely up to you.
+      </p>
+
+      <h2>3. How we use information</h2>
       <ul>
         <li>To fetch and analyze the submitted page and generate an audit report.</li>
-        <li>To generate AI-assisted verdict and promotional copy via third-party AI providers.</li>
+        <li>To verify your identity and enforce per-account daily usage limits.</li>
+        <li>To generate the written verdict and promotional copy accompanying your results.</li>
         <li>To maintain the security, stability, and abuse resistance of the service.</li>
-        <li>To improve the accuracy of the audit engine over time.</li>
       </ul>
 
-      <h2>3. Third-party processing</h2>
+      <h2>4. Third-party processing</h2>
       <p>
-        Audit copy (verdicts and promo text) may be generated using Google's Gemini API. The URL,
-        computed category scores, and derived summary text are sent to this provider solely to
-        generate that copy. We do not send your personal browsing data or account information, as
-        we do not collect any.
+        A few requests made on your behalf go to third-party services, solely to produce your
+        audit: a text-generation service writes the verdict and promo copy from your computed
+        scores; Google's PageSpeed Insights service renders your submitted page in a real browser
+        to measure performance and accessibility; and Pollinations.ai generates the banner's
+        background art. None of these receive your account email, password, or any personal
+        identifying information — only the URL being audited and its derived scores.
       </p>
 
-      <h2>4. Data retention</h2>
+      <h2>5. Data retention</h2>
       <p>
-        Audit results are generated on demand and are not persisted in a database by default.
-        Submitted URLs and generated results may be temporarily cached in server memory or logs
-        for debugging and abuse-prevention purposes, and are periodically purged.
+        Your account record (email, plan, usage counters) persists in our database (Firebase/
+        Firestore) for as long as your account exists, and is deleted if you delete your account
+        from Settings. Individual audit results are not persisted at all — see Section 2. Server
+        logs used for security/abuse prevention are periodically purged.
       </p>
 
-      <h2>5. Cookies</h2>
+      <h2>6. Cookies</h2>
       <p>
-        Audityxe does not use tracking or advertising cookies. Any strictly necessary cookies are
-        limited to what's required for the site to function. See our{" "}
+        Audityxe does not use tracking or advertising cookies. Any strictly necessary
+        cookies/local storage are limited to what's required for sign-in to function. See our{" "}
         <a href="/cookies">Cookie Policy</a> for details.
       </p>
 
-      <h2>6. Your rights</h2>
+      <h2>7. Your rights</h2>
       <p>
-        Depending on your jurisdiction, you may have the right to request access to, correction
-        of, or deletion of any personal data we hold about you. Since we do not require accounts
-        and do not persist personal data beyond operational logs, most requests can be resolved by
-        confirming what limited technical data (e.g. IP address in server logs) may exist for a
-        given time window.
+        You can export a copy of your account data or permanently delete your account (which
+        removes your account record and usage data) at any time from{" "}
+        <a href="/settings">Settings</a>. Depending on your jurisdiction, you may have additional
+        rights to access, correct, or delete personal data — contact us if you need help beyond
+        what Settings covers.
       </p>
 
-      <h2>7. Children's privacy</h2>
+      <h2>8. Children's privacy</h2>
       <p>
         Audityxe is not directed at children under 13, and we do not knowingly collect personal
         information from children.
       </p>
 
-      <h2>8. Changes to this policy</h2>
+      <h2>9. Changes to this policy</h2>
       <p>
         We may update this Privacy Policy from time to time. Material changes will be reflected by
         updating the "Last updated" date above.
       </p>
 
-      <h2>9. Contact</h2>
+      <h2>10. Contact</h2>
       <p>
         Questions about this policy can be sent via the <a href="/contact">Contact page</a>.
       </p>

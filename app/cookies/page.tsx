@@ -43,9 +43,11 @@ export default function CookiesPage() {
       <h2>3. Third-party requests</h2>
       <p>
         When you run an audit, your browser communicates only with our own server. Our server, in
-        turn, fetches the page you submitted and, where AI copy generation is enabled, sends
-        derived audit data (not cookies) to the Gemini API. No cookies from your browser are
-        shared with that provider.
+        turn, fetches the page you submitted and sends derived audit data (not cookies) to the
+        third-party services described in our{" "}
+        <a href="/privacy">Privacy Policy</a> to generate written commentary and the
+        browser-rendered performance pass. No cookies from your browser are shared with those
+        providers.
       </p>
 
       <h2>4. Managing cookies</h2>

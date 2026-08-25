@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -8,7 +8,6 @@ import {
   Loader2,
   User as UserIcon,
   KeyRound,
-  SlidersHorizontal,
   ShieldAlert,
   Download,
   Trash2,
@@ -20,7 +19,6 @@ import {
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useAuth } from "@/context/AuthContext";
-import { Tone } from "@/lib/types";
 
 function GoogleIcon() {
   return (
@@ -130,45 +128,6 @@ export default function SettingsPage() {
     }
   }
 
-  // Preferences
-  const [defaultTone, setDefaultTone] = useState<Tone>("constructive");
-  const [prefsLoading, setPrefsLoading] = useState(true);
-  const [prefsSaving, setPrefsSaving] = useState(false);
-
-  const fetchPrefs = useCallback(async () => {
-    if (!user) return;
-    setPrefsLoading(true);
-    try {
-      const token = await getToken();
-      const res = await fetch("/api/settings", { headers: token ? { Authorization: `Bearer ${token}` } : {} });
-      const data = await res.json();
-      if (res.ok) setDefaultTone(data.defaultTone === "brutal" ? "brutal" : "constructive");
-    } catch {
-      // Non-critical — default stays "constructive".
-    } finally {
-      setPrefsLoading(false);
-    }
-  }, [user, getToken]);
-
-  useEffect(() => {
-    fetchPrefs();
-  }, [fetchPrefs]);
-
-  async function handleToneChange(tone: Tone) {
-    setDefaultTone(tone);
-    setPrefsSaving(true);
-    try {
-      const token = await getToken();
-      await fetch("/api/settings", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", Authorization: token ? `Bearer ${token}` : "" },
-        body: JSON.stringify({ defaultTone: tone }),
-      });
-    } finally {
-      setPrefsSaving(false);
-    }
-  }
-
   // Data export
   const [exporting, setExporting] = useState(false);
 
@@ -178,24 +137,19 @@ export default function SettingsPage() {
     try {
       const token = await getToken();
       const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
-      const [accountRes, reportsRes] = await Promise.all([
-        fetch("/api/account", { headers }),
-        fetch("/api/reports", { headers }),
-      ]);
+      const accountRes = await fetch("/api/account", { headers });
       const account = await accountRes.json().catch(() => ({}));
-      const reports = await reportsRes.json().catch(() => ({ reports: [] }));
 
       const exportable = {
         profile: { email: user.email, displayName: user.displayName, emailVerified: user.emailVerified, uid: user.uid },
         account,
-        reportHistory: reports.reports || [],
         exportedAt: new Date().toISOString(),
       };
       const blob = new Blob([JSON.stringify(exportable, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = "audityxe-my-data.json";
+      link.download = "my-audit-account-data.json";
       link.click();
       URL.revokeObjectURL(url);
     } finally {
@@ -335,35 +289,6 @@ export default function SettingsPage() {
                 directly.
               </p>
             )}
-          </SectionCard>
-
-          {/* Preferences */}
-          <SectionCard
-            icon={<SlidersHorizontal size={15} className="text-primary" />}
-            title="Preferences"
-            description="Applies the next time you view any audit results."
-          >
-            <label className="block text-xs font-mono text-text-secondary mb-2">Default report tone</label>
-            <div className="inline-flex items-center gap-1 p-1 rounded-full glass text-xs font-mono">
-              <button
-                onClick={() => handleToneChange("constructive")}
-                disabled={prefsLoading || prefsSaving}
-                className={`px-3.5 py-1.5 rounded-full transition ${
-                  defaultTone === "constructive" ? "bg-emerald/20 text-emerald" : "text-text-secondary"
-                }`}
-              >
-                Constructive
-              </button>
-              <button
-                onClick={() => handleToneChange("brutal")}
-                disabled={prefsLoading || prefsSaving}
-                className={`px-3.5 py-1.5 rounded-full transition ${
-                  defaultTone === "brutal" ? "bg-rose/20 text-rose" : "text-text-secondary"
-                }`}
-              >
-                Brutal Roast
-              </button>
-            </div>
           </SectionCard>
 
           {/* Plan */}

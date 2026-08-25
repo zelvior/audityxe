@@ -23,16 +23,17 @@ const FAQS: { q: string; a: React.ReactNode }[] = [
     ),
   },
   {
-    q: "Is this just a wrapper around an AI model?",
+    q: "How are the scores actually calculated — is this just guesswork?",
     a: (
       <>
-        No — and this is worth being precise about. All 6 category scores and the full 16-area
+        No — and this is worth being precise about. All 6 category scores and the full 17-area
         deep audit come from parsing the real live HTML and HTTP response of your page: heading
         structure, meta tags, security headers, redirect chains, robots.txt/sitemap.xml fetched
-        live, sampled broken-link and image checks over real HTTP requests. None of that touches
-        an AI model. Gemini is used for exactly three things: the one-line verdict text, the
-        social promo copy, and the banner's headline — all optional commentary layered on top of
-        real, deterministic measurements. See the full{" "}
+        live, sampled broken-link and image checks over real HTTP requests, plus a real
+        browser-rendered performance and accessibility pass. Only the one-line verdict, the
+        social promo copy, and the banner's headline are written commentary layered on top of
+        those real, deterministic measurements — the scores themselves never change based on how
+        that commentary is generated. See the full{" "}
         <Link href="/methodology" className="text-primary hover:underline">
           methodology
         </Link>{" "}
@@ -42,14 +43,14 @@ const FAQS: { q: string; a: React.ReactNode }[] = [
   },
   {
     q: "Do I need to create an account?",
-    a: "Yes. Running an audit requires a free account (email/password, Google, or GitHub) so we can apply fair per-account daily limits instead of one person exhausting shared capacity. It takes about 15 seconds and never requires a card.",
+    a: "Yes. Running an audit requires a free account (email/password, Google, or GitHub) with a verified email — this keeps per-account daily limits fair instead of one person exhausting shared capacity. If you sign up with email/password, check your inbox (and your spam/junk folder — verification emails sometimes land there) for the verification link before trying to run an audit.",
   },
   {
     q: "What's the difference between Free, Standard, and Pro?",
     a: (
       <>
-        All three get the identical audit engine — the same 6 scores and 16-area deep audit,
-        nothing is dumbed down on Free. The only differences are daily audit volume (3 / 25 / 200
+        All three get the identical audit engine — the same 6 scores and 17-area deep audit,
+        nothing is dumbed down on Free. The only differences are daily audit volume (3 / 20 / 50
         per day) and whether competitor head-to-head comparisons are unlocked (Standard and Pro
         only). See the full breakdown on{" "}
         <Link href="/pricing" className="text-primary hover:underline">
@@ -75,10 +76,11 @@ const FAQS: { q: string; a: React.ReactNode }[] = [
     q: "What can't Audityxe check?",
     a: (
       <>
-        We fetch raw HTML over HTTP, not a rendered browser — so JavaScript-rendered content,
-        true Core Web Vitals as Chrome measures them, and actual visual color contrast aren't
-        directly measurable. We use real proxies for these (missing width/height attributes,
-        lazy-loading usage, etc.) but we're upfront that they're proxies. Full details on the{" "}
+        Most of the classic gap — JavaScript-rendered content, real Core Web Vitals, actual
+        rendered accessibility issues — is now covered by a real browser-rendered pass (we
+        actually render the page in Chrome and run a full audit against it). What's left is
+        mostly interpretation: we can't verify a fix was actually deployed correctly, or judge
+        subjective design quality. Full details on the{" "}
         <Link href="/methodology" className="text-primary hover:underline">
           methodology
         </Link>{" "}
@@ -106,7 +108,7 @@ const FAQS: { q: string; a: React.ReactNode }[] = [
   },
   {
     q: "Can I share a report with someone else?",
-    a: "Yes — every completed audit can be saved as a public, read-only report page with its own shareable link, viewable by anyone without needing an account. Your account page keeps a history of your past reports.",
+    a: "Yes — use the copy, export, share, or email buttons on any completed audit. Copy grabs a plain-text summary, export downloads the full result as JSON, share uses your device's native share sheet, and email opens a pre-filled message. There's no public, anyone-with-the-link report page — audits aren't stored on our servers or made publicly viewable, for your privacy.",
   },
   {
     q: "Is there a bulk-audit option for agencies?",

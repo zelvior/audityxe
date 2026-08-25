@@ -64,6 +64,11 @@ function ModuleCard({ module }: { module: AuditModule }) {
               <div className="min-w-0">
                 <span className="font-medium">{f.label}:</span>{" "}
                 <span className="text-text-secondary break-words">{f.detail}</span>
+                {f.evidence && (
+                  <p className="text-[11px] text-text-secondary/70 mt-0.5 break-words">
+                    <span className="font-medium">Evidence:</span> {f.evidence}
+                  </p>
+                )}
               </div>
             </div>
           ))}

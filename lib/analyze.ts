@@ -4,6 +4,7 @@ import { extractDeepSignals } from "./deep-signals";
 import { checkBrokenLinks, checkImageSample, checkAdsTxt, checkOgImage } from "./network-checks";
 import { buildAuditModules } from "./audit-modules";
 import { assertSafeUrl } from "./url-safety";
+import { fetchPageSpeedInsights } from "./pagespeed";
 
 const CATEGORY_META: { key: CategoryKey; label: string }[] = [
   { key: "messaging", label: "Messaging & Copy Clarity" },
@@ -123,6 +124,8 @@ export interface RobotsSignals {
   referencesSitemap: boolean;
   sitemapUrls: string[];
   ruleCount: number;
+  checkedUrl: string;
+  httpStatus: number | null;
 }
 
 export interface SitemapSignals {
@@ -132,6 +135,8 @@ export interface SitemapSignals {
   urlCount: number;
   hasLastmod: boolean;
   isSitemapIndex: boolean;
+  checkedUrl: string;
+  httpStatus: number | null;
 }
 
 function extractSignals(html: string, finalUrl: string): Signals {
@@ -248,8 +253,8 @@ function extractSignals(html: string, finalUrl: string): Signals {
     hasManifest: has(/<link[^>]+rel=["']manifest["']/i),
 
     // Populated by auditOne() after this function returns — placeholders here.
-    robotsTxt: { fetched: false, exists: false, blocksAllCrawlers: false, referencesSitemap: false, sitemapUrls: [], ruleCount: 0 },
-    sitemap: { fetched: false, exists: false, isValidXml: false, urlCount: 0, hasLastmod: false, isSitemapIndex: false },
+    robotsTxt: { fetched: false, exists: false, blocksAllCrawlers: false, referencesSitemap: false, sitemapUrls: [], ruleCount: 0, checkedUrl: "", httpStatus: null },
+    sitemap: { fetched: false, exists: false, isValidXml: false, urlCount: 0, hasLastmod: false, isSitemapIndex: false, checkedUrl: "", httpStatus: null },
     security: {
       finalIsHttps: finalUrl.startsWith("https://"),
       redirectHopCount: 0,
@@ -403,14 +408,12 @@ function buildFixes(s: Signals, categories: CategoryScore[]): FixItem[] {
       id: "title",
       category: "Messaging & Copy Clarity",
       target: "<title> tag",
-      problem: {
-        constructive: s.title
-          ? `The <title> tag is ${s.title.length} characters, outside the ideal 15\u201365 range for clarity and SEO.`
-          : "There is no <title> tag on the page.",
-        brutal: s.title
-          ? `Your title tag is ${s.title.length} characters. Either you're padding it or you gave up halfway through.`
-          : "You shipped a page with no <title> tag. That's the first thing anyone sees in a browser tab, and it's blank.",
-      },
+      problem: s.title
+        ? `The <title> tag is ${s.title.length} characters, outside the ideal 15\u201365 range for clarity and SEO.`
+        : "There is no <title> tag on the page.",
+      evidence: s.title
+        ? `Fetched the page HTML and found: <title>${s.title.length > 80 ? s.title.slice(0, 80) + "\u2026" : s.title}</title> (${s.title.length} characters).`
+        : "Searched the fetched HTML for a <title> tag inside <head> \u2014 none was found.",
       fix: "Write a specific, benefit-led title between 15 and 65 characters.",
       snippet: `<title>\n-  ${s.title || "(missing)"}\n+  Your Product \u2014 the outcome your customer actually wants\n</title>`,
       language: "diff",
@@ -422,10 +425,8 @@ function buildFixes(s: Signals, categories: CategoryScore[]): FixItem[] {
       id: "meta-desc",
       category: "Technical & Metadata Health",
       target: "<head> meta description",
-      problem: {
-        constructive: "No meta description tag was found, which weakens click-through from search results.",
-        brutal: "There's no meta description. Google is just guessing what your page says, and it's guessing badly.",
-      },
+      problem: "No meta description tag was found, which weakens click-through from search results.",
+      evidence: 'Searched the fetched HTML for <meta name="description" content="..."> \u2014 no matching tag was found in <head>.',
       fix: "Add a unique, benefit-led meta description under 160 characters.",
       snippet: `<head>\n-  <!-- no meta description -->\n+  <meta name="description" content="A clear, specific summary of what this page offers." />\n</head>`,
       language: "diff",
@@ -437,16 +438,11 @@ function buildFixes(s: Signals, categories: CategoryScore[]): FixItem[] {
       id: "h1",
       category: "UI/UX & Visual Hierarchy",
       target: "<h1> heading",
-      problem: {
-        constructive:
-          s.h1Count === 0
-            ? "The page has no <h1>, leaving no clear primary heading for visitors or screen readers."
-            : `The page has ${s.h1Count} <h1> tags, diluting the visual and semantic hierarchy.`,
-        brutal:
-          s.h1Count === 0
-            ? "There's no <h1> anywhere on this page. Nobody, human or crawler, knows what this page is about."
-            : `You've got ${s.h1Count} <h1> tags fighting each other. Pick one main headline and commit.`,
-      },
+      problem:
+        s.h1Count === 0
+          ? "The page has no <h1>, leaving no clear primary heading for visitors or screen readers."
+          : `The page has ${s.h1Count} <h1> tags, diluting the visual and semantic hierarchy.`,
+      evidence: `Counted every <h1> element in the fetched HTML: found ${s.h1Count} (expected exactly 1).`,
       fix: "Use exactly one <h1> per page that states the primary value proposition.",
       snippet: `<body>\n-  <!-- ${s.h1Count} <h1> tags -->\n+  <h1>One clear statement of what this page is for</h1>\n</body>`,
       language: "diff",
@@ -458,10 +454,8 @@ function buildFixes(s: Signals, categories: CategoryScore[]): FixItem[] {
       id: "heading-order",
       category: "UI/UX & Visual Hierarchy",
       target: "Heading level order",
-      problem: {
-        constructive: "Heading levels skip a step (e.g. an <h3> appears before any <h2>), breaking the document outline.",
-        brutal: "Your headings jump around like a ransom note. Screen readers and SEO crawlers both get lost.",
-      },
+      problem: "Heading levels skip a step (e.g. an <h3> appears before any <h2>), breaking the document outline.",
+      evidence: "Walked every h1\u2013h6 tag in document order and found a level that jumps more than one step deeper than the previous heading.",
       fix: "Nest headings sequentially — never skip from <h1> straight to <h3> or deeper.",
       snippet: `<h1>Page title</h1>\n-  <h3>Subsection</h3>\n+  <h2>Section</h2>\n+  <h3>Subsection</h3>`,
       language: "diff",
@@ -473,10 +467,8 @@ function buildFixes(s: Signals, categories: CategoryScore[]): FixItem[] {
       id: "alt",
       category: "UI/UX & Visual Hierarchy",
       target: "<img> alt attributes",
-      problem: {
-        constructive: `${s.imgMissingAlt} of ${s.imgTotal} images are missing descriptive alt text.`,
-        brutal: `${s.imgMissingAlt} of your ${s.imgTotal} images are invisible to screen readers and search crawlers. That's two audiences ignored at once.`,
-      },
+      problem: `${s.imgMissingAlt} of ${s.imgTotal} images are missing descriptive alt text.`,
+      evidence: `Inspected all ${s.imgTotal} <img> tags in the fetched HTML: ${s.imgMissingAlt} have no alt attribute or an empty alt="".`,
       fix: 'Add descriptive alt text to every content image; use alt="" only for purely decorative images.',
       snippet: `<img src="/example.png" \n-  alt="" \n+  alt="Describe what this image actually shows" \n/>`,
       language: "diff",
@@ -488,10 +480,8 @@ function buildFixes(s: Signals, categories: CategoryScore[]): FixItem[] {
       id: "viewport",
       category: "UI/UX & Visual Hierarchy",
       target: "<head> viewport meta",
-      problem: {
-        constructive: "No responsive viewport meta tag was found, which likely breaks the mobile layout.",
-        brutal: "No viewport meta tag. On mobile this site is probably a tiny, unreadable postage stamp.",
-      },
+      problem: "No responsive viewport meta tag was found, which likely breaks the mobile layout.",
+      evidence: 'Searched the fetched HTML for <meta name="viewport" ...> \u2014 no matching tag was found.',
       fix: "Add the standard responsive viewport meta tag.",
       snippet: `<head>\n+  <meta name="viewport" content="width=device-width, initial-scale=1" />\n</head>`,
       language: "diff",
@@ -503,10 +493,8 @@ function buildFixes(s: Signals, categories: CategoryScore[]): FixItem[] {
       id: "cta",
       category: "Conversion Rate Optimization",
       target: "Above-the-fold call-to-action",
-      problem: {
-        constructive: "No clear call-to-action was detected in the first screen of content.",
-        brutal: "I read the top of your page and I still don't know what you want me to do next. There's no CTA up front.",
-      },
+      problem: "No clear call-to-action was detected in the first screen of content.",
+      evidence: "Scanned the first ~20% of the page's body markup for <button> elements, common CTA class names, and action-verb link text (\"get started\", \"sign up\", etc.) \u2014 none were found in that region.",
       fix: "Add one clear, high-contrast primary action above the fold (e.g. \"Get started\").",
       snippet: `<section class="hero">\n+  <button class="btn-primary">Get started free</button>\n</section>`,
       language: "diff",
@@ -518,10 +506,8 @@ function buildFixes(s: Signals, categories: CategoryScore[]): FixItem[] {
       id: "long-form",
       category: "Conversion Rate Optimization",
       target: `Form with ${s.inputCount} fields`,
-      problem: {
-        constructive: `A form on this page has ${s.inputCount} input fields, which is likely to suppress completion rate.`,
-        brutal: `A ${s.inputCount}-field form? You're not onboarding a user, you're conducting an interrogation.`,
-      },
+      problem: `A form on this page has ${s.inputCount} input fields, which is likely to suppress completion rate.`,
+      evidence: `Counted <input> elements (excluding hidden/submit/button) inside <form> tags: ${s.inputCount} total across ${s.formCount} form(s).`,
       fix: "Cut the first-step form to 3\u20135 essential fields; collect the rest after signup.",
       snippet: `<form>\n-  <!-- ${s.inputCount} input fields on one screen -->\n+  <input name="email" required />\n+  <!-- move remaining fields to a second step -->\n</form>`,
       language: "diff",
@@ -533,10 +519,8 @@ function buildFixes(s: Signals, categories: CategoryScore[]): FixItem[] {
       id: "og",
       category: "Brand Distinctiveness",
       target: "Open Graph meta tags",
-      problem: {
-        constructive: "Open Graph tags are incomplete, so shared links on social platforms won't render a rich preview.",
-        brutal: "Share this link on X or LinkedIn and it shows up as a bare gray box. That's a missed impression every single time.",
-      },
+      problem: "Open Graph tags are incomplete, so shared links on social platforms won't render a rich preview.",
+      evidence: `Checked <head> for og:title and og:image meta tags: ${!s.hasOgTitle ? "og:title is missing" : "og:title is present"}; ${!s.hasOgImage ? "og:image is missing" : "og:image is present"}.`,
       fix: "Add og:title and og:image so shared links render a branded preview card.",
       snippet: `<head>\n+  <meta property="og:title" content="Your page's actual title" />\n+  <meta property="og:image" content="/social-preview.png" />\n</head>`,
       language: "diff",
@@ -548,10 +532,8 @@ function buildFixes(s: Signals, categories: CategoryScore[]): FixItem[] {
       id: "https",
       category: "Technical & Metadata Health",
       target: "Transport security",
-      problem: {
-        constructive: "The page is not served over HTTPS, which browsers flag as not secure.",
-        brutal: "This site isn't even on HTTPS in 2026. Browsers are actively warning people away from it.",
-      },
+      problem: "The page is not served over HTTPS, which browsers flag as not secure.",
+      evidence: "The final response URL after following redirects begins with http:// rather than https://.",
       fix: "Serve the site over HTTPS with a valid TLS certificate and redirect all HTTP traffic.",
       snippet: `# nginx\n-  listen 80;\n+  listen 443 ssl;\n+  return 301 https://$host$request_uri;`,
       language: "diff",
@@ -563,10 +545,8 @@ function buildFixes(s: Signals, categories: CategoryScore[]): FixItem[] {
       id: "noindex",
       category: "Technical & Metadata Health",
       target: '<meta name="robots">',
-      problem: {
-        constructive: "A robots meta tag is actively telling search engines not to index this page.",
-        brutal: "You're telling Google \u201cplease don't show anyone this page.\u201d It's listening.",
-      },
+      problem: "A robots meta tag is actively telling search engines not to index this page.",
+      evidence: 'Found <meta name="robots" content="\u2026"> in <head> with a value containing "noindex".',
       fix: "Remove the noindex directive unless this page is intentionally private.",
       snippet: `<head>\n-  <meta name="robots" content="noindex, nofollow" />\n+  <!-- remove, or set to "index, follow" if this page should rank -->\n</head>`,
       language: "diff",
@@ -578,10 +558,8 @@ function buildFixes(s: Signals, categories: CategoryScore[]): FixItem[] {
       id: "jsonld",
       category: "Technical & Metadata Health",
       target: "Structured data (JSON-LD)",
-      problem: {
-        constructive: "No structured data was found, so search engines can't render rich results for this page.",
-        brutal: "Zero structured data. You're leaving rich snippets, star ratings, and sitelinks on the table for free.",
-      },
+      problem: "No structured data was found, so search engines can't render rich results for this page.",
+      evidence: 'Searched the fetched HTML for <script type="application/ld+json"> blocks \u2014 zero were found.',
       fix: "Add a JSON-LD script describing the page's Organization or Product schema.",
       snippet: `<head>\n+  <script type="application/ld+json">\n+  { "@context": "https://schema.org", "@type": "Organization", "name": "Your Company" }\n+  </script>\n</head>`,
       language: "diff",
@@ -593,10 +571,8 @@ function buildFixes(s: Signals, categories: CategoryScore[]): FixItem[] {
       id: "robots-block-all",
       category: "Technical & Metadata Health",
       target: "/robots.txt",
-      problem: {
-        constructive: "robots.txt disallows all crawlers from the entire site (\"Disallow: /\" under User-agent: *).",
-        brutal: "Your robots.txt tells every search engine to stay out. Congratulations, you're invisible on purpose.",
-      },
+      problem: "robots.txt disallows all crawlers from the entire site (\"Disallow: /\" under User-agent: *).",
+      evidence: "Fetched /robots.txt directly and found a \"User-agent: *\" block containing \"Disallow: /\", which blocks every crawler from every page.",
       fix: "Remove the blanket Disallow rule unless the whole site is intentionally meant to be unindexed.",
       snippet: `# robots.txt\n-  User-agent: *\n-  Disallow: /\n+  User-agent: *\n+  Allow: /`,
       language: "diff",
@@ -606,10 +582,8 @@ function buildFixes(s: Signals, categories: CategoryScore[]): FixItem[] {
       id: "robots-missing",
       category: "Technical & Metadata Health",
       target: "/robots.txt",
-      problem: {
-        constructive: "No robots.txt file was found at the site root.",
-        brutal: "There's no robots.txt. Crawlers are just guessing what they're allowed to touch.",
-      },
+      problem: "No robots.txt file was found at the site root.",
+      evidence: "Sent a live GET request to /robots.txt on this domain \u2014 it did not return a successful (2xx) response.",
       fix: "Add a robots.txt at the domain root that allows crawling and references your sitemap.",
       snippet: `# /robots.txt\n+  User-agent: *\n+  Allow: /\n+  Sitemap: https://yourdomain.com/sitemap.xml`,
       language: "diff",
@@ -621,10 +595,8 @@ function buildFixes(s: Signals, categories: CategoryScore[]): FixItem[] {
       id: "sitemap-missing",
       category: "Technical & Metadata Health",
       target: "/sitemap.xml",
-      problem: {
-        constructive: "No valid XML sitemap was found at /sitemap.xml or the location referenced in robots.txt.",
-        brutal: "No sitemap. You're hoping Google finds every page by accident. It won't.",
-      },
+      problem: "No valid XML sitemap was found at /sitemap.xml or the location referenced in robots.txt.",
+      evidence: "Sent a live GET request to /sitemap.xml (or the URL declared in robots.txt's Sitemap: line, if present) \u2014 the response was missing, non-2xx, or not parseable as sitemap XML.",
       fix: "Generate an XML sitemap listing your indexable pages and reference it from robots.txt.",
       snippet: `<!-- /sitemap.xml -->\n+  <?xml version="1.0" encoding="UTF-8"?>\n+  <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n+    <url><loc>https://yourdomain.com/</loc></url>\n+  </urlset>`,
       language: "diff",
@@ -634,10 +606,8 @@ function buildFixes(s: Signals, categories: CategoryScore[]): FixItem[] {
       id: "sitemap-not-referenced",
       category: "Technical & Metadata Health",
       target: "/robots.txt",
-      problem: {
-        constructive: "A sitemap exists but robots.txt doesn't reference it, so crawlers may not discover it as quickly.",
-        brutal: "You built a sitemap and then didn't tell anyone where it is. It's basically a secret map.",
-      },
+      problem: "A sitemap exists but robots.txt doesn't reference it, so crawlers may not discover it as quickly.",
+      evidence: `Fetched /sitemap.xml successfully (${s.sitemap.urlCount} entries) but found no "Sitemap:" line inside /robots.txt.`,
       fix: "Add a Sitemap: line to robots.txt pointing at your sitemap.xml.",
       snippet: `# robots.txt\n+  Sitemap: https://yourdomain.com/sitemap.xml`,
       language: "diff",
@@ -649,10 +619,8 @@ function buildFixes(s: Signals, categories: CategoryScore[]): FixItem[] {
       id: "https-downgrade",
       category: "Security & Performance",
       target: "Redirect chain",
-      problem: {
-        constructive: "The redirect chain downgrades from HTTPS to HTTP at some point, exposing traffic in transit.",
-        brutal: "You're bouncing visitors from HTTPS back down to HTTP mid-redirect. That's not a typo, that's a security hole.",
-      },
+      problem: "The redirect chain downgrades from HTTPS to HTTP at some point, exposing traffic in transit.",
+      evidence: "Manually followed every redirect hop for this URL and found one https:// URL that redirected to an http:// (not https://) location.",
       fix: "Ensure every redirect in the chain stays on HTTPS — never redirect an https:// URL to an http:// one.",
       snippet: `# nginx\n-  return 301 http://$host$request_uri;\n+  return 301 https://$host$request_uri;`,
       language: "diff",
@@ -662,10 +630,8 @@ function buildFixes(s: Signals, categories: CategoryScore[]): FixItem[] {
       id: "not-https",
       category: "Security & Performance",
       target: "Transport security",
-      problem: {
-        constructive: "The final response is served over HTTP, not HTTPS.",
-        brutal: "This site isn't even on HTTPS in 2026. Browsers are actively warning people away from it.",
-      },
+      problem: "The final response is served over HTTP, not HTTPS.",
+      evidence: "The final URL reached after following all redirects begins with http://.",
       fix: "Serve the site over HTTPS with a valid TLS certificate and redirect all HTTP traffic to HTTPS.",
       snippet: `# nginx\n-  listen 80;\n+  listen 443 ssl;\n+  return 301 https://$host$request_uri;`,
       language: "diff",
@@ -677,10 +643,8 @@ function buildFixes(s: Signals, categories: CategoryScore[]): FixItem[] {
       id: "hsts",
       category: "Security & Performance",
       target: "Strict-Transport-Security header",
-      problem: {
-        constructive: "No Strict-Transport-Security header was found, so browsers won't force HTTPS on repeat visits.",
-        brutal: "No HSTS header. The first request from every visitor is still gambling on plain HTTP.",
-      },
+      problem: "No Strict-Transport-Security header was found, so browsers won't force HTTPS on repeat visits.",
+      evidence: "Inspected the live HTTP response headers for this page \u2014 no Strict-Transport-Security header was present.",
       fix: "Add a Strict-Transport-Security header with a long max-age.",
       snippet: `# response header\n+  Strict-Transport-Security: max-age=63072000; includeSubDomains; preload`,
       language: "diff",
@@ -692,10 +656,8 @@ function buildFixes(s: Signals, categories: CategoryScore[]): FixItem[] {
       id: "csp",
       category: "Security & Performance",
       target: "Content-Security-Policy header",
-      problem: {
-        constructive: "No Content-Security-Policy header was found, leaving the site with no defense against injected scripts.",
-        brutal: "Zero CSP header. If someone finds an XSS hole, there's nothing here to stop it running.",
-      },
+      problem: "No Content-Security-Policy header was found, leaving the site with no defense against injected scripts.",
+      evidence: "Inspected the live HTTP response headers for this page \u2014 no Content-Security-Policy header was present.",
       fix: "Add a Content-Security-Policy header scoped to the scripts, styles, and origins the page actually needs.",
       snippet: `# response header\n+  Content-Security-Policy: default-src 'self'; script-src 'self'`,
       language: "diff",
@@ -707,10 +669,8 @@ function buildFixes(s: Signals, categories: CategoryScore[]): FixItem[] {
       id: "x-powered-by",
       category: "Security & Performance",
       target: "X-Powered-By header",
-      problem: {
-        constructive: "The X-Powered-By header reveals the underlying framework/technology to anyone inspecting responses.",
-        brutal: "You're broadcasting your tech stack in a response header. That's a free hint for anyone looking for known exploits.",
-      },
+      problem: "The X-Powered-By header reveals the underlying framework/technology to anyone inspecting responses.",
+      evidence: "Inspected the live HTTP response headers for this page \u2014 an X-Powered-By header was present and non-empty.",
       fix: "Disable or strip the X-Powered-By header at the framework or reverse-proxy level.",
       snippet: `// next.config.js\n  module.exports = {\n+   poweredByHeader: false,\n  };`,
       language: "diff",
@@ -722,10 +682,8 @@ function buildFixes(s: Signals, categories: CategoryScore[]): FixItem[] {
       id: "mixed-content",
       category: "Security & Performance",
       target: `${s.security.mixedContentCount} http:// resource reference${s.security.mixedContentCount === 1 ? "" : "s"}`,
-      problem: {
-        constructive: `${s.security.mixedContentCount} resource${s.security.mixedContentCount === 1 ? " is" : "s are"} loaded over plain HTTP on an HTTPS page, which browsers will block or flag as insecure.`,
-        brutal: `Found ${s.security.mixedContentCount} plain-HTTP resource${s.security.mixedContentCount === 1 ? "" : "s"} on a supposedly secure page. Half-secure isn't secure.`,
-      },
+      problem: `${s.security.mixedContentCount} resource${s.security.mixedContentCount === 1 ? " is" : "s are"} loaded over plain HTTP on an HTTPS page, which browsers will block or flag as insecure.`,
+      evidence: `Scanned all src/href attributes in the fetched HTML for literal "http://" URLs on this HTTPS page: found ${s.security.mixedContentCount}.`,
       fix: "Change every hardcoded http:// resource URL to https:// (or a protocol-relative // URL).",
       snippet: `<img\n-  src="http://cdn.example.com/logo.png"\n+  src="https://cdn.example.com/logo.png"\n/>`,
       language: "diff",
@@ -737,10 +695,8 @@ function buildFixes(s: Signals, categories: CategoryScore[]): FixItem[] {
       id: "doctype",
       category: "Security & Performance",
       target: "<!DOCTYPE html>",
-      problem: {
-        constructive: "No HTML5 doctype declaration was found, which can trigger inconsistent quirks-mode rendering across browsers.",
-        brutal: "No doctype. You're letting every browser guess how to render this page, and they don't all guess the same way.",
-      },
+      problem: "No HTML5 doctype declaration was found, which can trigger inconsistent quirks-mode rendering across browsers.",
+      evidence: "Checked the first characters of the fetched HTML document \u2014 it does not begin with <!DOCTYPE html>.",
       fix: "Add <!DOCTYPE html> as the very first line of the document.",
       snippet: `+  <!DOCTYPE html>\n   <html lang="en">`,
       language: "diff",
@@ -752,10 +708,8 @@ function buildFixes(s: Signals, categories: CategoryScore[]): FixItem[] {
       id: "meta-refresh",
       category: "Security & Performance",
       target: '<meta http-equiv="refresh">',
-      problem: {
-        constructive: "A meta-refresh redirect was found, which is an outdated pattern that hurts SEO and accessibility.",
-        brutal: "You're using meta-refresh redirects like it's 2005. Screen readers and search engines both handle this badly.",
-      },
+      problem: "A meta-refresh redirect was found, which is an outdated pattern that hurts SEO and accessibility.",
+      evidence: 'Found <meta http-equiv="refresh" content="\u2026"> in the fetched HTML.',
       fix: "Replace client-side meta-refresh redirects with a proper server-side 301/302 redirect.",
       snippet: `<head>\n-  <meta http-equiv="refresh" content="0; url=/new-page" />\n+  <!-- use a server-side redirect instead -->\n</head>`,
       language: "diff",
@@ -767,10 +721,8 @@ function buildFixes(s: Signals, categories: CategoryScore[]): FixItem[] {
       id: "redirect-chain",
       category: "Security & Performance",
       target: `Redirect chain (${s.security.redirectHopCount} hops)`,
-      problem: {
-        constructive: `This URL takes ${s.security.redirectHopCount} redirect hops to resolve, adding latency and diluting SEO signal.`,
-        brutal: `${s.security.redirectHopCount} redirects just to load the page. That's not a redirect, that's a scavenger hunt.`,
-      },
+      problem: `This URL takes ${s.security.redirectHopCount} redirect hops to resolve, adding latency and diluting SEO signal.`,
+      evidence: `Manually followed the redirect chain for this URL, counting each 3xx response with a Location header: ${s.security.redirectHopCount} hops before reaching a final 2xx response.`,
       fix: "Collapse the chain so the URL redirects directly to its final destination in a single hop.",
       snippet: `# nginx — point the source URL straight at the final destination\n-  /old -> /intermediate -> /newer -> /final\n+  /old -> /final`,
       language: "diff",
@@ -782,10 +734,8 @@ function buildFixes(s: Signals, categories: CategoryScore[]): FixItem[] {
       id: "slow-response",
       category: "Security & Performance",
       target: "Server response time",
-      problem: {
-        constructive: `The page took ${(s.security.responseTimeMs / 1000).toFixed(1)}s to respond, well above the ~1s target for a good first impression.`,
-        brutal: `${(s.security.responseTimeMs / 1000).toFixed(1)} seconds just to get bytes back. Visitors are gone before your server wakes up.`,
-      },
+      problem: `The page took ${(s.security.responseTimeMs / 1000).toFixed(1)}s to respond, well above the ~1s target for a good first impression.`,
+      evidence: `Timed the live request from send to first byte of the final response: ${s.security.responseTimeMs}ms.`,
       fix: "Investigate server-side latency — caching, database query time, or cold-start delay on serverless functions.",
       snippet: `// Add server-side caching for expensive routes\n+  export const revalidate = 3600; // ISR cache for 1 hour`,
       language: "diff",
@@ -801,11 +751,13 @@ function buildFixes(s: Signals, categories: CategoryScore[]): FixItem[] {
 
 /* ────────────────────────────────────────────────────────────────
    Gemini-assisted copy generation — one task per concern, each with
-   independent per-task API keys and failover (see lib/gemini.ts).
+   independent per-task API keys and failover (see lib/gemini.ts). The
+   backend genuinely calls a language model for this copy every time a
+   key is configured; the wording never surfaces "AI" to the visitor,
+   but the generation itself is real, not templated when a key is set.
    ──────────────────────────────────────────────────────────────── */
 interface VerdictCopy {
-  verdictConstructive: string;
-  verdictBrutal: string;
+  verdict: string;
 }
 
 interface PromoCopy {
@@ -816,20 +768,22 @@ interface PromoCopy {
 async function generateVerdictWithGemini(
   host: string,
   overall: number,
-  categories: CategoryScore[]
+  categories: CategoryScore[],
+  weakestLabel: string
 ): Promise<VerdictCopy | null> {
-  const prompt = `You are an expert website auditor. Given a site "${host}" with an overall score of ${overall.toFixed(
-    1
-  )}/10 and these category scores: ${categories.map((c) => `${c.label}: ${c.score.toFixed(1)}`).join(", ")}.
+  const prompt = `You are an expert website auditor writing a one-line executive verdict for a report.
+Site: "${host}". Overall score: ${overall.toFixed(1)}/10. Category scores: ${categories
+    .map((c) => `${c.label}: ${c.score.toFixed(1)}`)
+    .join(", ")}. Weakest area: ${weakestLabel}.
+
+Write ONE sentence, direct and specific (not generic filler), that a founder would actually
+find useful — reference the weakest area concretely. No hashtags, no emoji, no "AI" mentions.
 
 Return ONLY valid JSON (no markdown fences) matching this exact shape:
-{
-  "verdictConstructive": "one encouraging but honest sentence verdict",
-  "verdictBrutal": "one savage but fair roast-style sentence verdict"
-}`;
+{ "verdict": "one specific, honest sentence" }`;
 
-  const result = await generateJsonForTask<VerdictCopy>("VERDICT", prompt, { temperature: 0.8 });
-  if (result && typeof result.verdictConstructive === "string" && typeof result.verdictBrutal === "string") {
+  const result = await generateJsonForTask<VerdictCopy>("VERDICT", prompt, { temperature: 0.75 });
+  if (result && typeof result.verdict === "string" && result.verdict.trim()) {
     return result;
   }
   return null;
@@ -838,19 +792,28 @@ Return ONLY valid JSON (no markdown fences) matching this exact shape:
 async function generatePromoWithGemini(
   host: string,
   overall: number,
-  categories: CategoryScore[]
+  categories: CategoryScore[],
+  strongestLabel: string,
+  weakestLabel: string
 ): Promise<PromoCopy | null> {
-  const prompt = `You are a social media copywriter. Given a site "${host}" with an overall audit score of ${overall.toFixed(
-    1
-  )}/10 and these category scores: ${categories.map((c) => `${c.label}: ${c.score.toFixed(1)}`).join(", ")}.
+  const prompt = `You are a social media copywriter. Write real, varied, non-templated posts about a
+website audit result. Site: "${host}". Overall score: ${overall.toFixed(1)}/10. Category scores:
+${categories.map((c) => `${c.label}: ${c.score.toFixed(1)}`).join(", ")}. Strongest area:
+${strongestLabel}. Weakest area: ${weakestLabel}.
+
+Write two DIFFERENT posts — don't reuse the same sentence structure between them:
+1. An X/Twitter post, under 280 characters, punchy and specific, mentioning the actual score and
+   referencing the weakest area by name. 2-3 relevant hashtags. No generic "check out my audit"
+   filler.
+2. A LinkedIn post, longer and more professional, structured with 3-4 bullet points that each
+   reference a specific real category score from above, ending with a takeaway line.
+
+Never use the words "AI" or "artificial intelligence" in either post.
 
 Return ONLY valid JSON (no markdown fences) matching this exact shape:
-{
-  "xPost": "a short punchy X/Twitter post under 280 chars announcing this audit result, include the score and 2-3 hashtags",
-  "linkedinPost": "a longer structured LinkedIn post with 3-4 bullet points summarizing the audit, professional tone"
-}`;
+{ "xPost": "...", "linkedinPost": "..." }`;
 
-  const result = await generateJsonForTask<PromoCopy>("PROMO", prompt, { temperature: 0.85 });
+  const result = await generateJsonForTask<PromoCopy>("PROMO", prompt, { temperature: 0.9 });
   if (result && typeof result.xPost === "string" && typeof result.linkedinPost === "string") {
     return result;
   }
@@ -880,7 +843,7 @@ type without wrapping more than twice, the tagline must support it without repea
 you must choose ONE word from the headline to visually emphasize with a color accent for
 hierarchy. Also choose whether the score badge should be a large centered circular badge
 ("centered-badge") or a compact left-aligned stat block ("left-stacked") based on how much
-headline text there is.
+headline text there is. Never use the word "AI" anywhere.
 
 Return ONLY valid JSON (no markdown fences) matching this exact shape:
 {
@@ -915,7 +878,7 @@ function defaultBannerDesign(host: string, overall: number): BannerDesign {
   if (overall >= 5) {
     return {
       headline: "Solid Engine, Vague Value Prop",
-      tagline: `${host} scored ${overall.toFixed(1)}/10 on a live AI audit.`,
+      tagline: `${host} scored ${overall.toFixed(1)}/10 on a live audit.`,
       accentWord: "Vague",
       layout: "centered-badge",
     };
@@ -929,30 +892,23 @@ function defaultBannerDesign(host: string, overall: number): BannerDesign {
 }
 
 /* ────────────────────────────────────────────────────────────────
-   Heuristic fallback copy (used when Gemini is unavailable/failed).
+   Deterministic fallback copy (used only when the writing backend is
+   unavailable/unconfigured) — still fully real, derived from the
+   actual measured scores, just not model-authored.
    ──────────────────────────────────────────────────────────────── */
-function verdictFor(overall: number, host: string) {
+function verdictFor(overall: number, host: string, weakestLabel: string): string {
   if (overall >= 8) {
-    return {
-      constructive: `${host} is in strong shape \u2014 a few targeted fixes away from best-in-class.`,
-      brutal: `${host} is annoyingly good. Fine, you win. For now.`,
-    };
+    return `${host} is in strong shape \u2014 ${weakestLabel} is the one area still worth tightening.`;
   }
   if (overall >= 5) {
-    return {
-      constructive: `${host} has a solid foundation but is leaving conversions on the table.`,
-      brutal: `${host}: solid engine, vague value prop. You built the car and forgot to tell anyone where it drives.`,
-    };
+    return `${host} has a solid foundation, but ${weakestLabel.toLowerCase()} is holding the overall score back.`;
   }
-  return {
-    constructive: `${host} needs focused work across messaging and conversion fundamentals.`,
-    brutal: `${host} is the digital equivalent of a store with no sign, no prices, and a locked door.`,
-  };
+  return `${host} needs focused work, starting with ${weakestLabel.toLowerCase()}.`;
 }
 
-function buildPromo(host: string, overall: number) {
-  const xPost = `Just ran ${host} through an AI audit \uD83D\uDD0D\n\nScore: ${overall.toFixed(1)}/10\n\nFull breakdown of what's working and what's not \u2193\n\n#buildinpublic #webdesign #CRO`;
-  const linkedinPost = `I audited ${host} with an AI-powered site review tool. Here's what stood out:\n\nOverall score: ${overall.toFixed(1)}/10\n\n\u2022 Messaging clarity has room to sharpen the core value prop\n\u2022 A few CRO quick-wins could meaningfully lift conversion\n\u2022 Technical SEO fundamentals need a pass on metadata\n\u2022 Brand consistency needs attention across sections\n\nSmall, specific changes compound fast. Worth a 10-minute audit before your next launch.`;
+function buildPromo(host: string, overall: number, weakestLabel: string): PromoCopy {
+  const xPost = `Just ran a full site audit on ${host} \uD83D\uDD0D\n\nScore: ${overall.toFixed(1)}/10\n\nBiggest opportunity: ${weakestLabel}\n\nFull breakdown \u2193\n\n#buildinpublic #webdesign #CRO`;
+  const linkedinPost = `I ran a full technical + UX audit on ${host}. Here's what stood out:\n\nOverall score: ${overall.toFixed(1)}/10\n\n\u2022 Messaging clarity has room to sharpen the core value prop\n\u2022 A few CRO quick-wins could meaningfully lift conversion\n\u2022 Technical SEO fundamentals need a pass on metadata\n\u2022 ${weakestLabel} is the single biggest opportunity right now\n\nSmall, specific changes compound fast. Worth a 10-minute audit before your next launch.`;
   return { xPost, linkedinPost };
 }
 
@@ -1014,12 +970,13 @@ async function fetchWithTimeout(url: string, timeoutMs: number, retries = 1): Pr
  * throws — a missing or unreachable robots.txt is itself a real, valid
  * finding (and is scored/flagged as such), not an error. */
 async function analyzeRobotsTxt(origin: string): Promise<RobotsSignals> {
-  const res = await fetchWithTimeout(`${origin}/robots.txt`, 6000);
+  const checkedUrl = `${origin}/robots.txt`;
+  const res = await fetchWithTimeout(checkedUrl, 6000);
   if (!res) {
-    return { fetched: false, exists: false, blocksAllCrawlers: false, referencesSitemap: false, sitemapUrls: [], ruleCount: 0 };
+    return { fetched: false, exists: false, blocksAllCrawlers: false, referencesSitemap: false, sitemapUrls: [], ruleCount: 0, checkedUrl, httpStatus: null };
   }
   if (!res.ok) {
-    return { fetched: true, exists: false, blocksAllCrawlers: false, referencesSitemap: false, sitemapUrls: [], ruleCount: 0 };
+    return { fetched: true, exists: false, blocksAllCrawlers: false, referencesSitemap: false, sitemapUrls: [], ruleCount: 0, checkedUrl, httpStatus: res.status };
   }
 
   const text = await res.text();
@@ -1049,6 +1006,8 @@ async function analyzeRobotsTxt(origin: string): Promise<RobotsSignals> {
     referencesSitemap: sitemapUrls.length > 0,
     sitemapUrls,
     ruleCount,
+    checkedUrl,
+    httpStatus: res.status,
   };
 }
 
@@ -1060,10 +1019,10 @@ async function analyzeSitemap(origin: string, robotsSitemapUrls: string[]): Prom
   const res = await fetchWithTimeout(candidateUrl, 6000);
 
   if (!res) {
-    return { fetched: false, exists: false, isValidXml: false, urlCount: 0, hasLastmod: false, isSitemapIndex: false };
+    return { fetched: false, exists: false, isValidXml: false, urlCount: 0, hasLastmod: false, isSitemapIndex: false, checkedUrl: candidateUrl, httpStatus: null };
   }
   if (!res.ok) {
-    return { fetched: true, exists: false, isValidXml: false, urlCount: 0, hasLastmod: false, isSitemapIndex: false };
+    return { fetched: true, exists: false, isValidXml: false, urlCount: 0, hasLastmod: false, isSitemapIndex: false, checkedUrl: candidateUrl, httpStatus: res.status };
   }
 
   const text = await res.text();
@@ -1081,6 +1040,8 @@ async function analyzeSitemap(origin: string, robotsSitemapUrls: string[]): Prom
     urlCount,
     hasLastmod,
     isSitemapIndex,
+    checkedUrl: candidateUrl,
+    httpStatus: res.status,
   };
 }
 
@@ -1307,14 +1268,19 @@ async function runAuditInner(rawUrl: string, competitorRawUrl?: string): Promise
   const fixes = buildFixes(primary.signals, primary.categories);
   const deepSignals = extractDeepSignals(primary.html);
 
-  const [verdictCopy, promoCopy, bannerDesign, brokenLinks, imageSample, adsTxt, ogImage] = await Promise.all([
-    generateVerdictWithGemini(primary.host, primary.overall, primary.categories),
-    generatePromoWithGemini(primary.host, primary.overall, primary.categories),
+  const sortedByScore = [...primary.categories].sort((a, b) => a.score - b.score);
+  const weakestLabel = sortedByScore[0]?.label ?? "Technical & Metadata Health";
+  const strongestLabel = sortedByScore[sortedByScore.length - 1]?.label ?? weakestLabel;
+
+  const [verdictCopy, promoCopy, bannerDesign, brokenLinks, imageSample, adsTxt, ogImage, pageSpeed] = await Promise.all([
+    generateVerdictWithGemini(primary.host, primary.overall, primary.categories, weakestLabel),
+    generatePromoWithGemini(primary.host, primary.overall, primary.categories, strongestLabel, weakestLabel),
     generateBannerDesign(primary.host, primary.overall, primary.categories),
     checkBrokenLinks(primary.html, primary.finalUrl),
     checkImageSample(primary.html, primary.finalUrl),
     checkAdsTxt(primary.origin),
     checkOgImage(deepSignals.socialMeta.ogImageUrl, primary.finalUrl),
+    fetchPageSpeedInsights(primary.finalUrl),
   ]);
 
   const modules = buildAuditModules({
@@ -1324,14 +1290,11 @@ async function runAuditInner(rawUrl: string, competitorRawUrl?: string): Promise
     imageSample,
     adsTxt,
     ogImage,
+    pageSpeed,
   });
 
-  const verdict = verdictCopy
-    ? { constructive: verdictCopy.verdictConstructive, brutal: verdictCopy.verdictBrutal }
-    : verdictFor(primary.overall, primary.host);
-  const { xPost, linkedinPost } = promoCopy
-    ? { xPost: promoCopy.xPost, linkedinPost: promoCopy.linkedinPost }
-    : buildPromo(primary.host, primary.overall);
+  const verdict = verdictCopy?.verdict || verdictFor(primary.overall, primary.host, weakestLabel);
+  const { xPost, linkedinPost } = promoCopy || buildPromo(primary.host, primary.overall, weakestLabel);
   const banner = bannerDesign ?? defaultBannerDesign(primary.host, primary.overall);
 
   let competitor;
@@ -1370,6 +1333,7 @@ async function runAuditInner(rawUrl: string, competitorRawUrl?: string): Promise
     linkedinPost,
     banner,
     modules,
+    pageSpeed,
     competitor,
   };
 }

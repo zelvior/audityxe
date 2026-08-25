@@ -4,7 +4,6 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { Sparkles, ArrowRight, Plus, X, Lock } from "lucide-react";
-import { LIVE_DEMO_PILLS } from "@/lib/constants";
 
 interface HeroProps {
   onAnalyze: (url: string, competitorUrl?: string) => void;
@@ -42,7 +41,7 @@ export default function Hero({ onAnalyze, disabled, isAuthed, hasAccount, authLo
           className="inline-flex items-center gap-2 px-3 py-1 rounded-full glass text-[11px] sm:text-xs font-mono text-text-secondary mb-5 sm:mb-6"
         >
           <Sparkles size={13} className="text-accent shrink-0" />
-          AI-POWERED AUDIT ENGINE
+          LIVE, BROWSER-VERIFIED AUDIT ENGINE
         </motion.div>
 
         <motion.h1
@@ -51,7 +50,7 @@ export default function Hero({ onAnalyze, disabled, isAuthed, hasAccount, authLo
           transition={{ delay: 0.05 }}
           className="font-display font-medium text-[32px] leading-[1.1] sm:text-[48px] sm:leading-[1.05] md:text-[56px] md:leading-[1.03] tracking-tight text-gradient px-1"
         >
-          Instant AI Site Audit &<br className="hidden sm:block" /> Viral Promo Generator
+          Instant Site Audit &<br className="hidden sm:block" /> Viral Promo Generator
         </motion.h1>
 
         <motion.p
@@ -150,23 +149,6 @@ export default function Hero({ onAnalyze, disabled, isAuthed, hasAccount, authLo
             </AnimatePresence>
           )}
         </div>
-
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-          className="mt-8 sm:mt-10 flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 px-2"
-        >
-          <span className="text-[10px] sm:text-xs font-mono text-text-secondary/70 mr-1 w-full sm:w-auto text-center sm:text-left mb-1 sm:mb-0">Recent audits:</span>
-          {LIVE_DEMO_PILLS.map((p) => (
-            <span
-              key={p.url}
-              className="text-[10px] sm:text-xs font-mono px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full glass text-text-secondary whitespace-nowrap"
-            >
-              {p.url} <span className="text-emerald font-semibold">{p.score.toFixed(1)}/10</span>
-            </span>
-          ))}
-        </motion.div>
       </div>
     </section>
   );

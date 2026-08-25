@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, LogOut, Loader2, Zap, Mail, ShieldCheck, History, ExternalLink, RefreshCw, BadgeCheck, Settings as SettingsIcon } from "lucide-react";
+import { ArrowLeft, LogOut, Loader2, Zap, Mail, ShieldCheck, RefreshCw, BadgeCheck, Settings as SettingsIcon } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useAuth } from "@/context/AuthContext";
@@ -18,27 +18,12 @@ interface UsageData {
   planExpired: boolean;
 }
 
-interface ReportSummary {
-  id: string;
-  url: string;
-  overall: number;
-  createdAt: string;
-}
-
-function scoreColor(score: number) {
-  if (score >= 8) return "text-emerald";
-  if (score >= 5) return "text-amber";
-  return "text-rose";
-}
-
 export default function AccountPage() {
   const { user, loading, getToken, signOut } = useAuth();
   const router = useRouter();
   const [usage, setUsage] = useState<UsageData | null>(null);
   const [usageError, setUsageError] = useState("");
   const [fetching, setFetching] = useState(true);
-  const [reports, setReports] = useState<ReportSummary[] | null>(null);
-  const [reportsFetching, setReportsFetching] = useState(true);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -65,36 +50,17 @@ export default function AccountPage() {
     }
   }, [user, getToken]);
 
-  const fetchReports = useCallback(async () => {
-    if (!user) return;
-    setReportsFetching(true);
-    try {
-      const token = await getToken();
-      const res = await fetch("/api/reports", {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      const data = await res.json();
-      if (res.ok) setReports(data.reports || []);
-    } catch {
-      // History is a nice-to-have — fail silently rather than blocking the page.
-    } finally {
-      setReportsFetching(false);
-    }
-  }, [user, getToken]);
-
   useEffect(() => {
     fetchUsage();
-    fetchReports();
     // Refresh whenever the tab regains focus, so a plan change made
     // directly in Firestore (manual approval) is reflected without
     // requiring a logout/login or manual page reload.
     function onFocus() {
       fetchUsage();
-      fetchReports();
     }
     window.addEventListener("focus", onFocus);
     return () => window.removeEventListener("focus", onFocus);
-  }, [fetchUsage, fetchReports]);
+  }, [fetchUsage]);
 
   if (loading || !user) {
     return (
@@ -116,7 +82,7 @@ export default function AccountPage() {
             href="/"
             className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-text-secondary hover:text-primary transition mb-6 sm:mb-8"
           >
-            <ArrowLeft size={14} /> Back to Audityxe
+            <ArrowLeft size={14} /> Back
           </Link>
 
           <h1 className="font-display font-bold text-2xl sm:text-3xl tracking-tight mb-6">
@@ -129,7 +95,7 @@ export default function AccountPage() {
                 {(user.displayName || user.email || "?").charAt(0).toUpperCase()}
               </div>
               <div className="min-w-0">
-                <p className="font-semibold text-sm truncate">{user.displayName || "Audityxe user"}</p>
+                <p className="font-semibold text-sm truncate">{user.displayName || "Account"}</p>
                 <p className="text-xs text-text-secondary flex items-center gap-1 truncate">
                   <Mail size={11} className="shrink-0" /> {user.email}
                 </p>
@@ -139,9 +105,12 @@ export default function AccountPage() {
                   <BadgeCheck size={11} /> Verified
                 </span>
               ) : (
-                <span className="ml-auto shrink-0 text-[10px] font-mono px-2 py-1 rounded-full bg-amber/15 text-amber">
-                  Unverified
-                </span>
+                <Link
+                  href="/verify-email"
+                  className="ml-auto shrink-0 text-[10px] font-mono px-2 py-1 rounded-full bg-amber/15 text-amber hover:bg-amber/25 transition"
+                >
+                  Unverified — fix this
+                </Link>
               )}
             </div>
           </div>
@@ -153,10 +122,7 @@ export default function AccountPage() {
               </span>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => {
-                    fetchUsage();
-                    fetchReports();
-                  }}
+                  onClick={fetchUsage}
                   disabled={fetching}
                   className="text-text-secondary hover:text-primary transition disabled:opacity-40"
                   title="Refresh"
@@ -241,51 +207,11 @@ export default function AccountPage() {
             </div>
           )}
 
-          <div className="glass rounded-2xl p-5 sm:p-6 mb-5">
-            <span className="flex items-center gap-2 text-sm font-semibold mb-3">
-              <History size={15} className="text-primary" /> Audit history
-            </span>
-            {reportsFetching && (
-              <div className="flex items-center gap-2 text-sm text-text-secondary py-2">
-                <Loader2 size={14} className="animate-spin" /> Loading history…
-              </div>
-            )}
-            {!reportsFetching && reports && reports.length === 0 && (
-              <p className="text-sm text-text-secondary">
-                No audits yet — run your first one from the homepage.
-              </p>
-            )}
-            {!reportsFetching && reports && reports.length > 0 && (
-              <ul className="space-y-2">
-                {reports.map((r) => (
-                  <li key={r.id}>
-                    <Link
-                      href={`/report/${r.id}`}
-                      target="_blank"
-                      className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 transition group"
-                    >
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium truncate">{r.url}</p>
-                        <p className="text-[11px] text-text-secondary">
-                          {new Date(r.createdAt).toLocaleDateString(undefined, {
-                            year: "numeric",
-                            month: "short",
-                            day: "numeric",
-                          })}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span className={`font-display font-bold text-sm ${scoreColor(r.overall)}`}>
-                          {r.overall.toFixed(1)}
-                        </span>
-                        <ExternalLink size={13} className="text-text-secondary group-hover:text-primary transition" />
-                      </div>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+          <p className="text-xs text-text-secondary/70 mb-5 px-1">
+            Audits aren't stored on our servers after they run — each result exists only in your
+            browser, for your privacy. Use the copy/export/share buttons on a result to keep a
+            copy for yourself.
+          </p>
 
           <Link
             href="/settings"

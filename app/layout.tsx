@@ -7,16 +7,16 @@ import { AuthProvider } from "@/context/AuthContext";
 const SITE_URL = "https://audityxe.vercel.app";
 const SITE_NAME = "Audityxe";
 const SITE_DESCRIPTION =
-  "Run a deep AI audit on any website and generate viral social promo kits in seconds.";
+  "Run a deep, real audit on any website and generate viral social promo kits in seconds.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: "Audityxe — Instant AI Site Audit & Viral Promo Generator",
+  title: "Audityxe — Instant Site Audit & Viral Promo Generator",
   description: SITE_DESCRIPTION,
   generator: "Next.js",
   alternates: { canonical: "/" },
   openGraph: {
-    title: "Audityxe — Instant AI Site Audit & Viral Promo Generator",
+    title: "Audityxe — Instant Site Audit & Viral Promo Generator",
     description: SITE_DESCRIPTION,
     type: "website",
     url: SITE_URL,
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Audityxe — Instant AI Site Audit & Viral Promo Generator",
+    title: "Audityxe — Instant Site Audit & Viral Promo Generator",
     description: SITE_DESCRIPTION,
     site: "@audityxe",
   },

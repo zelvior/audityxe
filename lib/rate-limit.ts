@@ -9,14 +9,25 @@ function todayKey(): string {
 export interface DecodedIdentity {
   uid: string;
   email: string | null;
+  emailVerified: boolean;
 }
 
 /**
  * Ensures a users/{uid} document exists (first-login bootstrap). Never
  * downgrades an existing plan — safe to call on every authenticated
  * request.
+ *
+ * Deliberately does nothing for an unverified account: we don't want
+ * Firestore filling up with a document per throwaway/never-verified
+ * signup. The record is created the first time a request comes in from
+ * an account whose email is actually verified — which also means an
+ * account that never verifies never accumulates any usage/plan state at
+ * all, and a stale Firebase Auth entry for it can be cleaned up freely
+ * (see /api/cron/cleanup-unverified) without touching Firestore.
  */
 export async function ensureUserDoc(identity: DecodedIdentity, displayName?: string | null): Promise<void> {
+  if (!identity.emailVerified) return;
+
   const db = adminDb();
   const ref = db.collection("users").doc(identity.uid);
   const snap = await ref.get();

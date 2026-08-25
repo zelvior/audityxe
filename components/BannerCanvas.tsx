@@ -198,7 +198,7 @@ function drawCenteredBadgeLayout(ctx: CanvasRenderingContext2D, result: AuditRes
   ctx.fillStyle = "#9A9AA2";
   ctx.font = "600 20px ui-monospace, monospace";
   ctx.textAlign = "left";
-  ctx.fillText("AUDITYXE \u00B7 LIVE AI AUDIT", 64, 82);
+  ctx.fillText("AUDITYXE \u00B7 LIVE AUDIT", 64, 82);
 
   ctx.fillStyle = "#F4F4F5";
   ctx.font = "600 24px ui-monospace, monospace";
@@ -227,7 +227,7 @@ function drawLeftStackedLayout(ctx: CanvasRenderingContext2D, result: AuditResul
   ctx.fillStyle = "#9A9AA2";
   ctx.font = "600 20px ui-monospace, monospace";
   ctx.textAlign = "left";
-  ctx.fillText("AUDITYXE \u00B7 LIVE AI AUDIT", 64, 82);
+  ctx.fillText("AUDITYXE \u00B7 LIVE AUDIT", 64, 82);
 
   ctx.fillStyle = "#F4F4F5";
   ctx.font = "600 24px ui-monospace, monospace";
@@ -264,7 +264,7 @@ function drawLeftStackedLayout(ctx: CanvasRenderingContext2D, result: AuditResul
   ctx.fillText("OVERALL SCORE / 10", 84, H - 74);
 }
 
-function draw(canvas: HTMLCanvasElement, result: AuditResult, aiImage: HTMLImageElement | null) {
+function draw(canvas: HTMLCanvasElement, result: AuditResult, aiImage: HTMLImageElement | null, logoImage: HTMLImageElement | null) {
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
 
@@ -278,11 +278,21 @@ function draw(canvas: HTMLCanvasElement, result: AuditResult, aiImage: HTMLImage
     drawCenteredBadgeLayout(ctx, result, accentColor);
   }
 
-  // footer brand
-  ctx.fillStyle = "#6366F1";
-  ctx.font = "700 24px Manrope, sans-serif";
-  ctx.textAlign = "left";
-  ctx.fillText("audityxe.vercel.app", 64, H - 50);
+  // footer brand — real logo mark + URL
+  if (logoImage) {
+    const logoH = 28;
+    const logoW = logoH * (logoImage.width / logoImage.height);
+    ctx.drawImage(logoImage, 64, H - 68, logoW, logoH);
+    ctx.fillStyle = "#F4F4F5";
+    ctx.font = "700 22px Manrope, sans-serif";
+    ctx.textAlign = "left";
+    ctx.fillText("audityxe.vercel.app", 64 + logoW + 12, H - 48);
+  } else {
+    ctx.fillStyle = "#6366F1";
+    ctx.font = "700 24px Manrope, sans-serif";
+    ctx.textAlign = "left";
+    ctx.fillText("audityxe.vercel.app", 64, H - 50);
+  }
 }
 
 function bannerPrompt(result: AuditResult): string {
@@ -306,6 +316,15 @@ export default function BannerCanvas({ result }: { result: AuditResult }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [aiImage, setAiImage] = useState<HTMLImageElement | null>(null);
   const [aiState, setAiState] = useState<"loading" | "ready" | "unavailable" | "skipped">("loading");
+  const [logoImage, setLogoImage] = useState<HTMLImageElement | null>(null);
+
+  // The real brand mark is a same-origin static asset — no auth needed,
+  // unlike the generated AI background below.
+  useEffect(() => {
+    const img = new Image();
+    img.onload = () => setLogoImage(img);
+    img.src = "/logo-mark-trimmed.png";
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -364,8 +383,8 @@ export default function BannerCanvas({ result }: { result: AuditResult }) {
   }, [result, user, getToken]);
 
   useEffect(() => {
-    if (canvasRef.current) draw(canvasRef.current, result, aiImage);
-  }, [result, aiImage]);
+    if (canvasRef.current) draw(canvasRef.current, result, aiImage, logoImage);
+  }, [result, aiImage, logoImage]);
 
   function download() {
     const canvas = canvasRef.current;
@@ -387,7 +406,7 @@ export default function BannerCanvas({ result }: { result: AuditResult }) {
         />
         {aiState === "loading" && (
           <div className="absolute top-3 right-3 flex items-center gap-1.5 text-[10px] font-mono px-2.5 py-1 rounded-full bg-black/60 text-text-secondary">
-            <Loader2 size={10} className="animate-spin" /> Generating AI background…
+            <Loader2 size={10} className="animate-spin" /> Generating background…
           </div>
         )}
       </div>
