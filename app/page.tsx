@@ -19,6 +19,7 @@ import { SCAN_STEPS } from "@/lib/constants";
 import { AuditResult } from "@/lib/types";
 import { useAuth } from "@/context/AuthContext";
 import { PLANS, PlanId } from "@/lib/plans";
+import { fetchJson } from "@/lib/fetch-json";
 
 type Phase = "idle" | "scanning" | "results" | "error";
 
@@ -58,28 +59,30 @@ export default function Home() {
         return;
       }
 
-      const res = await fetch("/api/audit", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ url, competitorUrl }),
-      });
-      const data = await res.json();
+      const { ok, data, error } = await fetchJson<AuditResult & { code?: string; plan?: PlanId; limit?: number }>(
+        "/api/audit",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ url, competitorUrl }),
+        }
+      );
       if (stepTimerRef.current) clearInterval(stepTimerRef.current);
 
-      if (!res.ok) {
-        if (data.code === "RATE_LIMITED") {
-          setRateLimited({ plan: data.plan, limit: data.limit });
+      if (!ok || !data) {
+        if (data?.code === "RATE_LIMITED") {
+          setRateLimited({ plan: data.plan as PlanId, limit: data.limit as number });
         }
-        setErrorMsg(data.error || "Couldn't reach that site. Check the URL and try again.");
+        setErrorMsg(error || "Couldn't reach that site. Check the URL and try again.");
         setPhase("error");
         return;
       }
 
       setActiveStep(SCAN_STEPS.length - 1);
-      setResult(data as AuditResult);
+      setResult(data);
       setPhase("results");
     } catch {
       if (stepTimerRef.current) clearInterval(stepTimerRef.current);

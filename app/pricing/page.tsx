@@ -9,6 +9,7 @@ import Footer from "@/components/Footer";
 import { useAuth } from "@/context/AuthContext";
 import { PLANS, PlanDuration, PlanId, priceForDuration } from "@/lib/plans";
 import { useCurrency, formatPrice } from "@/lib/currency";
+import { fetchJson } from "@/lib/fetch-json";
 
 const ADMIN_EMAIL = "zelvior@proton.me";
 
@@ -68,11 +69,10 @@ export default function PricingPage() {
     setStatusLoading(true);
     try {
       const token = await getToken();
-      const res = await fetch("/api/account", {
+      const { ok, data } = await fetchJson<AccountStatus>("/api/account", {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
-      const data = await res.json();
-      if (res.ok) {
+      if (ok && data) {
         setStatus({ plan: data.plan, planExpiresAt: data.planExpiresAt, planExpired: data.planExpired });
       }
     } catch {

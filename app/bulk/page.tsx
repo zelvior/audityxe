@@ -7,6 +7,7 @@ import { ArrowLeft, Loader2, Layers, Lock, AlertTriangle, FileDown } from "lucid
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useAuth } from "@/context/AuthContext";
+import { fetchJson } from "@/lib/fetch-json";
 
 interface BulkResultItem {
   url: string;
@@ -74,14 +75,13 @@ export default function BulkAuditPage() {
 
     try {
       const token = await getToken();
-      const res = await fetch("/api/audit/bulk", {
+      const { ok, data, error: fetchError } = await fetchJson<{ results: BulkResultItem[] }>("/api/audit/bulk", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: token ? `Bearer ${token}` : "" },
         body: JSON.stringify({ urls }),
       });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || "Bulk audit failed.");
+      if (!ok || !data) {
+        setError(fetchError || "Bulk audit failed.");
         return;
       }
       setResults(data.results);

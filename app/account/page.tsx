@@ -8,6 +8,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useAuth } from "@/context/AuthContext";
 import { PLANS, PlanId } from "@/lib/plans";
+import { fetchJson } from "@/lib/fetch-json";
 
 interface UsageData {
   plan: PlanId;
@@ -37,11 +38,10 @@ export default function AccountPage() {
     setUsageError("");
     try {
       const token = await getToken();
-      const res = await fetch("/api/account", {
+      const { ok, data, error } = await fetchJson<UsageData>("/api/account", {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Couldn't load account usage.");
+      if (!ok || !data) throw new Error(error || "Couldn't load account usage.");
       setUsage(data);
     } catch (err) {
       setUsageError(err instanceof Error ? err.message : "Something went wrong.");
