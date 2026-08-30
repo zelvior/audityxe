@@ -9,7 +9,7 @@ import Footer from "@/components/Footer";
 import { useAuth } from "@/context/AuthContext";
 
 function VerifyEmailContent() {
-  const { user, loading, needsEmailVerification, resendVerificationEmail, refreshEmailVerified } = useAuth();
+  const { user, loading, needsEmailVerification, getToken, resendVerificationEmail, refreshEmailVerified } = useAuth();
   const router = useRouter();
   const params = useSearchParams();
   const redirectTo = params.get("redirect") || "/";
@@ -24,10 +24,29 @@ function VerifyEmailContent() {
     if (!loading && !user) router.replace(`/login?redirect=/verify-email`);
   }, [loading, user, router]);
 
+  // Verifying an email only updates Firebase Auth on the client — it
+  // doesn't, by itself, create the account's Firestore record (that's
+  // deliberately lazy, see lib/rate-limit.ts's ensureUserDoc). Hitting
+  // any endpoint that calls ensureUserDoc() right when we confirm
+  // verification provisions the record immediately instead of waiting
+  // for the user's first audit request.
+  async function provisionAccount() {
+    try {
+      const token = await getToken();
+      if (token) {
+        await fetch("/api/account", { headers: { Authorization: `Bearer ${token}` } });
+      }
+    } catch {
+      // Non-fatal — the record will still be created lazily on first
+      // audit if this eager provisioning call fails for any reason.
+    }
+  }
+
   useEffect(() => {
     if (user && !needsEmailVerification && !justVerified) {
-      router.replace(redirectTo);
+      provisionAccount().finally(() => router.replace(redirectTo));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, needsEmailVerification, justVerified, redirectTo, router]);
 
   async function handleResend() {
@@ -51,6 +70,7 @@ function VerifyEmailContent() {
       const verified = await refreshEmailVerified();
       if (verified) {
         setJustVerified(true);
+        await provisionAccount();
         setTimeout(() => router.replace(redirectTo), 1200);
       } else {
         setError("Still not verified yet — click the link in the email first, then try again.");

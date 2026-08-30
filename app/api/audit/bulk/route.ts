@@ -6,7 +6,7 @@ import { PLANS } from "@/lib/plans";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 120; // bulk runs several real audits; ask the platform for headroom (capped by your hosting plan regardless)
+export const maxDuration = 300; // bulk runs up to 5 sequential batches of real audits (worst case ~150s); ask the platform for headroom — actual cap is still whatever your hosting plan allows
 
 const MAX_BULK_URLS = 20;
 const CONCURRENCY = 4;

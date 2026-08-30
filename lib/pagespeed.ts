@@ -18,7 +18,7 @@ import { PageSpeedSummary } from "./types";
  * a hard dependency.
  */
 
-const PSI_TIMEOUT_MS = 25000;
+const PSI_TIMEOUT_MS = 12000;
 
 export async function fetchPageSpeedInsights(targetUrl: string): Promise<PageSpeedSummary> {
   const empty: PageSpeedSummary = {

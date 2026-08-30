@@ -971,7 +971,7 @@ async function fetchWithTimeout(url: string, timeoutMs: number, retries = 1): Pr
  * finding (and is scored/flagged as such), not an error. */
 async function analyzeRobotsTxt(origin: string): Promise<RobotsSignals> {
   const checkedUrl = `${origin}/robots.txt`;
-  const res = await fetchWithTimeout(checkedUrl, 6000);
+  const res = await fetchWithTimeout(checkedUrl, 4000);
   if (!res) {
     return { fetched: false, exists: false, blocksAllCrawlers: false, referencesSitemap: false, sitemapUrls: [], ruleCount: 0, checkedUrl, httpStatus: null };
   }
@@ -1014,9 +1014,8 @@ async function analyzeRobotsTxt(origin: string): Promise<RobotsSignals> {
 /** Fetches and parses the real /sitemap.xml (or the URL referenced from
  * robots.txt, if present) for the target origin. Handles both a plain
  * <urlset> and a <sitemapindex> of nested sitemaps. */
-async function analyzeSitemap(origin: string, robotsSitemapUrls: string[]): Promise<SitemapSignals> {
-  const candidateUrl = robotsSitemapUrls[0] || `${origin}/sitemap.xml`;
-  const res = await fetchWithTimeout(candidateUrl, 6000);
+async function analyzeSitemapAt(candidateUrl: string): Promise<SitemapSignals> {
+  const res = await fetchWithTimeout(candidateUrl, 4000);
 
   if (!res) {
     return { fetched: false, exists: false, isValidXml: false, urlCount: 0, hasLastmod: false, isSitemapIndex: false, checkedUrl: candidateUrl, httpStatus: null };
@@ -1097,7 +1096,7 @@ async function fetchHtml(rawUrl: string): Promise<FetchOutcome> {
   }
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 15000);
+  const timeout = setTimeout(() => controller.abort(), 12000);
   const startedAt = Date.now();
 
   try {
@@ -1223,8 +1222,26 @@ async function auditOne(rawUrl: string) {
   };
 
   const origin = new URL(fetched.finalUrl).origin;
-  const robotsTxt = await analyzeRobotsTxt(origin);
-  const sitemap = await analyzeSitemap(origin, robotsTxt.sitemapUrls);
+  const defaultSitemapUrl = `${origin}/sitemap.xml`;
+
+  // robots.txt and the default sitemap.xml location are fetched at the
+  // same time rather than sequentially — this used to be two sequential
+  // round-trips (each with its own retry), which could add up to ~16s
+  // on a slow/unresponsive host and was a real contributor to the whole
+  // audit occasionally exceeding serverless function time limits.
+  const [robotsTxt, defaultSitemap] = await Promise.all([
+    analyzeRobotsTxt(origin),
+    analyzeSitemapAt(defaultSitemapUrl),
+  ]);
+
+  let sitemap = defaultSitemap;
+  const declaredSitemapUrl = robotsTxt.sitemapUrls[0];
+  if (!sitemap.exists && declaredSitemapUrl && declaredSitemapUrl !== defaultSitemapUrl) {
+    // Only worth a second (sequential) fetch if robots.txt points
+    // somewhere other than the default path we already tried.
+    sitemap = await analyzeSitemapAt(declaredSitemapUrl);
+  }
+
   signals.robotsTxt = robotsTxt;
   signals.sitemap = sitemap;
 
@@ -1235,7 +1252,7 @@ async function auditOne(rawUrl: string) {
 }
 
 const MAX_URL_LENGTH = 2048;
-const OVERALL_AUDIT_TIMEOUT_MS = 45000;
+const OVERALL_AUDIT_TIMEOUT_MS = 30000;
 
 function withOverallTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
   let timer: ReturnType<typeof setTimeout>;

@@ -106,10 +106,9 @@ export default function TrustSection() {
             <tbody className="text-text-secondary">
               {[
                 ["All 6 score categories + 17-area deep audit", true, true, true],
-                ["Shareable public report links", true, true, true],
                 ["Written verdict + promo copy", true, true, true],
-                ["Daily audits", "3", "25", "200"],
-                ["Competitor comparison", false, true, true],
+                ["Daily audits", String(PLANS.free.dailyAudits), String(PLANS.standard.dailyAudits), String(PLANS.pro.dailyAudits)],
+                ["Competitor comparison", PLANS.free.competitorAudits, PLANS.standard.competitorAudits, PLANS.pro.competitorAudits],
                 ["Bulk audit (up to 20 URLs)", false, false, true],
               ].map(([feature, free, standard, pro], i) => (
                 <tr key={i} className="border-b border-border/50 last:border-0">
