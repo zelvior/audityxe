@@ -13,6 +13,12 @@ privacy-first design that never stores your audit results.
 
 <a href="https://stats.uptimerobot.com/PHQOGeVpYz?utm_source=status_badge&utm_medium=referral" target="_blank" rel="noopener"><picture><source media="(prefers-color-scheme: dark)" srcset="https://badge.uptimerobot.com/psp/f6267da51916d8f2a4d06001bac44cba.svg?style=logo&theme=dark"><img src="https://badge.uptimerobot.com/psp/f6267da51916d8f2a4d06001bac44cba.svg?style=logo&theme=light" alt="Audityxe"></picture></a>
 
+<img src="https://img.shields.io/badge/Audit%20Speed-%3C60s-gold?style=flat-square&logo=lightning" alt="Audit Speed" />
+
+<img src="https://img.shields.io/badge/Engine-Deterministic%20Parsing-blue?style=flat-square" alt="Engine Type" />
+
+<img src="https://img.shields.io/badge/Privacy-Zero%20Data%20Retention-emerald?style=flat-square" alt="Privacy Promise" />
+
 
 ## Setup
 
