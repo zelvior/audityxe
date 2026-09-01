@@ -9,7 +9,7 @@ privacy-first design that never stores your audit results.
 
 ![Mozilla HTTP Observatory Grade](https://img.shields.io/mozilla-observatory/grade-score/audityxe.vercel.app)
 
-[![Security Grade](https://webscan-radar.com/badge/your-domain.com)](https://webscan-radar.com)
+[![Security Grade](https://webscan-radar.com/badge/audityxe.vercel.app)](https://webscan-radar.com)
 
 
 ## Setup
