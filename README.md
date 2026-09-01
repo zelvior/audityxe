@@ -24,7 +24,7 @@ This section contains live status indicators, security scores, and architectural
 
 ### ⚡ Engine Performance & Architecture
 
-<img src="https://img.shields.io/badge/Audit%20Speed-%3C60s-gold?style=flat-square&logo=lightning" alt="Audit Speed" /> <img src="https://img.shields.io/badge/Engine-Deterministic%20Parsing-blue?style=flat-square" alt="Engine Type" /> <img src="https://img.shields.io/badge/Runtime-Zelvior%20Engine-black?style=flat-square&logo=javascript" alt="Runtime Engine" /> <img src="https://img.shields.io/badge/Framework-Next.js-black?style=flat-square&logo=nextdotjs" alt="Next.js" />
+<img src="https://img.shields.io/badge/Audit%20Speed-%3C60s-gold?style=flat-square&logo=lightning" alt="Audit Speed" /> <img src="https://img.shields.io/badge/Engine-Deterministic%20Parsing-blue?style=flat-square" alt="Engine Type" /> <img src="https://img.shields.io/badge/Runtime-Zelvior%20Runtime%20%28Custom%29-C5A059?style=flat-square&logo=javascript" alt="Zelvior Runtime (Custom)" /> <img src="https://img.shields.io/badge/Framework-Next.js-black?style=flat-square&logo=nextdotjs" alt="Next.js" />
 
 ---
 
@@ -41,6 +41,7 @@ This section contains live status indicators, security scores, and architectural
 * **Official Status Page:** [System Health Portal](https://stats.uptimerobot.com/PHQOGeVpYz)
 
 > **Security Note:** All scans run statelessly against public HTTP response headers and site manifests. No server access or internal code execution is permitted during testing.
+
 ## Setup
 
 ```bash
