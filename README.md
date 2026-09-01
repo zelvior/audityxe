@@ -18,17 +18,29 @@ This section contains live status indicators, security scores, and architectural
 | **Uptime Status** | UptimeRobot | <a href="https://stats.uptimerobot.com/PHQOGeVpYz?utm_source=status_badge&utm_medium=referral" target="_blank" rel="noopener"><picture><source media="(prefers-color-scheme: dark)" srcset="https://badge.uptimerobot.com/psp/f6267da51916d8f2a4d06001bac44cba.svg?style=logo&theme=dark"><img src="https://badge.uptimerobot.com/psp/f6267da51916d8f2a4d06001bac44cba.svg?style=logo&theme=light" alt="Audityxe Status"></picture></a> |
 | **Security Score** | Mozilla Observatory | ![Mozilla HTTP Observatory Grade](https://img.shields.io/mozilla-observatory/grade-score/audityxe.vercel.app) |
 | **Domain Risk Audit** | OMNIntel | [![OMNIntel security verdict for audityxe.vercel.app](https://omnintel.net/api/badge/audityxe.vercel.app.svg)](https://omnintel.net/scan/audityxe.vercel.app) |
+| **SSL/TLS Encryption** | Let's Encrypt / Vercel | ![SSL Enabled](https://img.shields.io/badge/SSL-256--bit%20Encrypted-emerald?style=flat-square&logo=letsencrypt) |
 
 ---
 
-### ⚡ Engine Performance & Data Privacy
+### ⚡ Engine Performance & Architecture
 
-<img src="https://img.shields.io/badge/Audit%20Speed-%3C60s-gold?style=flat-square&logo=lightning" alt="Audit Speed" /> <img src="https://img.shields.io/badge/Engine-Deterministic%20Parsing-blue?style=flat-square" alt="Engine Type" /> <img src="https://img.shields.io/badge/Privacy-Zero%20Data%20Retention-emerald?style=flat-square" alt="Privacy Promise" /> <img src="https://img.shields.io/badge/Deployed%20on-Vercel-black?style=flat-square&logo=vercel" alt="Deployed on Vercel" />
+<img src="https://img.shields.io/badge/Audit%20Speed-%3C60s-gold?style=flat-square&logo=lightning" alt="Audit Speed" /> <img src="https://img.shields.io/badge/Engine-Deterministic%20Parsing-blue?style=flat-square" alt="Engine Type" /> <img src="https://img.shields.io/badge/Runtime-Zelvior%20Engine-black?style=flat-square&logo=javascript" alt="Runtime Engine" /> <img src="https://img.shields.io/badge/Framework-Next.js-black?style=flat-square&logo=nextdotjs" alt="Next.js" />
 
 ---
+
+### 🔒 Privacy & Infrastructure Guarantees
+
+<img src="https://img.shields.io/badge/Privacy-Zero%20Data%20Retention-emerald?style=flat-square" alt="Privacy Promise" /> <img src="https://img.shields.io/badge/Analytics-Zero%20Third--Party%20Trackers-blue?style=flat-square" alt="Zero Trackers" /> <img src="https://img.shields.io/badge/Deployed%20on-Vercel-black?style=flat-square&logo=vercel" alt="Deployed on Vercel" />
+
+---
+
+### 🔗 Public Transparency Reports
+
+* **Live Methodology & Limits:** [View Audit Methodology](https://audityxe.vercel.app/methodology)
+* **Sample Output Inspection:** [View Live Sample Report](https://audityxe.vercel.app/sample-report)
+* **Official Status Page:** [System Health Portal](https://stats.uptimerobot.com/PHQOGeVpYz)
 
 > **Security Note:** All scans run statelessly against public HTTP response headers and site manifests. No server access or internal code execution is permitted during testing.
-
 ## Setup
 
 ```bash
