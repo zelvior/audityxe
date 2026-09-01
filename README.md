@@ -19,6 +19,7 @@ privacy-first design that never stores your audit results.
 
 <img src="https://img.shields.io/badge/Privacy-Zero%20Data%20Retention-emerald?style=flat-square" alt="Privacy Promise" />
 
+<img src="https://img.shields.io/badge/Deployed%20on-Vercel-black?style=flat-square&logo=vercel" alt="Deployed on Vercel" />
 
 ## Setup
 
