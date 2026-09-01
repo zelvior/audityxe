@@ -5,6 +5,8 @@ scoring engine, a real browser-rendered performance/accessibility pass,
 evidence attached to every finding, full public methodology, and a
 privacy-first design that never stores your audit results.
 
+[![OMNIntel security verdict for audityxe.vercel.app](https://omnintel.net/api/badge/audityxe.vercel.app.svg)](https://omnintel.net/scan/audityxe.vercel.app)
+
 ## Setup
 
 ```bash
