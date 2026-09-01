@@ -11,6 +11,8 @@ privacy-first design that never stores your audit results.
 
 [![Security Grade](https://webscan-radar.com/badge/audityxe.vercel.app)](https://webscan-radar.com)
 
+<a href="https://stats.uptimerobot.com/PHQOGeVpYz?utm_source=status_badge&utm_medium=referral" target="_blank" rel="noopener"><picture><source media="(prefers-color-scheme: dark)" srcset="https://badge.uptimerobot.com/psp/f6267da51916d8f2a4d06001bac44cba.svg?style=logo&theme=dark"><img src="https://badge.uptimerobot.com/psp/f6267da51916d8f2a4d06001bac44cba.svg?style=logo&theme=light" alt="Audityxe"></picture></a>
+
 
 ## Setup
 
