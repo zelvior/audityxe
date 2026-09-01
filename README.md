@@ -5,22 +5,21 @@ scoring engine, a real browser-rendered performance/accessibility pass,
 evidence attached to every finding, full public methodology, and a
 privacy-first design that never stores your audit results.
 
-[![OMNIntel security verdict for audityxe.vercel.app](https://omnintel.net/api/badge/audityxe.vercel.app.svg)](https://omnintel.net/scan/audityxe.vercel.app) 
+### 🛡️ System Health & Trust Signals
 
-![Mozilla HTTP Observatory Grade](https://img.shields.io/mozilla-observatory/grade-score/audityxe.vercel.app)
+| Metric | Live Verification |
+| :--- | :--- |
+| **System Uptime** | [![Uptime Status](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fuptimerobot%2Fstatus-badges%2Fmain%2Fbadges%2Ff6267da51916d8f2a4d06001bac44cba.json&style=flat-square&color=10B981&label=Status)](https://stats.uptimerobot.com/PHQOGeVpYz) |
+| **Security Grade** | [![Mozilla Observatory](https://img.shields.io/mozilla-observatory/grade/audityxe.vercel.app?style=flat-square&label=Security)](https://observatory.mozilla.org/analyze/audityxe.vercel.app) |
 
-[![Security Grade](https://webscan-radar.com/badge/audityxe.vercel.app)](https://webscan-radar.com)
+---
 
-<a href="https://stats.uptimerobot.com/PHQOGeVpYz?utm_source=status_badge&utm_medium=referral" target="_blank" rel="noopener"><picture><source media="(prefers-color-scheme: dark)" srcset="https://badge.uptimerobot.com/psp/f6267da51916d8f2a4d06001bac44cba.svg?style=logo&theme=dark"><img src="https://badge.uptimerobot.com/psp/f6267da51916d8f2a4d06001bac44cba.svg?style=logo&theme=light" alt="Audityxe"></picture></a>
+#### ⚡ Core Engine & Infrastructure
 
-<img src="https://img.shields.io/badge/Audit%20Speed-%3C60s-gold?style=flat-square&logo=lightning" alt="Audit Speed" />
-
-<img src="https://img.shields.io/badge/Engine-Deterministic%20Parsing-blue?style=flat-square" alt="Engine Type" />
-
-<img src="https://img.shields.io/badge/Privacy-Zero%20Data%20Retention-emerald?style=flat-square" alt="Privacy Promise" />
-
-<img src="https://img.shields.io/badge/Deployed%20on-Vercel-black?style=flat-square&logo=vercel" alt="Deployed on Vercel" />
-
+![Audit Speed](https://img.shields.io/badge/Audit%20Speed-%3C60s-C5A059?style=flat-square)
+![Engine Type](https://img.shields.io/badge/Engine-Deterministic-3B82F6?style=flat-square)
+![Privacy Promise](https://img.shields.io/badge/Privacy-Zero%20Data%20Retention-10B981?style=flat-square)
+![Deployed on Vercel](https://img.shields.io/badge/Hosted%20On-Vercel-000000?style=flat-square&logo=vercel)
 ## Setup
 
 ```bash
