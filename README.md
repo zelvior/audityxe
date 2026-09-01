@@ -15,10 +15,10 @@ This section contains live status indicators, security scores, and architectural
 
 | Metric | Provider | Live Status Badge |
 | :--- | :--- | :--- |
-| **Uptime Status** | UptimeRobot | <a href="https://stats.uptimerobot.com/PHQOGeVpYz?utm_source=status_badge&utm_medium=referral" target="_blank" rel="noopener"><picture><source media="(prefers-color-scheme: dark)" srcset="https://badge.uptimerobot.com/psp/f6267da51916d8f2a4d06001bac44cba.svg?style=logo&theme=dark"><img src="https://badge.uptimerobot.com/psp/f6267da51916d8f2a4d06001bac44cba.svg?style=logo&theme=light" alt="Audityxe Status"></picture></a> |
-| **Security Score** | Mozilla Observatory | ![Mozilla HTTP Observatory Grade](https://img.shields.io/mozilla-observatory/grade-score/audityxe.vercel.app) |
+| **Uptime Status** | UptimeRobot | [![Audityxe Status](https://badge.uptimerobot.com/psp/f6267da51916d8f2a4d06001bac44cba.svg?style=logo&theme=dark)](https://stats.uptimerobot.com/PHQOGeVpYz) |
+| **SSL/TLS Security** | Qualys SSL Labs | [![Qualys SSL Labs Grade A+](https://img.shields.io/badge/Qualys%20SSL%20Labs-A%2B-emerald?style=flat-square&logo=qualys)](https://www.ssllabs.com/ssltest/analyze.html?d=audityxe.vercel.app) |
+| **Security Score** | Mozilla Observatory | [![Mozilla HTTP Observatory Grade](https://img.shields.io/mozilla-observatory/grade-score/audityxe.vercel.app?style=flat-square)](https://observatory.mozilla.org/analyze/audityxe.vercel.app) |
 | **Domain Risk Audit** | OMNIntel | [![OMNIntel security verdict for audityxe.vercel.app](https://omnintel.net/api/badge/audityxe.vercel.app.svg)](https://omnintel.net/scan/audityxe.vercel.app) |
-| **SSL/TLS Encryption** | Let's Encrypt / Vercel | ![SSL Enabled](https://img.shields.io/badge/SSL-256--bit%20Encrypted-emerald?style=flat-square&logo=letsencrypt) |
 
 ---
 
@@ -36,6 +36,7 @@ This section contains live status indicators, security scores, and architectural
 
 ### 🔗 Public Transparency Reports
 
+* **Live SSL Security Audit:** [Qualys SSL Labs Report (A+)](https://www.ssllabs.com/ssltest/analyze.html?d=audityxe.vercel.app)
 * **Live Methodology & Limits:** [View Audit Methodology](https://audityxe.vercel.app/methodology)
 * **Sample Output Inspection:** [View Live Sample Report](https://audityxe.vercel.app/sample-report)
 * **Official Status Page:** [System Health Portal](https://stats.uptimerobot.com/PHQOGeVpYz)
