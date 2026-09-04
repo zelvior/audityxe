@@ -97,6 +97,9 @@ export function checkTlsCertificate(hostname: string, timeoutMs = 8000): Promise
             const rawIssuerCN = cert.issuer?.CN;
             const issuerCN = Array.isArray(rawIssuerCN) ? rawIssuerCN[0] : rawIssuerCN || null;
 
+            const rawIssuerOrg = cert.issuer?.O;
+            const issuerOrg = Array.isArray(rawIssuerOrg) ? rawIssuerOrg[0] : rawIssuerOrg || null;
+
             const hostnameMatches =
               altNames.some((n: string) => matchesHostname(n, hostname)) ||
               (!!subjectCN && matchesHostname(subjectCN, hostname));
@@ -111,7 +114,7 @@ export function checkTlsCertificate(hostname: string, timeoutMs = 8000): Promise
               cipherName: cipher?.name || null,
               subjectCN,
               issuerCN,
-              issuerOrg: cert.issuer?.O || null,
+              issuerOrg,
               validFrom,
               validTo,
               daysUntilExpiry,
