@@ -91,9 +91,15 @@ export function checkTlsCertificate(hostname: string, timeoutMs = 8000): Promise
               .map((s: string) => s.trim().replace(/^DNS:/i, ""))
               .filter(Boolean);
 
+            const rawCN = cert.subject?.CN;
+            const subjectCN = Array.isArray(rawCN) ? rawCN[0] : rawCN || null;
+
+            const rawIssuerCN = cert.issuer?.CN;
+            const issuerCN = Array.isArray(rawIssuerCN) ? rawIssuerCN[0] : rawIssuerCN || null;
+
             const hostnameMatches =
               altNames.some((n: string) => matchesHostname(n, hostname)) ||
-              (!!cert.subject?.CN && matchesHostname(cert.subject.CN, hostname));
+              (!!subjectCN && matchesHostname(subjectCN, hostname));
 
             const protocol = socket.getProtocol();
             const cipher = socket.getCipher();
@@ -103,14 +109,14 @@ export function checkTlsCertificate(hostname: string, timeoutMs = 8000): Promise
               error: null,
               protocol: protocol || null,
               cipherName: cipher?.name || null,
-              subjectCN: cert.subject?.CN || null,
-              issuerCN: cert.issuer?.CN || null,
+              subjectCN,
+              issuerCN,
               issuerOrg: cert.issuer?.O || null,
               validFrom,
               validTo,
               daysUntilExpiry,
               isExpired: validToMs ? validToMs < now : false,
-              isSelfSigned: !!cert.issuer?.CN && !!cert.subject?.CN && cert.issuer.CN === cert.subject.CN,
+              isSelfSigned: !!issuerCN && !!subjectCN && issuerCN === subjectCN,
               hostnameMatches,
               sanCount: altNames.length,
               altNames,
