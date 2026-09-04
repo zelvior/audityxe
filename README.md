@@ -91,6 +91,10 @@ This section contains live status indicators, security scores, and architectural
 [`/badge`](https://audityxe.vercel.app/badge) — it links back to our live re-audit flow rather
 than making a static, unverifiable claim.
 
+<a href="https://audityxe.vercel.app/?url=audityxe.vercel.app" target="_blank" rel="noopener noreferrer">
+  <img src="https://audityxe.vercel.app/api/badge/audityxe.vercel.app" alt="Audityxe audit badge — audityxe.vercel.app" width="340" height="100" />
+</a>
+
 ## Pages
 
 | Route | Purpose |
