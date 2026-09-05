@@ -1,0 +1,13 @@
+{
+  "name": "Audityxe",
+  "short_name": "Audityxe",
+  "description": "Instant website audit tool for SEO, performance, accessibility, and security.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#050609",
+  "theme_color": "#050609",
+  "icons": [
+    { "src": "/logo-mark-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/logo-mark.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
