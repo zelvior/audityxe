@@ -1,4 +1,4 @@
-import { timingSafeEqual, createHash } from "crypto";
+import { timingSafeEqual } from "crypto";
 import { NextRequest } from "next/server";
 import { DecodedIdentity } from "./rate-limit";
 import { AuthError } from "./auth-server";
@@ -6,42 +6,37 @@ import { adminDb } from "./firebase/admin";
 import { FieldValue } from "firebase-admin/firestore";
 
 /**
- * Comma-separated allowlist of admin emails, e.g. "zelvior@proton.me".
- * Falls back to the site owner's known address so this works out of the
- * box without extra env setup — override/extend via ADMIN_EMAILS.
+ * Comma-separated allowlist of admin emails — read strictly from
+ * ADMIN_EMAILS. No hardcoded fallback: if it's unset, the allowlist is
+ * empty and isAdminIdentity() rejects everyone, rather than silently
+ * granting access to some baked-in address.
  */
 function adminEmails(): string[] {
-  const raw = process.env.ADMIN_EMAILS || "zelvior@proton.me";
+  const raw = process.env.ADMIN_EMAILS || "";
   return raw.split(",").map((e) => e.trim().toLowerCase()).filter(Boolean);
 }
 
 export function isAdminIdentity(identity: DecodedIdentity): boolean {
   if (!identity.email || !identity.emailVerified) return false;
-  return adminEmails().includes(identity.email.toLowerCase());
+  const emails = adminEmails();
+  if (emails.length === 0) return false; // ADMIN_EMAILS not configured — deny everyone
+  return emails.includes(identity.email.toLowerCase());
 }
 
-function sha256(input: string): Buffer {
-  return createHash("sha256").update(input, "utf8").digest();
-}
-
-/**
- * Second factor on top of the email allowlist: a shared admin password,
- * set via ADMIN_PASSWORD env var. Compared as a SHA-256 digest with
- * timingSafeEqual so response time can't leak how many characters
- * matched. If ADMIN_PASSWORD is unset, this check is skipped in
- * development only — production always requires it to be set.
- */
 function checkAdminPassword(req: NextRequest): boolean {
-  const configured = process.env.ADMIN_PASSWORD;
-  if (!configured) {
-    if (process.env.NODE_ENV === "production") return false; // never silently allow in prod
-    return true; // local dev convenience only
-  }
+  const configured = process.env.ADMIN_PASSWORD || "";
+  if (!configured) return false; // not configured — never silently allow
+
   const supplied = req.headers.get("x-admin-password") || "";
   if (!supplied) return false;
 
-  const a = sha256(supplied);
-  const b = sha256(configured);
+  // Direct constant-time comparison of the raw strings — no hashing
+  // involved. timingSafeEqual just prevents the comparison itself from
+  // leaking how many leading characters matched via response time; it
+  // requires equal-length buffers, so a length mismatch is checked
+  // (and rejected) separately first.
+  const a = Buffer.from(supplied, "utf8");
+  const b = Buffer.from(configured, "utf8");
   if (a.length !== b.length) return false;
   return timingSafeEqual(a, b);
 }
