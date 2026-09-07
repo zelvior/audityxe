@@ -66,7 +66,9 @@ export default function AdminActivityPage() {
         });
         if (status === 403) {
           if ((data as any)?.code === "NOT_ADMIN") {
-            setNotAdminEmail(true);
+            setDenyReason(
+              `Signed in as ${user.email || "unknown email"} — this address isn't in ADMIN_EMAILS. Add it (comma-separated) in your Vercel env vars and redeploy.`
+            );
             return;
           }
           setPasswordError(error || "Incorrect admin password.");
