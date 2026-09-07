@@ -35,7 +35,7 @@ export default function AdminActivityPage() {
   const { user, loading, getToken } = useAuth();
   const router = useRouter();
 
-  const [notAdminEmail, setNotAdminEmail] = useState(false);
+  const [denyReason, setDenyReason] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
   const [adminPassword, setAdminPassword] = useState("");
   const [passwordError, setPasswordError] = useState("");
@@ -49,8 +49,10 @@ export default function AdminActivityPage() {
   }, [loading, user, router]);
 
   useEffect(() => {
-    if (notAdminEmail) router.replace("/account");
-  }, [notAdminEmail, router]);
+    if (!denyReason) return;
+    const t = setTimeout(() => router.replace("/account"), 6000);
+    return () => clearTimeout(t);
+  }, [denyReason, router]);
 
   const fetchLog = useCallback(
     async (pw: string) => {
@@ -75,7 +77,7 @@ export default function AdminActivityPage() {
           return;
         }
         if (status === 401) {
-          setNotAdminEmail(true);
+          setDenyReason("Your session couldn't be verified — try signing out and back in. If this persists, the server's Firebase Admin credentials may be misconfigured.");
           return;
         }
         if (!ok || !data) throw new Error(error || "Couldn't load activity.");
@@ -106,10 +108,14 @@ export default function AdminActivityPage() {
     );
   }
 
-  if (notAdminEmail) {
+  if (denyReason) {
     return (
-      <main className="min-h-screen flex items-center justify-center">
-        <Loader2 size={22} className="animate-spin text-text-secondary" />
+      <main className="min-h-screen flex items-center justify-center px-4">
+        <div className="glass rounded-card p-6 max-w-sm text-center">
+          <p className="text-sm font-semibold mb-2 text-rose">Admin access denied</p>
+          <p className="text-xs text-text-secondary mb-4">{denyReason}</p>
+          <p className="text-xs text-text-secondary/60">Redirecting to your account in a few seconds…</p>
+        </div>
       </main>
     );
   }

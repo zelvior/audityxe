@@ -30,7 +30,7 @@ export default function AdminDiscountCodesPage() {
   const [listError, setListError] = useState("");
   const [fetching, setFetching] = useState(true);
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
-  const [notAdminEmail, setNotAdminEmail] = useState(false);
+  const [denyReason, setDenyReason] = useState("");
   const [copiedCode, setCopiedCode] = useState("");
 
   const [adminPassword, setAdminPassword] = useState("");
@@ -72,7 +72,9 @@ export default function AdminDiscountCodesPage() {
         if (status === 403) {
           const errCode = (data as any)?.code;
           if (errCode === "NOT_ADMIN") {
-            setNotAdminEmail(true);
+            setDenyReason(
+              `Signed in as ${user.email || "unknown email"} — this address isn't in ADMIN_EMAILS. Add it (comma-separated) in your Vercel env vars and redeploy.`
+            );
             return;
           }
           // Wrong/missing password — email is admin, let them retry.
@@ -84,7 +86,7 @@ export default function AdminDiscountCodesPage() {
           return;
         }
         if (status === 401) {
-          setNotAdminEmail(true);
+          setDenyReason("Your session couldn't be verified — try signing out and back in. If this persists, the server's Firebase Admin credentials may be misconfigured.");
           return;
         }
         if (!ok || !data) throw new Error(error || "Couldn't load discount codes.");
@@ -109,10 +111,10 @@ export default function AdminDiscountCodesPage() {
   }, [adminPassword, checkingPassword, fetchCodes]);
 
   useEffect(() => {
-    if (notAdminEmail) {
-      router.replace("/account");
-    }
-  }, [notAdminEmail, router]);
+    if (!denyReason) return;
+    const t = setTimeout(() => router.replace("/account"), 6000);
+    return () => clearTimeout(t);
+  }, [denyReason, router]);
 
   const createCode = useCallback(async () => {
     if (creating) return;
@@ -193,10 +195,14 @@ export default function AdminDiscountCodesPage() {
     );
   }
 
-  if (notAdminEmail) {
+  if (denyReason) {
     return (
-      <main className="min-h-screen flex items-center justify-center">
-        <Loader2 size={22} className="animate-spin text-text-secondary" />
+      <main className="min-h-screen flex items-center justify-center px-4">
+        <div className="glass rounded-card p-6 max-w-sm text-center">
+          <p className="text-sm font-semibold mb-2 text-rose">Admin access denied</p>
+          <p className="text-xs text-text-secondary mb-4">{denyReason}</p>
+          <p className="text-xs text-text-secondary/60">Redirecting to your account in a few seconds…</p>
+        </div>
       </main>
     );
   }
