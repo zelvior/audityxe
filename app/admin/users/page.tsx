@@ -114,7 +114,7 @@ export default function AdminUsersPage() {
   const performAction = useCallback(
     async (
       uid: string,
-      action: "ban" | "suspend" | "unban" | "set-plan" | "reset-usage",
+      action: "ban" | "suspend" | "unban" | "set-plan" | "reset-usage" | "revoke-sessions",
       extra?: { reason?: string; until?: string; plan?: string; expiresAt?: string | null }
     ) => {
       setActionTarget(uid);
