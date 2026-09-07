@@ -2,6 +2,10 @@ import { adminDb, adminAuth } from "./firebase/admin";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { PlanId } from "./plans";
 
+function todayKey(): string {
+  return new Date().toISOString().slice(0, 10); // YYYY-MM-DD (UTC) — matches lib/rate-limit.ts
+}
+
 export type ModerationStatus = "active" | "suspended" | "banned";
 
 export interface ModerationInfo {
