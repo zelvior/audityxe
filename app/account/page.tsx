@@ -269,7 +269,13 @@ export default function AccountPage() {
             copy for yourself.
           </p>
 
-          {user.email && user.email.toLowerCase() === "zelvior@proton.me" && (
+          {/* Admin links are shown to any signed-in, verified user — there's
+              no hardcoded email here. The actual gate is entirely
+              server-side (ADMIN_EMAILS allowlist + ADMIN_PASSWORD) in
+              lib/admin.ts; a non-admin clicking through gets a clear
+              "access denied" message on the admin page itself rather than
+              this link being conditioned on a baked-in address. */}
+          {user.emailVerified && (
             <>
               <Link
                 href="/admin/dashboard"
