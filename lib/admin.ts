@@ -45,8 +45,11 @@ const MAX_PASSWORD_ATTEMPTS_PER_HOUR = 8;
 
 /** Atomic per-uid attempt counter so a stolen/guessed admin-page URL
  * can't be brute-forced against the password even by an already
- * authenticated (but non-admin) account. Resets hourly. */
-async function checkPasswordAttemptBudget(uid: string): Promise<boolean> {
+ * authenticated (but non-admin) account. Resets hourly. Only called for
+ * WRONG passwords — a correct password never touches this counter, so
+ * normal admin usage (which sends the same correct header on every
+ * list/create/toggle/delete call) can never exhaust it. */
+async function recordFailedAttemptAndCheckBudget(uid: string): Promise<boolean> {
   const db = adminDb();
   const hourKey = new Date().toISOString().slice(0, 13); // YYYY-MM-DDTHH
   const ref = db.collection("admin_password_attempts").doc(uid);
@@ -63,18 +66,20 @@ async function checkPasswordAttemptBudget(uid: string): Promise<boolean> {
 
 /** Full admin gate: verified email on the allowlist AND the correct
  * shared admin password header. Both are required — neither alone is
- * sufficient. Password attempts are rate-limited per-uid to block
- * brute-forcing even from an authenticated but non-admin account. */
+ * sufficient. The password is checked first; only a WRONG password
+ * consumes rate-limit budget, so legitimate repeated use with the
+ * correct password is never throttled. */
 export async function requireAdmin(identity: DecodedIdentity, req: NextRequest): Promise<void> {
   if (!isAdminIdentity(identity)) {
     throw new AuthError("Admin access required.", 403, "NOT_ADMIN");
   }
-  const withinBudget = await checkPasswordAttemptBudget(identity.uid);
+  if (checkAdminPassword(req)) {
+    return; // correct password — no budget consumed, admin access granted
+  }
+  const withinBudget = await recordFailedAttemptAndCheckBudget(identity.uid);
   if (!withinBudget) {
-    throw new AuthError("Too many admin password attempts. Try again later.", 429, "RATE_LIMITED");
+    throw new AuthError("Too many wrong admin password attempts. Try again later.", 429, "RATE_LIMITED");
   }
-  if (!checkAdminPassword(req)) {
-    throw new AuthError("Admin password required or incorrect.", 403, "BAD_ADMIN_PASSWORD");
-  }
+  throw new AuthError("Admin password required or incorrect.", 403, "BAD_ADMIN_PASSWORD");
 }
 
