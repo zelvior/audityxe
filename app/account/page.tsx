@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, LogOut, Loader2, Zap, Mail, ShieldCheck, RefreshCw, BadgeCheck, Settings as SettingsIcon, Tag, LayoutDashboard, Megaphone, History } from "lucide-react";
+import { ArrowLeft, LogOut, Loader2, Zap, Mail, ShieldCheck, RefreshCw, BadgeCheck, Settings as SettingsIcon, Tag, LayoutDashboard } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useAuth } from "@/context/AuthContext";
@@ -269,45 +269,19 @@ export default function AccountPage() {
             copy for yourself.
           </p>
 
-          {/* Admin links are shown to any signed-in, verified user — there's
+          {/* Admin link is shown to any signed-in, verified user — there's
               no hardcoded email here. The actual gate is entirely
               server-side (ADMIN_EMAILS allowlist + ADMIN_PASSWORD) in
               lib/admin.ts; a non-admin clicking through gets a clear
               "access denied" message on the admin page itself rather than
               this link being conditioned on a baked-in address. */}
           {user.emailVerified && (
-            <>
-              <Link
-                href="/admin/dashboard"
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-card glass text-sm font-semibold hover:border-white/20 transition mb-3"
-              >
-                <LayoutDashboard size={16} /> Dashboard
-              </Link>
-              <Link
-                href="/admin/discount-codes"
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-card glass text-sm font-semibold hover:border-white/20 transition mb-3"
-              >
-                <Tag size={16} /> Manage discount codes
-              </Link>
-              <Link
-                href="/admin/users"
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-card glass text-sm font-semibold hover:border-white/20 transition mb-3"
-              >
-                <ShieldCheck size={16} /> Manage users
-              </Link>
-              <Link
-                href="/admin/announcement"
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-card glass text-sm font-semibold hover:border-white/20 transition mb-3"
-              >
-                <Megaphone size={16} /> Site announcement
-              </Link>
-              <Link
-                href="/admin/activity"
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-card glass text-sm font-semibold hover:border-white/20 transition mb-3"
-              >
-                <History size={16} /> Activity log
-              </Link>
-            </>
+            <Link
+              href="/admin"
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-card glass text-sm font-semibold hover:border-white/20 transition mb-3"
+            >
+              <LayoutDashboard size={16} /> Admin Dashboard
+            </Link>
           )}
 
           <Link

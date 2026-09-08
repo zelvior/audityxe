@@ -12,9 +12,11 @@ import { fetchJson } from "@/lib/fetch-json";
 
 interface DiscountCodeDoc {
   code: string;
+  type: "plan_grant" | "percent_off";
   active: boolean;
   plan: PlanId;
-  durationDays: number;
+  durationDays: number | null;
+  percentOff: number | null;
   maxRedemptions: number;
   redemptions: number;
   expiresAt: string | null;
@@ -39,12 +41,22 @@ export default function AdminDiscountCodesPage() {
   const [checkingPassword, setCheckingPassword] = useState(false);
 
   const [customCode, setCustomCode] = useState("");
+  const [codeType, setCodeType] = useState<"plan_grant" | "percent_off">("plan_grant");
   const [plan, setPlan] = useState<PlanId>("pro");
   const [durationDays, setDurationDays] = useState(30);
+  const [percentOff, setPercentOff] = useState(20);
   const [maxRedemptions, setMaxRedemptions] = useState(1);
   const [note, setNote] = useState("");
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState("");
+
+  const [batchCount, setBatchCount] = useState(10);
+  const [batchPlan, setBatchPlan] = useState<PlanId>("pro");
+  const [batchDurationDays, setBatchDurationDays] = useState(30);
+  const [batchNote, setBatchNote] = useState("");
+  const [generatingBatch, setGeneratingBatch] = useState(false);
+  const [batchError, setBatchError] = useState("");
+  const [batchResult, setBatchResult] = useState<string[] | null>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -131,8 +143,10 @@ export default function AdminDiscountCodesPage() {
         },
         body: JSON.stringify({
           code: customCode.trim() || undefined,
+          type: codeType,
           plan,
-          durationDays,
+          durationDays: codeType === "plan_grant" ? durationDays : undefined,
+          percentOff: codeType === "percent_off" ? percentOff : undefined,
           maxRedemptions,
           note: note.trim() || null,
         }),
@@ -146,7 +160,38 @@ export default function AdminDiscountCodesPage() {
     } finally {
       setCreating(false);
     }
-  }, [creating, customCode, plan, durationDays, maxRedemptions, note, getToken, fetchCodes, passwordEntered]);
+  }, [creating, customCode, codeType, plan, durationDays, percentOff, maxRedemptions, note, getToken, fetchCodes, passwordEntered]);
+
+  const generateBatch = useCallback(async () => {
+    if (generatingBatch) return;
+    setGeneratingBatch(true);
+    setBatchError("");
+    setBatchResult(null);
+    try {
+      const token = await getToken();
+      const { ok, data, error } = await fetchJson<{ codes: DiscountCodeDoc[] }>("/api/admin/discount-codes/batch", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          "x-admin-password": passwordEntered,
+        },
+        body: JSON.stringify({
+          count: batchCount,
+          plan: batchPlan,
+          durationDays: batchDurationDays,
+          note: batchNote.trim() || null,
+        }),
+      });
+      if (!ok || !data) throw new Error(error || "Couldn't generate codes.");
+      setBatchResult(data.codes.map((c) => c.code));
+      fetchCodes();
+    } catch (err) {
+      setBatchError(err instanceof Error ? err.message : "Something went wrong.");
+    } finally {
+      setGeneratingBatch(false);
+    }
+  }, [generatingBatch, batchCount, batchPlan, batchDurationDays, batchNote, getToken, fetchCodes, passwordEntered]);
 
   const toggleActive = useCallback(
     async (code: string, active: boolean) => {
@@ -270,6 +315,17 @@ export default function AdminDiscountCodesPage() {
               />
             </div>
             <div>
+              <label className="text-xs text-text-secondary block mb-1">Type</label>
+              <select
+                value={codeType}
+                onChange={(e) => setCodeType(e.target.value as "plan_grant" | "percent_off")}
+                className="w-full rounded-card bg-white/5 border border-white/10 px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
+              >
+                <option value="plan_grant">Plan grant (instant free access)</option>
+                <option value="percent_off">Percent off (applied at checkout)</option>
+              </select>
+            </div>
+            <div>
               <label className="text-xs text-text-secondary block mb-1">Plan</label>
               <select
                 value={plan}
@@ -280,16 +336,30 @@ export default function AdminDiscountCodesPage() {
                 <option value="pro">{PLANS.pro.name}</option>
               </select>
             </div>
-            <div>
-              <label className="text-xs text-text-secondary block mb-1">Duration (days)</label>
-              <input
-                type="number"
-                min={1}
-                value={durationDays}
-                onChange={(e) => setDurationDays(Number(e.target.value))}
-                className="w-full rounded-card bg-white/5 border border-white/10 px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
-              />
-            </div>
+            {codeType === "plan_grant" ? (
+              <div>
+                <label className="text-xs text-text-secondary block mb-1">Duration (days)</label>
+                <input
+                  type="number"
+                  min={1}
+                  value={durationDays}
+                  onChange={(e) => setDurationDays(Number(e.target.value))}
+                  className="w-full rounded-card bg-white/5 border border-white/10 px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
+                />
+              </div>
+            ) : (
+              <div>
+                <label className="text-xs text-text-secondary block mb-1">Percent off</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={100}
+                  value={percentOff}
+                  onChange={(e) => setPercentOff(Number(e.target.value))}
+                  className="w-full rounded-card bg-white/5 border border-white/10 px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
+                />
+              </div>
+            )}
             <div>
               <label className="text-xs text-text-secondary block mb-1">Max redemptions</label>
               <input
@@ -321,6 +391,84 @@ export default function AdminDiscountCodesPage() {
           </button>
         </div>
 
+        <div className="glass rounded-card p-5 sm:p-6 mb-8">
+          <span className="text-sm font-semibold mb-1 block">Generate giveaway batch</span>
+          <p className="text-xs text-text-secondary mb-4">
+            Creates N distinct single-use plan-grant codes at once — e.g. 50 codes for a YouTube giveaway, one per winner.
+          </p>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
+            <div>
+              <label className="text-xs text-text-secondary block mb-1">How many</label>
+              <input
+                type="number"
+                min={1}
+                max={500}
+                value={batchCount}
+                onChange={(e) => setBatchCount(Number(e.target.value))}
+                className="w-full rounded-card bg-white/5 border border-white/10 px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-text-secondary block mb-1">Plan</label>
+              <select
+                value={batchPlan}
+                onChange={(e) => setBatchPlan(e.target.value as PlanId)}
+                className="w-full rounded-card bg-white/5 border border-white/10 px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
+              >
+                <option value="standard">{PLANS.standard.name}</option>
+                <option value="pro">{PLANS.pro.name}</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-text-secondary block mb-1">Duration (days)</label>
+              <input
+                type="number"
+                min={1}
+                value={batchDurationDays}
+                onChange={(e) => setBatchDurationDays(Number(e.target.value))}
+                className="w-full rounded-card bg-white/5 border border-white/10 px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-text-secondary block mb-1">Note (optional)</label>
+              <input
+                type="text"
+                value={batchNote}
+                onChange={(e) => setBatchNote(e.target.value)}
+                placeholder="e.g. Launch giveaway"
+                className="w-full rounded-card bg-white/5 border border-white/10 px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
+              />
+            </div>
+          </div>
+          {batchError && <p className="text-xs text-rose mb-3">{batchError}</p>}
+          <button
+            onClick={generateBatch}
+            disabled={generatingBatch}
+            className="px-4 py-2 rounded-card bg-primary text-black text-sm font-semibold disabled:opacity-50 flex items-center gap-2"
+          >
+            {generatingBatch ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />} Generate {batchCount} codes
+          </button>
+
+          {batchResult && (
+            <div className="mt-4 border-t border-white/10 pt-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs text-text-secondary">{batchResult.length} codes generated</span>
+                <button
+                  onClick={() => navigator.clipboard?.writeText(batchResult.join("\n"))}
+                  className="text-xs px-2 py-1 rounded-card glass hover:border-white/20 flex items-center gap-1"
+                >
+                  <Copy size={11} /> Copy all
+                </button>
+              </div>
+              <div className="max-h-40 overflow-y-auto font-mono text-xs text-text-secondary grid grid-cols-2 sm:grid-cols-3 gap-1">
+                {batchResult.map((c) => (
+                  <span key={c}>{c}</span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
         {fetching && (
           <div className="flex items-center gap-2 text-sm text-text-secondary">
             <Loader2 size={14} className="animate-spin" /> Loading codes…
@@ -344,10 +492,16 @@ export default function AdminDiscountCodesPage() {
                   >
                     {c.code} {copiedCode === c.code ? <Check size={13} className="text-emerald" /> : <Copy size={13} />}
                   </button>
+                  {c.type === "percent_off" && (
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-emerald/20 text-emerald">% off</span>
+                  )}
                   {!c.active && <span className="text-xs px-2 py-0.5 rounded-full bg-white/10 text-text-secondary">Disabled</span>}
                 </div>
                 <div className="text-xs text-text-secondary flex flex-wrap gap-x-4 gap-y-1">
-                  <span>{PLANS[c.plan]?.name ?? c.plan} · {c.durationDays}d</span>
+                  <span>
+                    {PLANS[c.plan]?.name ?? c.plan}
+                    {c.type === "percent_off" ? ` · ${c.percentOff}% off` : ` · ${c.durationDays}d`}
+                  </span>
                   <span>{c.redemptions}/{c.maxRedemptions} redeemed</span>
                   {c.note && <span>"{c.note}"</span>}
                 </div>

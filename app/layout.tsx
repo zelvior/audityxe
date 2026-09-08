@@ -117,6 +117,7 @@ const jsonLd = {
         "@type": "ImageObject",
         url: `${SITE_URL}/logo-mark-192.png`,
       },
+      sameAs: ["https://github.com/zelvior"],
     },
     {
       "@type": "WebSite",
@@ -126,7 +127,6 @@ const jsonLd = {
       url: SITE_URL,
       description: SITE_DESCRIPTION,
       publisher: { "@id": `${SITE_URL}/#organization` },
-      isPartOf: { "@id": `${SITE_URL}/#website` },
       potentialAction: {
         "@type": "SearchAction",
         target: `${SITE_URL}/?url={search_term_string}`,

@@ -30,15 +30,19 @@ export async function POST(req: NextRequest) {
 
     const doc = await createDiscountCode({
       code: typeof body?.code === "string" && body.code.trim() ? body.code : undefined,
+      type: body?.type === "percent_off" ? "percent_off" : "plan_grant",
       plan: body?.plan,
-      durationDays: Number(body?.durationDays),
+      durationDays: body?.durationDays != null ? Number(body.durationDays) : undefined,
+      percentOff: body?.percentOff != null ? Number(body.percentOff) : undefined,
       maxRedemptions: Number(body?.maxRedemptions),
       expiresAt: body?.expiresAt || null,
       perUserOnce: body?.perUserOnce !== false,
       note: typeof body?.note === "string" ? body.note : null,
     });
 
-    await logAdminAction(identity.email || "unknown", "create_discount_code", doc.code, `${doc.plan} · ${doc.durationDays}d · max ${doc.maxRedemptions}`);
+    const summary =
+      doc.type === "percent_off" ? `${doc.percentOff}% off ${doc.plan} · max ${doc.maxRedemptions}` : `${doc.plan} · ${doc.durationDays}d · max ${doc.maxRedemptions}`;
+    await logAdminAction(identity.email || "unknown", "create_discount_code", doc.code, summary);
 
     return NextResponse.json({ code: doc });
   } catch (err) {
