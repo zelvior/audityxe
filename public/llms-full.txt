@@ -1,0 +1,53 @@
+# Audityxe
+
+> Free website audit tool: instant SEO, performance, accessibility, security & UX scores with evidence-based fixes and a viral promo kit.
+
+## What it does
+- Free website audit tool and website analysis tool
+- Technical SEO audit and SEO website analyzer
+- Website performance audit and speed checker (Pro: real PageSpeed Insights Core Web Vitals)
+- Website accessibility audit tool
+- Website security audit and security headers checker
+- Website UX and conversion (CRO) audit
+- 17-area deep audit with evidence-based fixes and real code snippets
+- Shareable Audityxe Verified badge with live re-audit
+- Competitor head-to-head comparison (Standard+)
+- Bulk audits for agencies (Pro)
+- AI-generated promo copy using your own API key (Pro, BYOK)
+
+## Pricing
+- Free: $0 — limited daily audits, full 6-category score, 17-area breakdown
+- Standard: paid — more daily audits, competitor head-to-head comparison
+- Pro: paid — PageSpeed Insights performance audit, bulk audits, AI promo copy (BYOK)
+
+## Key pages
+- [Homepage](https://audityxe.vercel.app/)
+- [Pricing](https://audityxe.vercel.app/pricing)
+- [Sample report](https://audityxe.vercel.app/sample-report)
+- [Methodology](https://audityxe.vercel.app/methodology)
+- [Guide](https://audityxe.vercel.app/guide)
+- [FAQ](https://audityxe.vercel.app/faq)
+- [About](https://audityxe.vercel.app/about)
+- [Bulk audits](https://audityxe.vercel.app/bulk)
+- [Changelog](https://audityxe.vercel.app/changelog)
+- [Trust center](https://audityxe.vercel.app/trust-center)
+- [Contact](https://audityxe.vercel.app/contact)
+- [Privacy](https://audityxe.vercel.app/privacy)
+- [Terms](https://audityxe.vercel.app/terms)
+
+## FAQ
+Q: How do I audit a website for free?
+A: Paste any URL into Audityxe's website checker and click Analyze. It's a free website audit tool - no signup required for your first audit, and a free account unlocks more per day. You'll get a website quality score out of 10 across 6 categories: SEO, performance, accessibility, security, UX, and technical health.
+
+Q: How are Audityxe's scores actually calculated?
+A: All category scores come from parsing the real, live HTML and HTTP response of the page being audited - heading structure, meta tags, security headers, redirect chains, robots.txt and sitemap.xml fetched live, and sampled broken-link/image checks. The same strict benchmark and weighting is applied to every website, so scores are comparable across audits and over time.
+
+Q: What does Audityxe check in a website audit?
+A: Audityxe runs a technical SEO audit (titles, meta tags, headings, canonical tags, structured data), a website accessibility audit (alt text, contrast, form labels), a website security audit (HTTPS, HSTS, CSP, security headers), a website UX and conversion audit (mobile viewport, tap targets, broken links/images), and on Pro, a real browser-rendered performance audit via Google PageSpeed Insights covering Core Web Vitals.
+
+Q: What's the difference between the Free, Standard, and Pro plans?
+A: Free gives a limited number of audits per day with the full 6-category score and 17-area breakdown. Standard adds more daily audits and competitor head-to-head comparison. Pro adds real browser-rendered PageSpeed performance auditing, bulk audits for agencies, and AI-generated promo copy using your own API key.
+
+Q: Is Audityxe's audit data stored?
+A: No - full audit results are computed fresh per request and returned directly to your browser, with no public report page or cross-account history. The one exception is a minimal per-domain score-and-date record used only to power the embeddable Audityxe badge.
+
