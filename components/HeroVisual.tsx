@@ -19,9 +19,14 @@ const RESULT_Y = 152;
 const INPUT_X = 8;
 const CHECK_X = 176;
 const RESULT_X = 344;
-const CHECK_NODE_W = 128; // matches the fixed-width check node box below
-const RESULT_NODE_W = 108; // fixed width so the box can never overflow the canvas
-const CANVAS_W = 480; // widened from 420 — RESULT_X + RESULT_NODE_W + margin no longer clips
+// Widened from 128/108 — at 11px/10px font-mono, "Lighthouse Audit" and
+// "Score + fixes" (the longest label in each node) measured wider than the
+// old fixed box, so the pill clipped/wrapped instead of the text sitting on
+// one line as `whitespace-nowrap` intends. These widths comfortably fit the
+// longest label in each node's font size with room to spare either side.
+const CHECK_NODE_W = 152;
+const RESULT_NODE_W = 132;
+const CANVAS_W = 500; // RESULT_X + RESULT_NODE_W + margin no longer clips
 
 /** Cubic-bezier control points placed at fixed fractions along the
  * straight line between start and end, for both x AND y. This is what
@@ -76,7 +81,7 @@ export default function HeroVisual() {
         <svg width={CANVAS_W} height={360} viewBox={`0 0 ${CANVAS_W} 360`} className="absolute inset-0 overflow-visible" fill="none">
           <defs>
             <marker id="hv-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4.5" markerHeight="4.5" orient="auto-start-reverse">
-              <path d="M2 1L8 5L2 9" stroke="#4B4166" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+              <path d="M2 1L8 5L2 9" stroke="#2A3138" strokeWidth="1.5" fill="none" strokeLinecap="round" />
             </marker>
           </defs>
 
@@ -85,7 +90,7 @@ export default function HeroVisual() {
             <motion.path
               key={`in-${c.label}`}
               d={smoothPath(INPUT_X + 70, INPUT_Y + 14, CHECK_X - 6, c.y + 14)}
-              stroke="#3A3350"
+              stroke="#2A3138"
               strokeWidth="1.5"
               markerEnd="url(#hv-arrow)"
               initial={{ pathLength: 0, opacity: 0 }}
@@ -99,7 +104,7 @@ export default function HeroVisual() {
             <motion.path
               key={`out-${c.label}`}
               d={smoothPath(CHECK_X + CHECK_NODE_W, c.y + 14, RESULT_X - 4, RESULT_Y + 24)}
-              stroke="#3A3350"
+              stroke="#2A3138"
               strokeWidth="1.5"
               markerEnd="url(#hv-arrow)"
               initial={{ pathLength: 0, opacity: 0 }}

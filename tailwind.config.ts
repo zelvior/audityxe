@@ -1,28 +1,37 @@
 import type { Config } from "tailwindcss";
 
-const config: Config = {
+// Every token below resolves through a CSS custom property (defined per
+// theme in app/globals.css, driven by the [data-theme] attribute the
+// ThemeProvider sets on <html>) rather than a fixed hex, so the whole
+// palette can be swapped at runtime by the theme switcher without
+// touching a single component or rebuilding the app. Values are stored
+// as "R G B" triplets in CSS so the alpha channel still works (e.g.
+// bg-primary/30) exactly like a normal Tailwind color would.
+function withOpacity(cssVar: string) {
+  return ({ opacityValue }: { opacityValue?: string }) =>
+    opacityValue !== undefined ? `rgba(var(${cssVar}), ${opacityValue})` : `rgb(var(${cssVar}))`;
+}
+
+const config = {
   content: ["./app/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}"],
   theme: {
     extend: {
       colors: {
-        // Dark-tech palette, single locked accent (emerald — reads as
-        // "verified / passing" for an audit product instead of the
-        // generic AI-purple gradient family). Every brand-accent
-        // reference in the app (primary/secondary/accent) now resolves
-        // to a shade of this one hue; rose/amber stay reserved purely
-        // as semantic fail/warn score colors, never as UI chrome.
-        bg: "#06080A",
-        surface: "#0A0D10",
-        surface2: "#0F1317",
-        border: "#1B2027",
-        primary: "#4ADE80",
-        secondary: "#0E7A52",
-        accent: "#22C55E",
-        emerald: "#10B981",
-        rose: "#F43F5E",
-        amber: "#F59E0B",
-        "text-primary": "#E6E9EC",
-        "text-secondary": "#98A0A6",
+        // Semantic rose/amber stay reserved purely for fail/warn score
+        // colors, never as UI chrome — every theme keeps that meaning
+        // even though its own accent hue changes.
+        bg: withOpacity("--color-bg"),
+        surface: withOpacity("--color-surface"),
+        surface2: withOpacity("--color-surface2"),
+        border: withOpacity("--color-border"),
+        primary: withOpacity("--color-primary"),
+        secondary: withOpacity("--color-secondary"),
+        accent: withOpacity("--color-accent"),
+        emerald: withOpacity("--color-emerald"),
+        rose: withOpacity("--color-rose"),
+        amber: withOpacity("--color-amber"),
+        "text-primary": withOpacity("--color-text-primary"),
+        "text-secondary": withOpacity("--color-text-secondary"),
       },
       borderRadius: {
         card: "16px",
@@ -57,4 +66,12 @@ const config: Config = {
   },
   plugins: [],
 };
-export default config;
+
+// Tailwind's own Config["theme"]["extend"]["colors"] type only accepts
+// string | RecursiveKeyValuePair<string,string>, not the function form
+// the withOpacity() pattern needs at runtime (this is Tailwind's own
+// documented CSS-variable-with-alpha pattern — it works at build time;
+// the shipped type declarations are just stricter than the JS API
+// actually accepts). Casting the fully-built object avoids sprinkling
+// `any` through the rest of the otherwise normally-typed config above.
+export default config as unknown as Config;

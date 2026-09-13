@@ -11,6 +11,17 @@ export const metadata: Metadata = {
 
 const ENTRIES: { version: string; date: string; changes: string[] }[] = [
   {
+    version: "1.7.0",
+    date: "September 2026",
+    changes: [
+      "Ran a full technical SEO/GEO audit and closed the remaining gaps: added public/llms.txt and llms-full.txt for AI-crawler discovery, and added BreadcrumbList structured data to every nested content page (methodology, guide, FAQ, pricing, sample-report, and all legal/trust pages via a shared LegalLayout `path` prop) — the rest of the SEO surface (robots, sitemap, canonical/OG/Twitter meta, Organization/WebSite/SoftwareApplication/FAQPage schema, security headers) was already correct and needed no changes.",
+      "Redesigned the whole app off the generic \"AI-purple\" gradient palette onto a single locked dark-tech accent (emerald — reads as \"verified/passing\", which fits an audit product) across every color token, replacing every hardcoded violet hex left over from the old palette (badge route, auth side panel, promo banner canvas, error shell, and two leftover raw SVG stroke colors in the homepage hero diagram).",
+      "Fixed a layout bug in the homepage hero diagram where \"Lighthouse Audit\" and \"Score + fixes\" broke out of their pill boxes — the node widths were sized for shorter labels than the component actually renders.",
+      "Rebuilt the color system on CSS variables so it can be re-themed at runtime with zero rebuild: added 6 complete themes (Dark Tech, Electric Blue, Amber Signal, Crimson Alert, Monochrome, Paper Light).",
+      "Added a site-wide theme control, admin-only: a new Theme tab in the admin dashboard lets an admin pick the active theme for the entire site; there is no per-user theme override anywhere in the app. The choice is read server-side on every page render and applied before first paint, so visitors never see a flash of the wrong theme. Changes propagate to all visitors within about 30 seconds.",
+    ],
+  },
+  {
     version: "1.6.0",
     date: "September 2026",
     changes: [

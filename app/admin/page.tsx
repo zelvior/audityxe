@@ -25,6 +25,7 @@ import {
   AlertTriangle,
   Gauge,
   Database,
+  Palette,
 } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -32,8 +33,9 @@ import { useAuth } from "@/context/AuthContext";
 import { PLANS, PlanId } from "@/lib/plans";
 import { fetchJson } from "@/lib/fetch-json";
 import PasswordInput from "@/components/PasswordInput";
+import { THEMES, DEFAULT_THEME } from "@/lib/themes";
 
-type Tab = "dashboard" | "codes" | "users" | "audits" | "announcement" | "activity";
+type Tab = "dashboard" | "codes" | "users" | "audits" | "announcement" | "theme" | "activity";
 
 const TABS: { id: Tab; label: string; icon: any }[] = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -41,6 +43,7 @@ const TABS: { id: Tab; label: string; icon: any }[] = [
   { id: "users", label: "Users", icon: ShieldCheck },
   { id: "audits", label: "Audits", icon: Gauge },
   { id: "announcement", label: "Announcement", icon: Megaphone },
+  { id: "theme", label: "Theme", icon: Palette },
   { id: "activity", label: "Activity", icon: History },
 ];
 
@@ -137,6 +140,7 @@ const ACTION_LABELS: Record<string, string> = {
   user_revoke_sessions: "Revoked sessions for",
   set_announcement: "Published announcement",
   clear_announcement: "Took down announcement",
+  set_theme: "Changed site theme to",
 };
 
 function StatCard({ icon: Icon, label, value }: { icon: any; label: string; value: string | number }) {
@@ -289,6 +293,7 @@ export default function AdminHubPage() {
         {tab === "users" && <UsersTab getToken={getToken} passwordEntered={passwordEntered} />}
         {tab === "audits" && <AuditsTab getToken={getToken} passwordEntered={passwordEntered} />}
         {tab === "announcement" && <AnnouncementTab getToken={getToken} passwordEntered={passwordEntered} />}
+        {tab === "theme" && <ThemeTab getToken={getToken} passwordEntered={passwordEntered} />}
         {tab === "activity" && <ActivityTab getToken={getToken} passwordEntered={passwordEntered} />}
       </main>
       <Footer />
@@ -1328,6 +1333,95 @@ function AnnouncementTab({ getToken, passwordEntered }: { getToken: () => Promis
             Take down
           </button>
         )}
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════ THEME TAB ══════════════════════════ */
+function ThemeTab({ getToken, passwordEntered }: { getToken: () => Promise<string | null>; passwordEntered: string }) {
+  const [themeId, setThemeId] = useState(DEFAULT_THEME);
+  const [loadingState, setLoadingState] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      setLoadingState(true);
+      try {
+        const token = await getToken();
+        const { ok, data } = await fetchJson<{ themeId: string }>("/api/admin/theme", {
+          headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), "x-admin-password": passwordEntered },
+        });
+        if (ok && data) setThemeId(data.themeId);
+      } finally {
+        setLoadingState(false);
+      }
+    })();
+  }, [getToken, passwordEntered]);
+
+  const save = useCallback(
+    async (next: string) => {
+      setSaving(true);
+      setSaveError("");
+      setSaved(false);
+      try {
+        const token = await getToken();
+        const { ok, error } = await fetchJson("/api/admin/theme", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            "x-admin-password": passwordEntered,
+          },
+          body: JSON.stringify({ themeId: next }),
+        });
+        if (!ok) throw new Error(error || "Failed to save.");
+        setThemeId(next);
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2000);
+      } catch (err) {
+        setSaveError(err instanceof Error ? err.message : "Something went wrong.");
+      } finally {
+        setSaving(false);
+      }
+    },
+    [getToken, passwordEntered]
+  );
+
+  if (loadingState) return <Loader2 size={16} className="animate-spin text-text-secondary" />;
+
+  return (
+    <div className="glass rounded-card p-5 sm:p-6 max-w-lg">
+      <p className="text-sm text-text-secondary mb-4">
+        Applies to every visitor site-wide within about 30 seconds — there's no per-user theme, only this one.
+      </p>
+
+      {saveError && <p className="text-xs text-rose mb-3">{saveError}</p>}
+      {saved && <p className="text-xs text-emerald mb-3">Saved — live for all users shortly.</p>}
+
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        {THEMES.map((t) => {
+          const active = t.id === themeId;
+          return (
+            <button
+              key={t.id}
+              onClick={() => !saving && save(t.id)}
+              disabled={saving}
+              className={`rounded-card p-3 flex flex-col items-center gap-2 border transition disabled:opacity-50 ${
+                active ? "border-primary bg-primary/10" : "border-white/10 hover:border-white/25"
+              }`}
+            >
+              <span
+                className="w-8 h-8 rounded-full border border-white/10"
+                style={{ background: `linear-gradient(135deg, ${t.swatch[0]} 50%, ${t.swatch[1]} 50%)` }}
+              />
+              <span className="text-xs font-medium text-center leading-tight">{t.label}</span>
+              {active && <Check size={12} className="text-primary" />}
+            </button>
+          );
+        })}
       </div>
     </div>
   );

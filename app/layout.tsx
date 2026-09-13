@@ -5,6 +5,7 @@ import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import ModerationGuard from "@/components/ModerationGuard";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
+import { getSiteTheme } from "@/lib/site-theme";
 
 const SITE_URL = "https://audityxe.vercel.app";
 const SITE_NAME = "Audityxe";
@@ -177,9 +178,14 @@ const jsonLd = {
   ],
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Site-wide theme, admin-controlled only (Admin dashboard → Theme
+  // tab) — read server-side and set directly on <html data-theme>, so
+  // every visitor gets the current theme on first paint with no client
+  // flash and no per-user override of any kind.
+  const themeId = await getSiteTheme();
   return (
-    <html lang="en">
+    <html lang="en" data-theme={themeId}>
       <head>
         <script
           type="application/ld+json"
