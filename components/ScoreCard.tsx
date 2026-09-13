@@ -5,9 +5,9 @@ import { AuditResult } from "@/lib/types";
 import AuditActionBar from "./AuditActionBar";
 
 function colorFor(score: number) {
-  if (score >= 8) return { bar: "bg-emerald", text: "text-emerald", ring: "#10B981" };
-  if (score >= 5) return { bar: "bg-amber", text: "text-amber", ring: "#F59E0B" };
-  return { bar: "bg-rose", text: "text-rose", ring: "#F43F5E" };
+  if (score >= 8) return { bar: "bg-emerald", text: "text-emerald", ring: "#3F7D5C" };
+  if (score >= 5) return { bar: "bg-amber", text: "text-amber", ring: "#A8720A" };
+  return { bar: "bg-rose", text: "text-rose", ring: "#B23A2E" };
 }
 
 export default function ScoreCard({ result }: { result: AuditResult }) {
@@ -29,7 +29,7 @@ export default function ScoreCard({ result }: { result: AuditResult }) {
         <div className="flex flex-col sm:flex-row gap-6 sm:gap-8 items-center sm:items-start mb-8 sm:mb-10">
           <div className="relative w-28 h-28 sm:w-36 sm:h-36 shrink-0">
             <svg viewBox="0 0 120 120" className="w-full h-full -rotate-90">
-              <circle cx="60" cy="60" r="54" fill="none" stroke="#2A2A2E" strokeWidth="10" />
+              <circle cx="60" cy="60" r="54" fill="none" stroke="#E3D6BE" strokeWidth="10" />
               <motion.circle
                 cx="60"
                 cy="60"
@@ -52,7 +52,7 @@ export default function ScoreCard({ result }: { result: AuditResult }) {
 
           <div className="flex-1 text-center sm:text-left min-w-0">
             <p className={`font-display font-semibold text-base sm:text-lg md:text-xl leading-snug ${overallColor.text}`}>
-              {result.verdict}
+              <span className="hand-underline hand-underline--alt">{result.verdict}</span>
             </p>
           </div>
         </div>

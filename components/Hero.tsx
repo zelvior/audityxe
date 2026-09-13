@@ -59,7 +59,8 @@ export default function Hero({
             that don't execute JS/CSS don't care either way. Not worth
             the risk for the one heading that matters most. */}
         <h1 className="font-display font-medium text-[32px] leading-[1.1] sm:text-[48px] sm:leading-[1.05] md:text-[52px] md:leading-[1.03] tracking-tight text-gradient px-1">
-          Instant Site Audit &<br className="hidden sm:block" /> Fix Report
+          <span className="hand-highlight">Instant Site Audit</span> &<br className="hidden sm:block" />{" "}
+          <span className="hand-underline">Fix Report</span>
         </h1>
 
         <motion.p

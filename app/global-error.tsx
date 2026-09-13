@@ -16,14 +16,14 @@ export default function GlobalError({
 
   return (
     <html lang="en">
-      <body className="min-h-screen bg-[#06080A] text-[#E6E9EC] font-sans antialiased flex items-center justify-center px-4">
+      <body className="min-h-screen bg-[#FBF7EF] text-[#201B14] font-sans antialiased flex items-center justify-center px-4">
         <div className="max-w-md mx-auto text-center py-16">
-          <div className="w-16 h-16 rounded-card bg-white/5 border border-white/10 flex items-center justify-center mx-auto mb-6">
-            <AlertOctagon size={28} className="text-rose-400" />
+          <div className="w-16 h-16 rounded-card bg-black/5 border border-black/10 flex items-center justify-center mx-auto mb-6">
+            <AlertOctagon size={28} className="text-[#B23A2E]" />
           </div>
-          <p className="font-mono text-xs text-zinc-400 mb-2">CRITICAL ERROR</p>
+          <p className="font-mono text-xs text-[#6E6252] mb-2">CRITICAL ERROR</p>
           <h1 className="font-bold text-2xl sm:text-3xl mb-3">Audityxe failed to load.</h1>
-          <p className="text-sm sm:text-base text-zinc-400 mb-8">
+          <p className="text-sm sm:text-base text-[#6E6252] mb-8">
             A critical error occurred. Please try reloading the page.
           </p>
           <button

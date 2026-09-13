@@ -9,7 +9,7 @@ const W = 1200;
 const H = 630;
 
 function scoreColorFor(overall: number) {
-  return overall >= 8 ? "#10B981" : overall >= 5 ? "#F59E0B" : "#F43F5E";
+  return overall >= 8 ? "#3F7D5C" : overall >= 5 ? "#A8720A" : "#B23A2E";
 }
 
 /** Renders headline text with one accent word tinted differently — the
@@ -29,7 +29,7 @@ function drawEmphasizedHeadline(
 ): number {
   const words = headline.split(" ");
   const lineHeight = fontSize * 1.08;
-  ctx.font = `800 ${fontSize}px Manrope, sans-serif`;
+  ctx.font = `800 ${fontSize}px Fraunces, serif`;
   ctx.textAlign = align;
 
   // Wrap into lines first
@@ -59,7 +59,7 @@ function drawEmphasizedHeadline(
     for (let i = 0; i < lineWords.length; i++) {
       const word = lineWords[i];
       const isAccent = word.replace(/[^\w]/g, "").toLowerCase() === accentWord.replace(/[^\w]/g, "").toLowerCase();
-      ctx.fillStyle = isAccent ? accentColor : "#F4F4F5";
+      ctx.fillStyle = isAccent ? accentColor : "#F4EFE4";
       ctx.fillText(word, cursorX, curY);
       cursorX += ctx.measureText(word + " ").width;
     }
@@ -127,8 +127,8 @@ function drawBackground(ctx: CanvasRenderingContext2D, accentColor: string, aiIm
     ctx.fillRect(0, 0, W, H);
   } else {
     const bg = ctx.createLinearGradient(0, 0, W, H);
-    bg.addColorStop(0, "#0A0A0A");
-    bg.addColorStop(1, "#141018");
+    bg.addColorStop(0, "#1A1108");
+    bg.addColorStop(1, "#241708");
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, W, H);
   }
@@ -140,8 +140,8 @@ function drawBackground(ctx: CanvasRenderingContext2D, accentColor: string, aiIm
   ctx.fillRect(0, 0, W, H);
 
   const glow2 = ctx.createRadialGradient(1050, 520, 0, 1050, 520, 420);
-  glow2.addColorStop(0, "rgba(139,92,246,0.28)");
-  glow2.addColorStop(1, "rgba(139,92,246,0)");
+  glow2.addColorStop(0, "rgba(240,196,107,0.28)");
+  glow2.addColorStop(1, "rgba(240,196,107,0)");
   ctx.fillStyle = glow2;
   ctx.fillRect(0, 0, W, H);
 
@@ -169,7 +169,7 @@ function drawScoreBadge(ctx: CanvasRenderingContext2D, cx: number, cy: number, r
   ctx.fillStyle = "rgba(255,255,255,0.04)";
   ctx.fill();
   ctx.lineWidth = 14;
-  ctx.strokeStyle = "#2A2A2E";
+  ctx.strokeStyle = "#4A3A22";
   ctx.beginPath();
   ctx.arc(cx, cy, r - 20, 0, Math.PI * 2);
   ctx.stroke();
@@ -183,24 +183,24 @@ function drawScoreBadge(ctx: CanvasRenderingContext2D, cx: number, cy: number, r
   ctx.stroke();
   ctx.lineCap = "butt";
 
-  ctx.fillStyle = "#F4F4F5";
-  ctx.font = "800 64px Manrope, sans-serif";
+  ctx.fillStyle = "#F4EFE4";
+  ctx.font = "800 64px Fraunces, serif";
   ctx.textAlign = "center";
   ctx.fillText(overall.toFixed(1), cx, cy + 18);
   ctx.font = "500 20px ui-monospace, monospace";
-  ctx.fillStyle = "#9A9AA2";
+  ctx.fillStyle = "#C9BBA0";
   ctx.fillText("/ 10", cx, cy + 48);
   ctx.textAlign = "left";
 }
 
 /** Layout A — large centered badge, headline + tagline on the left. */
 function drawCenteredBadgeLayout(ctx: CanvasRenderingContext2D, result: AuditResult, accentColor: string) {
-  ctx.fillStyle = "#9A9AA2";
+  ctx.fillStyle = "#C9BBA0";
   ctx.font = "600 20px ui-monospace, monospace";
   ctx.textAlign = "left";
   ctx.fillText("AUDITYXE \u00B7 LIVE AUDIT", 64, 82);
 
-  ctx.fillStyle = "#F4F4F5";
+  ctx.fillStyle = "#F4EFE4";
   ctx.font = "600 24px ui-monospace, monospace";
   ctx.fillText(result.url, 64, 122);
 
@@ -215,8 +215,8 @@ function drawCenteredBadgeLayout(ctx: CanvasRenderingContext2D, result: AuditRes
     accentColor
   );
 
-  ctx.fillStyle = "#A1A1AA";
-  ctx.font = "500 24px Manrope, sans-serif";
+  ctx.fillStyle = "#C9BBA0";
+  ctx.font = "500 24px Fraunces, serif";
   wrapText(ctx, result.banner.tagline, 64, headlineBottom + 34, 620, 34, 2);
 
   drawScoreBadge(ctx, 1010, 300, 130, result.overall);
@@ -224,12 +224,12 @@ function drawCenteredBadgeLayout(ctx: CanvasRenderingContext2D, result: AuditRes
 
 /** Layout B — compact left-aligned stat block, more room for a longer headline. */
 function drawLeftStackedLayout(ctx: CanvasRenderingContext2D, result: AuditResult, accentColor: string) {
-  ctx.fillStyle = "#9A9AA2";
+  ctx.fillStyle = "#C9BBA0";
   ctx.font = "600 20px ui-monospace, monospace";
   ctx.textAlign = "left";
   ctx.fillText("AUDITYXE \u00B7 LIVE AUDIT", 64, 82);
 
-  ctx.fillStyle = "#F4F4F5";
+  ctx.fillStyle = "#F4EFE4";
   ctx.font = "600 24px ui-monospace, monospace";
   ctx.fillText(result.url, 64, 122);
 
@@ -244,22 +244,22 @@ function drawLeftStackedLayout(ctx: CanvasRenderingContext2D, result: AuditResul
     accentColor
   );
 
-  ctx.fillStyle = "#A1A1AA";
-  ctx.font = "500 22px Manrope, sans-serif";
+  ctx.fillStyle = "#C9BBA0";
+  ctx.font = "500 22px Fraunces, serif";
   wrapText(ctx, result.banner.tagline, 64, headlineBottom + 30, 900, 30, 2);
 
   // compact stat block bottom-left
   const color = scoreColorFor(result.overall);
   ctx.fillStyle = "rgba(255,255,255,0.04)";
   ctx.fillRect(64, H - 150, 260, 84);
-  ctx.strokeStyle = "#2A2A2E";
+  ctx.strokeStyle = "#4A3A22";
   ctx.lineWidth = 1.5;
   ctx.strokeRect(64, H - 150, 260, 84);
 
   ctx.fillStyle = color;
-  ctx.font = "800 44px Manrope, sans-serif";
+  ctx.font = "800 44px Fraunces, serif";
   ctx.fillText(result.overall.toFixed(1), 84, H - 96);
-  ctx.fillStyle = "#9A9AA2";
+  ctx.fillStyle = "#C9BBA0";
   ctx.font = "500 16px ui-monospace, monospace";
   ctx.fillText("OVERALL SCORE / 10", 84, H - 74);
 }
@@ -283,13 +283,13 @@ function draw(canvas: HTMLCanvasElement, result: AuditResult, aiImage: HTMLImage
     const logoH = 28;
     const logoW = logoH * (logoImage.width / logoImage.height);
     ctx.drawImage(logoImage, 64, H - 68, logoW, logoH);
-    ctx.fillStyle = "#E4E5F0";
-    ctx.font = "700 22px Manrope, sans-serif";
+    ctx.fillStyle = "#F4EFE4";
+    ctx.font = "700 22px Fraunces, serif";
     ctx.textAlign = "left";
     ctx.fillText("Audited by Audityxe", 64 + logoW + 12, H - 48);
   } else {
-    ctx.fillStyle = "#22C55E";
-    ctx.font = "700 24px Manrope, sans-serif";
+    ctx.fillStyle = "#B5460A";
+    ctx.font = "700 24px Fraunces, serif";
     ctx.textAlign = "left";
     ctx.fillText("Audited by Audityxe", 64, H - 50);
   }

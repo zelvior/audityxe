@@ -7,14 +7,14 @@
    directives fixes that; the font it loads is otherwise unrelated to
    anything Tailwind generates, so the order doesn't affect anything
    else. */
-@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Public+Sans:wght@400;500;600;700;800&display=swap");
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 * {
-  border-color: #1B2027;
+  border-color: #E3D6BE;
 }
 
 html {
@@ -23,9 +23,69 @@ html {
 
 body {
   overflow-x: hidden;
-  background: #06080A;
-  color: #E6E9EC;
+  background: #FBF7EF;
+  color: #201B14;
   line-height: 1.6;
+  position: relative;
+}
+
+/* Subtle paper grain so the flat warm background doesn't read sterile. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.5;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+}
+
+/* Hand-drawn marks — a single reusable underline mark and a single
+   reusable highlight mark, each with two slightly different SVG
+   squiggles so repeated use on a page doesn't look mechanically
+   identical. Applied on top of normal text via inline classes, never
+   as a wholesale replacement for text-decoration. */
+.hand-underline {
+  position: relative;
+  display: inline-block;
+  padding-bottom: 0.14em;
+  background-repeat: no-repeat;
+  background-position: left bottom;
+  background-size: 100% 0.4em;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 24' preserveAspectRatio='none'%3E%3Cpath d='M3 14 C 40 6, 70 20, 110 12 S 180 4, 220 14 S 270 20, 297 10' fill='none' stroke='%23B5460A' stroke-width='5' stroke-linecap='round'/%3E%3C/svg%3E");
+}
+
+.hand-underline--alt {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 24' preserveAspectRatio='none'%3E%3Cpath d='M4 10 C 50 20, 90 4, 140 12 S 210 22, 250 8 S 290 6, 296 12' fill='none' stroke='%23B5460A' stroke-width='5' stroke-linecap='round'/%3E%3C/svg%3E");
+}
+
+.hand-highlight {
+  position: relative;
+  display: inline;
+  padding: 0.02em 0.15em;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 100% 90%;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 60' preserveAspectRatio='none'%3E%3Cpath d='M6 34 C 2 20, 8 8, 24 7 C 130 2, 280 3, 380 9 C 396 10, 398 24, 396 34 C 398 46, 392 52, 372 53 C 260 58, 120 57, 20 52 C 6 51, 4 44, 6 34 Z' fill='%23F0C46B' fill-opacity='0.55'/%3E%3C/svg%3E");
+}
+
+/* Rough hand-drawn circle for calling out a single word/number. */
+.hand-circle {
+  position: relative;
+  display: inline-block;
+}
+.hand-circle::after {
+  content: "";
+  position: absolute;
+  left: -0.35em;
+  right: -0.35em;
+  top: -0.2em;
+  bottom: -0.2em;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 100'%3E%3Cpath d='M100 6 C 150 4, 190 30, 188 52 C 192 78, 140 96, 96 94 C 46 96, 8 76, 10 50 C 6 24, 52 4, 100 6 Z' fill='none' stroke='%23B5460A' stroke-width='4'/%3E%3C/svg%3E") no-repeat center / 100% 100%;
+  pointer-events: none;
 }
 
 /* Chromium-based Edge injects its own native reveal-password eye icon
@@ -50,24 +110,24 @@ p {
 }
 
 .glass {
-  background: rgba(10, 13, 16, 0.92);
-  border: 1px solid rgba(27, 32, 39, 0.5);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(227, 214, 190, 0.9);
+  box-shadow: 0 8px 24px rgba(140, 55, 3, 0.08);
   transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 .glass:hover {
-  border-color: rgba(34, 197, 94, 0.35);
+  border-color: rgba(181, 70, 10, 0.35);
 }
 
 .text-gradient {
-  color: #E6E9EC;
+  color: #201B14;
 }
 
 .prose-legal h2 {
-  color: #F4F4F5;
-  font-family: "Manrope", sans-serif;
-  font-weight: 700;
+  color: #201B14;
+  font-family: "Fraunces", serif;
+  font-weight: 600;
   font-size: 1.15rem;
   margin-top: 1.5rem;
   margin-bottom: 0.5rem;
@@ -84,17 +144,17 @@ p {
 }
 
 .prose-legal a {
-  color: #22C55E;
+  color: #B5460A;
   text-decoration: underline;
   text-underline-offset: 2px;
 }
 
 ::-webkit-scrollbar { width: 10px; }
-::-webkit-scrollbar-track { background: #06080A; }
-::-webkit-scrollbar-thumb { background: #1B2027; border-radius: 8px; }
+::-webkit-scrollbar-track { background: #FBF7EF; }
+::-webkit-scrollbar-thumb { background: #E3D6BE; border-radius: 8px; }
 
 :focus-visible {
-  outline: 2px solid #22C55E;
+  outline: 2px solid #B5460A;
   outline-offset: 2px;
 }
 

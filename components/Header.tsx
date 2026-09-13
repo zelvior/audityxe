@@ -29,7 +29,7 @@ export default function Header() {
       <div className="max-w-5xl mx-auto flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2 shrink-0">
           <Logo size={32} />
-          <span className="font-display font-bold text-lg tracking-tight">Audityxe</span>
+          <span className="font-display font-bold text-lg tracking-tight hand-underline">Audityxe</span>
         </Link>
 
         <div className="flex items-center gap-2 sm:gap-3">
@@ -46,7 +46,7 @@ export default function Header() {
             <div className="relative" ref={menuRef}>
               <button
                 onClick={() => setMenuOpen((v) => !v)}
-                className="flex items-center gap-2 pl-1 pr-2.5 py-1 rounded-full glass hover:border-white/20 hover:scale-[1.03] transition"
+                className="flex items-center gap-2 pl-1 pr-2.5 py-1 rounded-full glass hover:border-black/10 hover:scale-[1.03] transition"
               >
                 <div className="w-7 h-7 rounded-full bg-secondary flex items-center justify-center leading-none text-xs font-display font-bold shrink-0">
                   {(user.displayName || user.email || "?").charAt(0).toUpperCase()}
@@ -62,14 +62,14 @@ export default function Header() {
                   <Link
                     href="/account"
                     onClick={() => setMenuOpen(false)}
-                    className="flex items-center gap-2 px-3.5 py-2 text-sm hover:bg-white/5 transition"
+                    className="flex items-center gap-2 px-3.5 py-2 text-sm hover:bg-black/5 transition"
                   >
                     <User size={14} /> Account
                   </Link>
                   <Link
                     href="/settings"
                     onClick={() => setMenuOpen(false)}
-                    className="flex items-center gap-2 px-3.5 py-2 text-sm hover:bg-white/5 transition"
+                    className="flex items-center gap-2 px-3.5 py-2 text-sm hover:bg-black/5 transition"
                   >
                     <Settings size={14} /> Settings
                   </Link>

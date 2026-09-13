@@ -126,10 +126,10 @@ export default function HeroVisual() {
         >
           <defs>
             <marker id="hv-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4.5" markerHeight="4.5" orient="auto-start-reverse">
-              <path d="M2 1L8 5L2 9" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" fill="none" strokeLinecap="round" shapeRendering="geometricPrecision" />
+              <path d="M2 1L8 5L2 9" stroke="rgba(32,27,20,0.18)" strokeWidth="1.5" fill="none" strokeLinecap="round" shapeRendering="geometricPrecision" />
             </marker>
             <marker id="hv-arrow-accent" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4.5" markerHeight="4.5" orient="auto-start-reverse">
-              <path d="M2 1L8 5L2 9" stroke="#4ADE80" strokeWidth="1.5" fill="none" strokeLinecap="round" shapeRendering="geometricPrecision" />
+              <path d="M2 1L8 5L2 9" stroke="#B5460A" strokeWidth="1.5" fill="none" strokeLinecap="round" shapeRendering="geometricPrecision" />
             </marker>
           </defs>
 
@@ -147,7 +147,7 @@ export default function HeroVisual() {
             <motion.path
               key={`in-${c.label}`}
               d={smoothPath(INPUT_X + 70, INPUT_Y + 14, CHECK_X - 6, c.y + 14)}
-              stroke="rgba(255,255,255,0.15)"
+              stroke="rgba(32,27,20,0.18)"
               strokeWidth="1.5"
               strokeLinecap="round"
               vectorEffect="non-scaling-stroke"
@@ -169,7 +169,7 @@ export default function HeroVisual() {
               y1={c.y + 14}
               x2={MERGE_X}
               y2={c.y + 14}
-              stroke="rgba(255,255,255,0.15)"
+              stroke="rgba(32,27,20,0.18)"
               strokeWidth="1.5"
               vectorEffect="non-scaling-stroke"
               shapeRendering="crispEdges"
@@ -189,7 +189,7 @@ export default function HeroVisual() {
             y1={BUS_TOP}
             x2={MERGE_X}
             y2={BUS_BOTTOM}
-            stroke="rgba(255,255,255,0.15)"
+            stroke="rgba(32,27,20,0.18)"
             strokeWidth="1.5"
             vectorEffect="non-scaling-stroke"
             shapeRendering="crispEdges"
@@ -199,7 +199,7 @@ export default function HeroVisual() {
           />
           <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.3, duration: 0.3 }}>
             {ROW_CENTERS.map((cy, i) => (
-              <circle key={`dot-${i}`} cx={MERGE_X} cy={cy} r={2.5} fill="rgba(255,255,255,0.35)" shapeRendering="geometricPrecision" />
+              <circle key={`dot-${i}`} cx={MERGE_X} cy={cy} r={2.5} fill="rgba(32,27,20,0.35)" shapeRendering="geometricPrecision" />
             ))}
           </motion.g>
 
@@ -208,7 +208,7 @@ export default function HeroVisual() {
               draw-in, since it's the one moment worth the extra cost. */}
           <motion.path
             d={smoothPath(MERGE_X, BUS_MID, RESULT_X - 4, RESULT_Y + 24)}
-            stroke="#4ADE80"
+            stroke="#B5460A"
             strokeOpacity={0.85}
             strokeWidth="1.75"
             strokeLinecap="round"

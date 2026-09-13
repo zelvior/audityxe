@@ -3,9 +3,9 @@ import autoTable from "jspdf-autotable";
 import { AuditResult, AuditModule, CategoryScore } from "./types";
 import { buildAuditExportPayload } from "./export-payload";
 
-const INK = "#12121A";
-const MUTED = "#6B6B78";
-const LINE = "#E4E4EC";
+const INK = "#201B14";
+const MUTED = "#6E6252";
+const LINE = "#E3D6BE";
 const PAGE_W = 210;
 const MARGIN = 16;
 const CONTENT_W = PAGE_W - MARGIN * 2;
@@ -18,22 +18,22 @@ function lastAutoTableY(doc: jsPDF): number {
 }
 
 function colorForScore(score: number): [number, number, number] {
-  if (score >= 8) return [16, 150, 105];
-  if (score >= 5) return [217, 119, 6];
-  return [220, 38, 60];
+  if (score >= 8) return [63, 125, 92];
+  if (score >= 5) return [168, 114, 10];
+  return [178, 58, 46];
 }
 
 function statusColor(status: "good" | "warning" | "critical"): [number, number, number] {
-  if (status === "good") return [16, 150, 105];
-  if (status === "warning") return [217, 119, 6];
-  return [220, 38, 60];
+  if (status === "good") return [63, 125, 92];
+  if (status === "warning") return [168, 114, 10];
+  return [178, 58, 46];
 }
 
 function findingColor(status: "pass" | "warn" | "fail" | "unverified"): [number, number, number] {
-  if (status === "pass") return [16, 150, 105];
-  if (status === "warn") return [217, 119, 6];
-  if (status === "unverified") return [107, 107, 120];
-  return [220, 38, 60];
+  if (status === "pass") return [63, 125, 92];
+  if (status === "warn") return [168, 114, 10];
+  if (status === "unverified") return [110, 98, 82];
+  return [178, 58, 46];
 }
 
 function footer(doc: jsPDF, hostname: string) {
@@ -186,7 +186,7 @@ export function generateAuditPdf(result: AuditResult) {
     margin: { left: MARGIN, right: MARGIN },
     styles: { fontSize: 9.5, cellPadding: 1.6 },
     body: summaryRows,
-    columnStyles: { 0: { textColor: [107, 107, 120], cellWidth: 75 }, 1: { fontStyle: "bold", textColor: [18, 18, 26] } },
+    columnStyles: { 0: { textColor: [110, 98, 82], cellWidth: 75 }, 1: { fontStyle: "bold", textColor: [32, 27, 20] } },
   });
 
   if (payload.promo.locked || payload.performance.locked || payload.performance.lockReason) {
@@ -293,13 +293,13 @@ export function generateAuditPdf(result: AuditResult) {
         f.evidence || "\u2014 (no verifiable evidence recorded for this check)",
       ]),
       styles: { fontSize: 7.6, cellPadding: 1.8, overflow: "linebreak", valign: "top" },
-      headStyles: { fillColor: [244, 244, 248], textColor: [18, 18, 26], fontSize: 7.6 },
+      headStyles: { fillColor: [241, 233, 216], textColor: [32, 27, 20], fontSize: 7.6 },
       columnStyles: {
         0: { cellWidth: 14 },
         1: { cellWidth: 16 },
         2: { cellWidth: 30, fontStyle: "bold" },
         3: { cellWidth: 60 },
-        4: { cellWidth: "auto", textColor: [107, 107, 120], fontSize: 6.8 },
+        4: { cellWidth: "auto", textColor: [110, 98, 82], fontSize: 6.8 },
       },
       didParseCell: (data) => {
         if (data.section === "body" && data.column.index === 0) {
@@ -310,7 +310,7 @@ export function generateAuditPdf(result: AuditResult) {
           data.cell.styles.fontStyle = "bold";
         }
         if (data.section === "body" && data.column.index === 1 && data.cell.raw === "CRITICAL") {
-          data.cell.styles.textColor = [220, 38, 60];
+          data.cell.styles.textColor = [178, 58, 46];
           data.cell.styles.fontStyle = "bold";
         }
       },
@@ -347,7 +347,7 @@ export function generateAuditPdf(result: AuditResult) {
         ["Speed Index", cwv.speedIndexMs != null ? `${cwv.speedIndexMs} ms` : "\u2014"],
       ],
       styles: { fontSize: 9, cellPadding: 2 },
-      headStyles: { fillColor: [244, 244, 248], textColor: [18, 18, 26] },
+      headStyles: { fillColor: [241, 233, 216], textColor: [32, 27, 20] },
     });
     if (result.pageSpeed.topIssues.length) {
       const fy = lastAutoTableY(doc);
@@ -357,7 +357,7 @@ export function generateAuditPdf(result: AuditResult) {
         head: [["Lighthouse issue", "Description"]],
         body: result.pageSpeed.topIssues.map((i) => [i.title, i.description]),
         styles: { fontSize: 8.5, cellPadding: 1.8, overflow: "linebreak" },
-        headStyles: { fillColor: [244, 244, 248], textColor: [18, 18, 26] },
+        headStyles: { fillColor: [241, 233, 216], textColor: [32, 27, 20] },
         columnStyles: { 0: { cellWidth: 55, fontStyle: "bold" }, 1: { cellWidth: "auto" } },
       });
     }
@@ -384,7 +384,7 @@ export function generateAuditPdf(result: AuditResult) {
           ["FCP (field)", fd.fcpMs != null ? `${fd.fcpMs} ms` : "\u2014"],
         ],
         styles: { fontSize: 9, cellPadding: 2 },
-        headStyles: { fillColor: [244, 244, 248], textColor: [18, 18, 26] },
+        headStyles: { fillColor: [241, 233, 216], textColor: [32, 27, 20] },
       });
     } else {
       const fy = lastAutoTableY(doc) + 8;
@@ -414,7 +414,7 @@ export function generateAuditPdf(result: AuditResult) {
         margin: { left: MARGIN, right: MARGIN },
         theme: "plain",
         body: [[`${fix.category} \u2014 ${fix.target}`]],
-        styles: { fontSize: 9.5, fontStyle: "bold", textColor: [18, 18, 26], cellPadding: { top: 2, bottom: 1, left: 0, right: 0 } },
+        styles: { fontSize: 9.5, fontStyle: "bold", textColor: [32, 27, 20], cellPadding: { top: 2, bottom: 1, left: 0, right: 0 } },
       });
       const py = lastAutoTableY(doc);
       autoTable(doc, {
@@ -422,9 +422,9 @@ export function generateAuditPdf(result: AuditResult) {
         margin: { left: MARGIN, right: MARGIN },
         theme: "plain",
         body: [
-          [{ content: "Problem", styles: { fontStyle: "bold", textColor: [107, 107, 120] } }, fix.problem],
-          [{ content: "Evidence", styles: { fontStyle: "bold", textColor: [107, 107, 120] } }, fix.evidence],
-          [{ content: "Fix", styles: { fontStyle: "bold", textColor: [107, 107, 120] } }, fix.fix],
+          [{ content: "Problem", styles: { fontStyle: "bold", textColor: [110, 98, 82] } }, fix.problem],
+          [{ content: "Evidence", styles: { fontStyle: "bold", textColor: [110, 98, 82] } }, fix.evidence],
+          [{ content: "Fix", styles: { fontStyle: "bold", textColor: [110, 98, 82] } }, fix.fix],
         ],
         styles: { fontSize: 8.5, cellPadding: 1.4, overflow: "linebreak" },
         columnStyles: { 0: { cellWidth: 22 }, 1: { cellWidth: "auto" } },
@@ -460,7 +460,7 @@ export function generateAuditPdf(result: AuditResult) {
         ["LinkedIn", result.linkedinPost || "\u2014"],
       ],
       styles: { fontSize: 9, cellPadding: 2.4, overflow: "linebreak" },
-      headStyles: { fillColor: [244, 244, 248], textColor: [18, 18, 26] },
+      headStyles: { fillColor: [241, 233, 216], textColor: [32, 27, 20] },
       columnStyles: { 0: { cellWidth: 28, fontStyle: "bold" }, 1: { cellWidth: "auto" } },
     });
   }
@@ -481,7 +481,7 @@ export function generateAuditPdf(result: AuditResult) {
         head: [["Comparison"]],
         body: result.competitor.summary.map((s) => [s]),
         styles: { fontSize: 9, cellPadding: 2 },
-        headStyles: { fillColor: [244, 244, 248], textColor: [18, 18, 26] },
+        headStyles: { fillColor: [241, 233, 216], textColor: [32, 27, 20] },
       });
     }
   }

@@ -1,35 +1,36 @@
 import type { Config } from "tailwindcss";
 
-// Single, fixed dark-tech palette (no runtime theme switching — removed
-// per product decision; this is the one, final, deliberately-chosen
-// accent, matching taste-skill's "lock one accent" rule). Emerald reads
-// as "verified / passing", which fits an audit product.
+// Single, fixed warm-editorial palette (no runtime theme switching —
+// removed per product decision; this is the one, final, deliberately-
+// chosen accent, matching taste-skill's "lock one accent" rule). Rust
+// reads as considered and human — deliberately not the purple/green
+// "AI SaaS" gradient look.
 const config: Config = {
   content: ["./app/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}"],
   theme: {
     extend: {
       colors: {
-        bg: "#06080A",
-        surface: "#0A0D10",
-        surface2: "#0F1317",
-        border: "#1B2027",
-        primary: "#4ADE80",
-        secondary: "#0E7A52",
-        accent: "#22C55E",
-        emerald: "#10B981",
-        rose: "#F43F5E",
-        amber: "#F59E0B",
-        "text-primary": "#E6E9EC",
-        "text-secondary": "#98A0A6",
+        bg: "#FBF7EF",
+        surface: "#FFFFFF",
+        surface2: "#F1E9D8",
+        border: "#E3D6BE",
+        primary: "#B5460A",
+        secondary: "#8C3703",
+        accent: "#B5460A",
+        emerald: "#3F7D5C",
+        rose: "#B23A2E",
+        amber: "#A8720A",
+        "text-primary": "#201B14",
+        "text-secondary": "#6E6252",
       },
       borderRadius: {
-        card: "16px",
+        card: "20px",
         btn: "10px",
         input: "10px",
       },
       fontFamily: {
-        display: ["'Plus Jakarta Sans'", "Manrope", "ui-sans-serif", "sans-serif"],
-        body: ["ui-sans-serif", "system-ui", "sans-serif"],
+        display: ["Fraunces", "ui-serif", "serif"],
+        body: ["'Public Sans'", "ui-sans-serif", "system-ui", "sans-serif"],
         mono: ["ui-monospace", "SFMono-Regular", "monospace"],
       },
       boxShadow: {

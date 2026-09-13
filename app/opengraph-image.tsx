@@ -21,12 +21,10 @@ export default async function OpengraphImage() {
           flexDirection: "column",
           justifyContent: "center",
           padding: "80px",
-          // Was a leftover violet-tinted gradient (#141018) from the old
-          // AI-purple palette, never caught by the earlier site-wide
-          // sweep since it's a bespoke inline value in this one
-          // edge-rendered image rather than a shared color token. Now
-          // matches the rest of the site's dark-tech palette.
-          background: "linear-gradient(135deg, #06080A 0%, #0A0D10 100%)",
+          // Bespoke inline value in this one edge-rendered image rather
+          // than a shared color token — kept in sync with the site's
+          // warm-editorial palette by hand.
+          background: "linear-gradient(135deg, #1A1108 0%, #241708 100%)",
           fontFamily: "sans-serif",
         }}
       >
@@ -40,7 +38,7 @@ export default async function OpengraphImage() {
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={logoDataUri} width={56} height={50} alt="" />
-          <div style={{ display: "flex", fontSize: 36, fontWeight: 700, color: "#E6E9EC" }}>
+          <div style={{ display: "flex", fontSize: 36, fontWeight: 700, color: "#F4EFE4" }}>
             Audityxe
           </div>
         </div>
@@ -49,7 +47,7 @@ export default async function OpengraphImage() {
             display: "flex",
             fontSize: 60,
             fontWeight: 700,
-            color: "#E6E9EC",
+            color: "#F4EFE4",
             lineHeight: 1.15,
             maxWidth: 980,
           }}
@@ -60,7 +58,7 @@ export default async function OpengraphImage() {
           style={{
             display: "flex",
             fontSize: 28,
-            color: "#98A0A6",
+            color: "#C9BBA0",
             marginTop: 28,
             maxWidth: 860,
           }}

@@ -16,17 +16,17 @@ export default function AuthSidePanel() {
       <svg viewBox="0 0 520 640" className="absolute inset-0 w-full h-full" preserveAspectRatio="xMidYMid slice">
         <defs>
           <linearGradient id="authPanelBg" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#5B4680" />
-            <stop offset="55%" stopColor="#453567" />
-            <stop offset="100%" stopColor="#2C2244" />
+            <stop offset="0%" stopColor="#8C3703" />
+            <stop offset="55%" stopColor="#6E2B03" />
+            <stop offset="100%" stopColor="#4A1D02" />
           </linearGradient>
           <radialGradient id="authGlow" cx="50%" cy="20%" r="65%">
-            <stop offset="0%" stopColor="#4ADE80" stopOpacity="0.35" />
-            <stop offset="100%" stopColor="#4ADE80" stopOpacity="0" />
+            <stop offset="0%" stopColor="#F0C46B" stopOpacity="0.35" />
+            <stop offset="100%" stopColor="#F0C46B" stopOpacity="0" />
           </radialGradient>
           <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#4ADE80" />
-            <stop offset="100%" stopColor="#22C55E" />
+            <stop offset="0%" stopColor="#F0C46B" />
+            <stop offset="100%" stopColor="#B5460A" />
           </linearGradient>
           <pattern id="authGrid" width="34" height="34" patternUnits="userSpaceOnUse">
             <path d="M34 0H0V34" fill="none" stroke="#E4E5F0" strokeOpacity="0.05" strokeWidth="1" />
@@ -89,7 +89,7 @@ export default function AuthSidePanel() {
 
         <div className="relative w-32 h-32 mx-auto mb-6">
           <svg viewBox="0 0 120 120" className="w-full h-full -rotate-90">
-            <circle cx="60" cy="60" r="52" fill="none" stroke="#1D1E27" strokeWidth="10" />
+            <circle cx="60" cy="60" r="52" fill="none" stroke="#6E2B03" strokeWidth="10" />
             <motion.circle
               cx="60"
               cy="60"
@@ -105,8 +105,8 @@ export default function AuthSidePanel() {
             />
             <defs>
               <linearGradient id="ringGrad2" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0%" stopColor="#4ADE80" />
-                <stop offset="100%" stopColor="#22C55E" />
+                <stop offset="0%" stopColor="#F0C46B" />
+                <stop offset="100%" stopColor="#B5460A" />
               </linearGradient>
             </defs>
           </svg>
@@ -120,7 +120,7 @@ export default function AuthSidePanel() {
           <div key={i} className="h-3.5 rounded-full bg-surface2 overflow-hidden mb-2.5 last:mb-0">
             <motion.div
               className="h-full rounded-full"
-              style={{ background: i === 0 ? "#4ADE80" : i === 1 ? "#86E0AC" : "#22C55E" }}
+              style={{ background: i === 0 ? "#F0C46B" : i === 1 ? "#D99A3E" : "#B5460A" }}
               initial={{ width: 0 }}
               animate={{ width: `${(w / 184) * 100}%` }}
               transition={{ duration: 0.7, delay: 0.6 + i * 0.12, ease: "easeOut" }}
@@ -138,7 +138,7 @@ export default function AuthSidePanel() {
             viewBox="0 0 24 24"
             className="w-6 h-6"
             fill="none"
-            stroke="#0E7A52"
+            stroke="#4A1D02"
             strokeWidth="3"
             strokeLinecap="round"
             strokeLinejoin="round"
