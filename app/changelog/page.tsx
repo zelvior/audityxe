@@ -11,6 +11,18 @@ export const metadata: Metadata = {
 
 const ENTRIES: { version: string; date: string; changes: string[] }[] = [
   {
+    version: "1.9.0",
+    date: "September 2026",
+    changes: [
+      "Removed the admin site-wide theme system entirely (the color-token architecture, the Theme tab, and the per-request theme read it required) and went back to one fixed, deliberately-chosen dark palette — a product decision, not a bug.",
+      "Fixed a real CSS bug: the site's font @import was being silently ignored by browsers because it sat after the Tailwind directives instead of at the very top of the stylesheet (browsers require @import to be the first rule). Verified directly in the compiled CSS output that it's now first.",
+      "Fixed the password show/hide icon: it wasn't actually misaligned — Chromium-based Edge injects its own native reveal-password icon directly on top of custom ones, and the two were colliding. Suppressed Edge's native icon so only ours renders, and swapped a hardcoded hover color for a theme-safe one while touching the file.",
+      "Fixed long requestAnimationFrame handlers (65-100ms) on the homepage: the audit-flow diagram was animating stroke-dasharray on ~15 SVG paths simultaneously on mount, which forces per-frame path-geometry recomputation on the main thread. Switched all but the one 'hero' connector to plain opacity fades, which run on the compositor instead.",
+      "Refactored the audit-flow diagram's line rendering for real precision: every connector now sets vector-effect=\"non-scaling-stroke\" so stroke width stays exact regardless of the diagram's responsive CSS scale (the actual cause of lines looking jagged at narrower widths — not the path math, which was already a clean symmetric bezier), plus shape-rendering tuned per element (crispEdges for the perfectly axis-aligned bus lines, geometricPrecision for the curves). The final results connector now has its own matching accent-colored arrowhead instead of sharing the muted one.",
+      "Removed \"Pro Promo Kit\" as a marketing label from the homepage headline, meta title/description, OG image, and the about page — the underlying feature (generating shareable post copy) is unchanged and still Pro-gated, just no longer branded that way in copy.",
+    ],
+  },
+  {
     version: "1.8.0",
     date: "September 2026",
     changes: [

@@ -59,7 +59,7 @@ export default function Hero({
             that don't execute JS/CSS don't care either way. Not worth
             the risk for the one heading that matters most. */}
         <h1 className="font-display font-medium text-[32px] leading-[1.1] sm:text-[48px] sm:leading-[1.05] md:text-[52px] md:leading-[1.03] tracking-tight text-gradient px-1">
-          Instant Site Audit &<br className="hidden sm:block" /> Pro Promo Kit
+          Instant Site Audit &<br className="hidden sm:block" /> Fix Report
         </h1>
 
         <motion.p
@@ -68,8 +68,8 @@ export default function Hero({
           transition={{ delay: 0.1 }}
           className="mt-4 sm:mt-5 text-text-secondary text-sm sm:text-base md:text-lg max-w-xl mx-auto lg:mx-0 px-2"
         >
-          Drop any URL in. Get a brutally specific score, exact code fixes, and a
-          ready-to-post promo kit in under a minute.
+          Drop any URL in. Get a brutally specific score, exact code fixes, and
+          exactly what to ship in under a minute.
         </motion.p>
 
         <motion.form

@@ -5,29 +5,12 @@ import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import ModerationGuard from "@/components/ModerationGuard";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
-import { getSiteTheme } from "@/lib/site-theme";
-
-// This was the real reason the admin-controlled theme "wasn't updating
-// even after a minute": with no revalidate/dynamic config, Next
-// prerenders every static page (the whole marketing site) once at
-// build/deploy time and serves that exact HTML forever — the layout,
-// and the getSiteTheme() call inside it, never ran again after the
-// initial build. Setting a layout-level revalidate turns every static
-// page into time-based ISR: Next re-runs this layout (and re-reads the
-// theme, subject to its own 30s in-memory cache in lib/site-theme.ts)
-// at most once per 30s, in the background, without making any page
-// fully dynamic or slower to serve — visitors still get an instantly
-// served cached page, just one that's at most ~30-60s stale on the
-// rare page where nobody's hit it recently. Routes that already set
-// their own revalidate/dynamic value keep that value; this is only the
-// fallback for everything else.
-export const revalidate = 30;
 
 const SITE_URL = "https://audityxe.vercel.app";
 const SITE_NAME = "Audityxe";
-const SITE_TITLE = "Audityxe: Free Website Audit & Promo Kit";
+const SITE_TITLE = "Audityxe: Free Website Audit & Fix Report";
 const SITE_DESCRIPTION =
-  "Free website audit tool: instant SEO, performance, accessibility, security & UX scores with evidence-based fixes and a viral promo kit, the same strict benchmark for every site.";
+  "Free website audit tool: instant SEO, performance, accessibility, security & UX scores with evidence-based fixes, the same strict benchmark for every site.";
 const SITE_KEYWORDS = [
   "Audityxe",
   "website audit tool",
@@ -194,14 +177,9 @@ const jsonLd = {
   ],
 };
 
-export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  // Site-wide theme, admin-controlled only (Admin dashboard → Theme
-  // tab) — read server-side and set directly on <html data-theme>, so
-  // every visitor gets the current theme on first paint with no client
-  // flash and no per-user override of any kind.
-  const themeId = await getSiteTheme();
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" data-theme={themeId}>
+    <html lang="en">
       <head>
         <script
           type="application/ld+json"

@@ -62,7 +62,7 @@ export default function AboutPage() {
         </li>
         <li>
           <strong>Marketers</strong> — a defensible, data-backed reason a page underperforms,
-          and a promo kit to ship the fix.
+          and exactly what to fix.
         </li>
         <li>
           <strong>Agencies &amp; freelancers</strong> — a repeatable, shareable report instead of

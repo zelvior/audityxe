@@ -3,7 +3,7 @@ import { readFileSync } from "fs";
 import { join } from "path";
 
 export const runtime = "nodejs";
-export const alt = "Audityxe: Instant Site Audit & Pro Promo Kit";
+export const alt = "Audityxe: Free Website Audit Tool";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -21,7 +21,12 @@ export default async function OpengraphImage() {
           flexDirection: "column",
           justifyContent: "center",
           padding: "80px",
-          background: "linear-gradient(135deg, #0A0A0A 0%, #141018 100%)",
+          // Was a leftover violet-tinted gradient (#141018) from the old
+          // AI-purple palette, never caught by the earlier site-wide
+          // sweep since it's a bespoke inline value in this one
+          // edge-rendered image rather than a shared color token. Now
+          // matches the rest of the site's dark-tech palette.
+          background: "linear-gradient(135deg, #06080A 0%, #0A0D10 100%)",
           fontFamily: "sans-serif",
         }}
       >
@@ -35,7 +40,7 @@ export default async function OpengraphImage() {
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={logoDataUri} width={56} height={50} alt="" />
-          <div style={{ display: "flex", fontSize: 36, fontWeight: 700, color: "#F4F4F5" }}>
+          <div style={{ display: "flex", fontSize: 36, fontWeight: 700, color: "#E6E9EC" }}>
             Audityxe
           </div>
         </div>
@@ -44,23 +49,23 @@ export default async function OpengraphImage() {
             display: "flex",
             fontSize: 60,
             fontWeight: 700,
-            color: "#F4F4F5",
+            color: "#E6E9EC",
             lineHeight: 1.15,
             maxWidth: 980,
           }}
         >
-          Instant Site Audit &amp; Pro Promo Kit
+          Instant Site Audit &amp; Fix Report
         </div>
         <div
           style={{
             display: "flex",
             fontSize: 28,
-            color: "#A1A1AA",
+            color: "#98A0A6",
             marginTop: 28,
             maxWidth: 860,
           }}
         >
-          Live-measured scores, a 17-area deep audit, and ready-to-post promo kits — for any URL.
+          Live-measured scores and a 17-area deep audit, with evidence-based fixes — for any URL.
         </div>
       </div>
     ),

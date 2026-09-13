@@ -18,21 +18,18 @@ export const metadata: Metadata = {
 const SAMPLE_TARGET = "https://github.com";
 
 // The live audit itself is the expensive part (a real, several-second
-// fetch-and-analyze pass against github.com) — it's cached here for an
-// hour via unstable_cache, independent of how often this page's own
-// shell revalidates. That decoupling matters because the root layout
-// now sets a much shorter, site-wide `revalidate` (see app/layout.tsx —
-// it needs to re-read the admin-set theme reasonably promptly), and
-// Next.js's segment-config inheritance takes the MINIMUM revalidate
-// across the whole layout tree, not the page's own value — so a
-// page-level `export const revalidate = 3600` here would have been
-// silently overridden down to the layout's shorter interval, and this
-// costly live audit would have started re-running as often as the
-// theme does. Caching the audit call itself keeps it on its own
-// one-hour cadence regardless of what the page shell around it does.
+// fetch-and-analyze pass against github.com), cached for an hour via
+// unstable_cache — independent of, and in addition to, the page's own
+// revalidate below, so a second, unrelated reason for the page to
+// revalidate sooner in the future can never turn into hourly-cached
+// data suddenly getting re-fetched on every request.
 const getSampleAudit = unstable_cache(async () => runAudit(SAMPLE_TARGET), ["sample-report-audit"], {
   revalidate: 3600,
 });
+
+// Regenerated at most once an hour — still a genuinely live, real audit,
+// just not re-fetched on every single page view.
+export const revalidate = 3600;
 
 export default async function SampleReportPage() {
   let result = null;

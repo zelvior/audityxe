@@ -1,119 +1,20 @@
+/* @import must be the very first thing in the stylesheet (only
+   @charset/@layer may precede it per spec) — it was previously placed
+   after @tailwind base/components/utilities, which expand into real
+   style rules in place, so by the time this reached the browser the
+   import was no longer first and got silently ignored (the exact
+   "@import rule was ignored" warning). Moving it above the @tailwind
+   directives fixes that; the font it loads is otherwise unrelated to
+   anything Tailwind generates, so the order doesn't affect anything
+   else. */
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap");
-
-/**
- * Theme system — one CSS-variable set per theme, switched at runtime by
- * setting `data-theme="<id>"` on <html> (done server-side in
- * app/layout.tsx from lib/site-theme.ts — admin-controlled only, see
- * the Theme tab in /admin). Every
- * Tailwind color token (bg-primary, text-secondary, border, etc.) reads
- * through these variables via the withOpacity() helper in
- * tailwind.config.ts, so switching themes re-colors the whole app
- * instantly with no rebuild and no per-component changes.
- *
- * Values are "R G B" triplets (no commas, no rgb() wrapper) — that's the
- * format Tailwind's rgba(var(--x), <alpha>) expects.
- *
- * rose/amber are semantic fail/warn score colors and intentionally stay
- * fixed across every theme below — they mean the same thing regardless
- * of brand accent, so they aren't part of any theme's identity.
- */
-:root,
-[data-theme="dark-tech"] {
-  --color-bg: 6 8 10;
-  --color-surface: 10 13 16;
-  --color-surface2: 15 19 23;
-  --color-border: 27 32 39;
-  --color-primary: 74 222 128;
-  --color-secondary: 14 122 82;
-  --color-accent: 34 197 94;
-  --color-emerald: 16 185 129;
-  --color-rose: 244 63 94;
-  --color-amber: 245 158 11;
-  --color-text-primary: 230 233 236;
-  --color-text-secondary: 152 160 166;
-}
-
-[data-theme="electric-blue"] {
-  --color-bg: 6 8 12;
-  --color-surface: 10 13 19;
-  --color-surface2: 15 19 27;
-  --color-border: 24 30 41;
-  --color-primary: 96 165 250;
-  --color-secondary: 29 78 163;
-  --color-accent: 59 130 246;
-  --color-emerald: 16 185 129;
-  --color-rose: 244 63 94;
-  --color-amber: 245 158 11;
-  --color-text-primary: 230 235 244;
-  --color-text-secondary: 150 160 176;
-}
-
-[data-theme="amber-signal"] {
-  --color-bg: 10 8 5;
-  --color-surface: 16 13 8;
-  --color-surface2: 22 18 11;
-  --color-border: 38 31 19;
-  --color-primary: 251 191 36;
-  --color-secondary: 161 98 7;
-  --color-accent: 245 158 11;
-  --color-emerald: 16 185 129;
-  --color-rose: 244 63 94;
-  --color-amber: 245 158 11;
-  --color-text-primary: 240 233 220;
-  --color-text-secondary: 168 156 136;
-}
-
-[data-theme="crimson-alert"] {
-  --color-bg: 10 6 7;
-  --color-surface: 16 10 11;
-  --color-surface2: 22 14 16;
-  --color-border: 40 20 23;
-  --color-primary: 251 113 133;
-  --color-secondary: 159 18 57;
-  --color-accent: 244 63 94;
-  --color-emerald: 16 185 129;
-  --color-rose: 244 63 94;
-  --color-amber: 245 158 11;
-  --color-text-primary: 240 227 229;
-  --color-text-secondary: 168 145 148;
-}
-
-[data-theme="monochrome"] {
-  --color-bg: 8 8 9;
-  --color-surface: 13 13 14;
-  --color-surface2: 18 18 20;
-  --color-border: 32 32 35;
-  --color-primary: 228 228 231;
-  --color-secondary: 82 82 91;
-  --color-accent: 212 212 216;
-  --color-emerald: 16 185 129;
-  --color-rose: 244 63 94;
-  --color-amber: 245 158 11;
-  --color-text-primary: 236 236 238;
-  --color-text-secondary: 150 150 156;
-}
-
-[data-theme="paper-light"] {
-  --color-bg: 250 250 249;
-  --color-surface: 255 255 255;
-  --color-surface2: 244 244 243;
-  --color-border: 226 226 222;
-  --color-primary: 5 122 84;
-  --color-secondary: 209 250 229;
-  --color-accent: 16 122 87;
-  --color-emerald: 5 150 105;
-  --color-rose: 225 29 72;
-  --color-amber: 180 83 9;
-  --color-text-primary: 24 24 27;
-  --color-text-secondary: 82 82 91;
-}
-
 * {
-  border-color: theme("colors.border");
+  border-color: #1B2027;
 }
 
 html {
@@ -122,9 +23,21 @@ html {
 
 body {
   overflow-x: hidden;
-  background: rgb(var(--color-bg));
-  color: rgb(var(--color-text-primary));
+  background: #06080A;
+  color: #E6E9EC;
   line-height: 1.6;
+}
+
+/* Chromium-based Edge injects its own native reveal-password eye icon
+   inside every <input type="password">, sitting directly on top of any
+   custom show/hide button placed over the same input (see
+   components/PasswordInput.tsx) — the actual cause of that icon
+   looking misaligned, not a real offset in our own CSS. Suppressing
+   Edge's native icon (and its native clear-field "x") leaves only our
+   own button visible. */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none;
 }
 
 h1, h2, h3, h4 {
@@ -137,18 +50,18 @@ p {
 }
 
 .glass {
-  background: rgba(var(--color-surface), 0.92);
-  border: 1px solid rgba(var(--color-border), 0.5);
+  background: rgba(10, 13, 16, 0.92);
+  border: 1px solid rgba(27, 32, 39, 0.5);
   box-shadow: 0 8px 24px rgba(0,0,0,0.35);
   transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 .glass:hover {
-  border-color: rgba(var(--color-accent), 0.35);
+  border-color: rgba(34, 197, 94, 0.35);
 }
 
 .text-gradient {
-  color: rgb(var(--color-text-primary));
+  color: #E6E9EC;
 }
 
 .prose-legal h2 {
@@ -171,17 +84,17 @@ p {
 }
 
 .prose-legal a {
-  color: rgb(var(--color-accent));
+  color: #22C55E;
   text-decoration: underline;
   text-underline-offset: 2px;
 }
 
 ::-webkit-scrollbar { width: 10px; }
-::-webkit-scrollbar-track { background: rgb(var(--color-bg)); }
-::-webkit-scrollbar-thumb { background: rgb(var(--color-border)); border-radius: 8px; }
+::-webkit-scrollbar-track { background: #06080A; }
+::-webkit-scrollbar-thumb { background: #1B2027; border-radius: 8px; }
 
 :focus-visible {
-  outline: 2px solid rgb(var(--color-accent));
+  outline: 2px solid #22C55E;
   outline-offset: 2px;
 }
 

@@ -1,6 +1,6 @@
 # Audityxe
 
-> Free website audit tool: instant SEO, performance, accessibility, security & UX scores with evidence-based fixes and a viral promo kit.
+> Free website audit tool: instant SEO, performance, accessibility, security & UX scores with evidence-based fixes.
 
 ## What it does
 - Free website audit tool and website analysis tool

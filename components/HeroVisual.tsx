@@ -5,17 +5,34 @@ import { Link2, ShieldCheck, Search, Gauge, Accessibility, FileCode2, Sparkles, 
 
 // Left-to-right pipeline: one input fans out to five parallel checks,
 // which all merge onto a single vertical bus before one clean line
-// continues to the results node. The fan-out on the left already never
-// crossed (five distinct targets spread across CHECK_X). The old
-// fan-IN on the right converged every one of the five outgoing curves
-// onto the exact same pixel next to the results node — with five
-// curves all sharing one end point and one final tangent, they bunched
-// into a visible knot right where the arrowheads met, which read as
-// "congested" rather than as a deliberate flow. Routing them onto a
-// merge bus instead means each of the five lines is a plain straight
-// horizontal segment at its own y (impossible to cross another one),
-// and only a single line — the one anyone's eye actually needs to
-// follow into the result — curves and carries an arrowhead.
+// continues to the results node.
+//
+// Rendering precision notes (jagged lines / misaligned intersections):
+// the actual cause wasn't the path math — the S-curve bezier formula
+// below was already geometrically smooth and the orthogonal bus
+// segments were already exact straight lines with mathematically
+// identical y-coordinates to their source rows. What made them look
+// rough was the CSS `scale()` transform applied to the whole canvas at
+// narrower widths (see .hv-scale below): scaling a declared
+// strokeWidth down to a non-integer device-pixel value is what most
+// browsers anti-alias poorly, reading as "jagged". Fixing that at the
+// source: every line/path now sets `vector-effect="non-scaling-stroke"`
+// (keeps the stroke rendered at its true declared width regardless of
+// the parent's CSS scale) plus a `shape-rendering` hint tuned per
+// element — `crispEdges` for the perfectly axis-aligned bus segments
+// and spine (sharpest possible rendering for straight horizontal/
+// vertical lines), `geometricPrecision` for the curved beziers (best
+// anti-aliasing for curves; crispEdges would make a curve look
+// staircased instead). The five check-row y-centers, the merge bus's
+// x, and the five junction dots all derive from the same ROW_CENTERS/
+// MERGE_X constants below, so the intersections are exact by
+// construction rather than eyeballed.
+//
+// Muted connectors use the same translucent white for every non-
+// highlighted line; only the final bus→results line is the accent
+// color, with its own matching accent-colored arrowhead marker (it
+// previously shared the muted marker, so its arrowhead didn't match
+// its own line color).
 const CHECKS = [
   { icon: ShieldCheck, label: "Security Check", y: 4 },
   { icon: Search, label: "SEO Scan", y: 76 },
@@ -99,24 +116,46 @@ export default function HeroVisual() {
         className="relative shrink-0 hv-scale"
         style={{ width: CANVAS_W, height: 360 }}
       >
-        <svg width={CANVAS_W} height={360} viewBox={`0 0 ${CANVAS_W} 360`} className="absolute inset-0 overflow-visible" fill="none">
+        <svg
+          width={CANVAS_W}
+          height={360}
+          viewBox={`0 0 ${CANVAS_W} 360`}
+          className="absolute inset-0 overflow-visible"
+          fill="none"
+          shapeRendering="geometricPrecision"
+        >
           <defs>
             <marker id="hv-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4.5" markerHeight="4.5" orient="auto-start-reverse">
-              <path d="M2 1L8 5L2 9" stroke="#3A434C" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+              <path d="M2 1L8 5L2 9" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" fill="none" strokeLinecap="round" shapeRendering="geometricPrecision" />
+            </marker>
+            <marker id="hv-arrow-accent" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4.5" markerHeight="4.5" orient="auto-start-reverse">
+              <path d="M2 1L8 5L2 9" stroke="#4ADE80" strokeWidth="1.5" fill="none" strokeLinecap="round" shapeRendering="geometricPrecision" />
             </marker>
           </defs>
 
-          {/* input → each check (fan-out, five distinct targets — never crosses) */}
+          {/* input → each check (fan-out, five distinct targets — never
+              crosses). Opacity-only, not pathLength: animating
+              stroke-dasharray on several SVG paths at once forces the
+              browser to recompute path geometry every frame on the
+              main thread, which is exactly what was showing up as long
+              requestAnimationFrame handlers (65-100ms) on mount —
+              opacity animates on the compositor instead, effectively
+              free. The one line worth the fancier draw-in effect (the
+              final results arrow, below) still gets it; these plain
+              connectors don't need it to read as "connected". */}
           {CHECKS.map((c, i) => (
             <motion.path
               key={`in-${c.label}`}
               d={smoothPath(INPUT_X + 70, INPUT_Y + 14, CHECK_X - 6, c.y + 14)}
-              stroke="#3A434C"
+              stroke="rgba(255,255,255,0.15)"
               strokeWidth="1.5"
+              strokeLinecap="round"
+              vectorEffect="non-scaling-stroke"
+              shapeRendering="geometricPrecision"
               markerEnd="url(#hv-arrow)"
-              initial={{ pathLength: 0, opacity: 0 }}
-              animate={{ pathLength: 1, opacity: 1 }}
-              transition={{ delay: 0.5 + i * 0.08, duration: 0.55 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5 + i * 0.08, duration: 0.35 }}
             />
           ))}
 
@@ -130,47 +169,52 @@ export default function HeroVisual() {
               y1={c.y + 14}
               x2={MERGE_X}
               y2={c.y + 14}
-              stroke="#3A434C"
+              stroke="rgba(255,255,255,0.15)"
               strokeWidth="1.5"
-              initial={{ pathLength: 0, opacity: 0 }}
-              animate={{ pathLength: 1, opacity: 1 }}
-              transition={{ delay: 0.85 + i * 0.08, duration: 0.4 }}
+              vectorEffect="non-scaling-stroke"
+              shapeRendering="crispEdges"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.85 + i * 0.08, duration: 0.3 }}
             />
           ))}
 
           {/* the bus itself — a single vertical spine joining the five
-              rows, with a small dot at each junction. */}
+              rows, with a small dot at each junction. The five dots
+              are one shared motion.g fade instead of five separately
+              driven motion.circle instances — same visual result, a
+              fifth of the animated-element count. */}
           <motion.line
             x1={MERGE_X}
             y1={BUS_TOP}
             x2={MERGE_X}
             y2={BUS_BOTTOM}
-            stroke="#3A434C"
+            stroke="rgba(255,255,255,0.15)"
             strokeWidth="1.5"
-            initial={{ pathLength: 0, opacity: 0 }}
-            animate={{ pathLength: 1, opacity: 1 }}
-            transition={{ delay: 1.15, duration: 0.35 }}
+            vectorEffect="non-scaling-stroke"
+            shapeRendering="crispEdges"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1.15, duration: 0.3 }}
           />
-          {ROW_CENTERS.map((cy, i) => (
-            <motion.circle
-              key={`dot-${i}`}
-              cx={MERGE_X}
-              cy={cy}
-              r={2.5}
-              fill="#3A434C"
-              initial={{ opacity: 0, scale: 0 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 1.2 + i * 0.05, duration: 0.25 }}
-            />
-          ))}
+          <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.3, duration: 0.3 }}>
+            {ROW_CENTERS.map((cy, i) => (
+              <circle key={`dot-${i}`} cx={MERGE_X} cy={cy} r={2.5} fill="rgba(255,255,255,0.35)" shapeRendering="geometricPrecision" />
+            ))}
+          </motion.g>
 
-          {/* the one line anyone's eye needs to follow: bus center → results */}
+          {/* the one line anyone's eye needs to follow: bus center →
+              results — the single element that keeps the pathLength
+              draw-in, since it's the one moment worth the extra cost. */}
           <motion.path
             d={smoothPath(MERGE_X, BUS_MID, RESULT_X - 4, RESULT_Y + 24)}
             stroke="#4ADE80"
-            strokeOpacity={0.55}
+            strokeOpacity={0.85}
             strokeWidth="1.75"
-            markerEnd="url(#hv-arrow)"
+            strokeLinecap="round"
+            vectorEffect="non-scaling-stroke"
+            shapeRendering="geometricPrecision"
+            markerEnd="url(#hv-arrow-accent)"
             initial={{ pathLength: 0, opacity: 0 }}
             animate={{ pathLength: 1, opacity: 1 }}
             transition={{ delay: 1.45, duration: 0.5 }}
