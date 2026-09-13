@@ -7,6 +7,22 @@ import ModerationGuard from "@/components/ModerationGuard";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
 import { getSiteTheme } from "@/lib/site-theme";
 
+// This was the real reason the admin-controlled theme "wasn't updating
+// even after a minute": with no revalidate/dynamic config, Next
+// prerenders every static page (the whole marketing site) once at
+// build/deploy time and serves that exact HTML forever — the layout,
+// and the getSiteTheme() call inside it, never ran again after the
+// initial build. Setting a layout-level revalidate turns every static
+// page into time-based ISR: Next re-runs this layout (and re-reads the
+// theme, subject to its own 30s in-memory cache in lib/site-theme.ts)
+// at most once per 30s, in the background, without making any page
+// fully dynamic or slower to serve — visitors still get an instantly
+// served cached page, just one that's at most ~30-60s stale on the
+// rare page where nobody's hit it recently. Routes that already set
+// their own revalidate/dynamic value keep that value; this is only the
+// fallback for everything else.
+export const revalidate = 30;
+
 const SITE_URL = "https://audityxe.vercel.app";
 const SITE_NAME = "Audityxe";
 const SITE_TITLE = "Audityxe: Free Website Audit & Promo Kit";

@@ -2,7 +2,7 @@ import { AuditResult, BannerDesign, CategoryKey, CategoryScore, FixItem } from "
 import { generateJsonForTask } from "./ai";
 import { extractDeepSignals } from "./deep-signals";
 import { checkBrokenLinks, checkImageSample, checkAdsTxt, checkOgImage, checkServerHardening, checkSourceMapExposure, checkSecurityTxt, checkFaviconManifest, checkAssetWeights, checkCookieFlags, checkRedirectChain } from "./network-checks";
-import { buildAuditModules } from "./audit-modules";
+import { buildAuditModules, buildLighthouseModule } from "./audit-modules";
 import { assertSafeUrl } from "./url-safety";
 import { fetchPageSpeedInsights, EMPTY_PAGESPEED_SUMMARY } from "./pagespeed";
 import { checkTlsCertificate, TlsCertInfo } from "./tls-check";
@@ -1670,6 +1670,14 @@ async function runAuditInner(
     cookieFlags,
     redirectChain,
   });
+
+  // Previously the Lighthouse/PageSpeed data only reached the JSON/PDF
+  // export's separate `pageSpeed` field — it had no card in the actual
+  // Full Deep Audit module list shown in the app. buildLighthouseModule
+  // returns null when no real-browser pass was run (locked plan or not
+  // requested), so this only appends a module when there's real data.
+  const lighthouseModule = buildLighthouseModule(pageSpeed);
+  if (lighthouseModule) modules.push(lighthouseModule);
 
   const verdict = verdictCopy?.verdict || verdictFor(primary.overall, primary.host, weakestLabel);
   const { xPost, linkedinPost } = promoCopy || buildPromo(primary.host, primary.overall, weakestLabel);

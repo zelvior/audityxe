@@ -11,6 +11,15 @@ export const metadata: Metadata = {
 
 const ENTRIES: { version: string; date: string; changes: string[] }[] = [
   {
+    version: "1.8.0",
+    date: "September 2026",
+    changes: [
+      "Redesigned the homepage's audit-flow diagram: the five checks now merge onto a single vertical bus before one clean line continues to the results node, replacing the old design where all five outgoing lines converged on the exact same pixel and visibly knotted together next to the results card. Every node also got a proper colored icon chip and a visible border, and the whole diagram now scales as one unit at narrower `lg`/`xl` widths instead of risking getting cropped by its frame.",
+      "Fixed the admin theme control actually taking effect: the site's static pages were being generated once at build/deploy time and served unchanged forever, so a new theme picked in the admin dashboard never reached anyone. Pages now revalidate on a short interval so an admin's theme choice reaches every visitor within about 30 seconds, as originally intended. The sample-report page's own expensive live audit is now cached independently of that faster page-level interval, so this didn't turn into 100x more real audits being run against the demo target.",
+      "Added a proper Lighthouse module: the real-browser PageSpeed Insights data (performance/accessibility/best-practices/SEO scores, Core Web Vitals, real-world field data, top issues) previously only showed up in the JSON/PDF export — it now appears as its own card in the Full Deep Audit list in the app itself, scored and filterable the same way as every other module.",
+    ],
+  },
+  {
     version: "1.7.0",
     date: "September 2026",
     changes: [

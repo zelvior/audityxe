@@ -114,6 +114,82 @@ function makeModule(id: string, label: string, summary: string, findings: AuditM
   return { id, label, status, score, summary, findings };
 }
 
+/**
+ * Builds a real module (same shape, same pass/warn/fail scoring engine
+ * as every other module) out of the Lighthouse/PageSpeed Insights data
+ * — previously that data only ever reached the person via the JSON/PDF
+ * export's separate `pageSpeed` field; it had no card in the actual
+ * Full Deep Audit module list in the app itself. Returns null when no
+ * real-browser pass was run (locked plan, or not requested) so callers
+ * simply skip pushing anything rather than showing an empty module.
+ */
+export function buildLighthouseModule(pageSpeed: PageSpeedSummary): AuditModule | null {
+  if (!pageSpeed.fetched) return null;
+  const findings: AuditModuleFinding[] = [];
+
+  const category = (label: string, value: number | null) => {
+    if (value == null) {
+      findings.push(unknown(`${label} score`, "Lighthouse didn't return this category for this run."));
+      return;
+    }
+    if (value >= 90) findings.push(pass(`${label} score`, `${value}/100 — Lighthouse's \"good\" band (90+).`, `Lighthouse ${label} category: ${value}/100`));
+    else if (value >= 50)
+      findings.push(warn(`${label} score`, `${value}/100 — Lighthouse's \"needs improvement\" band (50-89).`, `Lighthouse ${label} category: ${value}/100`, "medium"));
+    else
+      findings.push(fail(`${label} score`, `${value}/100 — Lighthouse's \"poor\" band (below 50).`, `Lighthouse ${label} category: ${value}/100`, "high"));
+  };
+  category("Performance", pageSpeed.performanceScore);
+  category("Accessibility", pageSpeed.accessibilityScore);
+  category("Best Practices", pageSpeed.bestPracticesScore);
+  category("SEO", pageSpeed.seoScore);
+
+  const vital = (label: string, value: number | null, unit: string, good: number, poor: number) => {
+    if (value == null) {
+      findings.push(unknown(label, "Lighthouse didn't report this metric for this run."));
+      return;
+    }
+    const formatted = unit === "ms" ? `${value}${unit}` : String(value);
+    if (value <= good) findings.push(pass(label, `${formatted} — within Google's \"good\" threshold (≤ ${good}${unit}).`, `Lab ${label}: ${formatted}`));
+    else if (value <= poor)
+      findings.push(warn(label, `${formatted} — needs improvement (\"good\" is ≤ ${good}${unit}, \"poor\" is > ${poor}${unit}).`, `Lab ${label}: ${formatted}`, "medium"));
+    else findings.push(fail(label, `${formatted} — in Google's \"poor\" band (> ${poor}${unit}).`, `Lab ${label}: ${formatted}`, "high"));
+  };
+  const cwv = pageSpeed.coreWebVitals;
+  vital("LCP (Largest Contentful Paint)", cwv.lcpMs, "ms", 2500, 4000);
+  vital("CLS (Cumulative Layout Shift)", cwv.clsScore, "", 0.1, 0.25);
+  vital("TBT (Total Blocking Time)", cwv.tbtMs, "ms", 200, 600);
+  vital("FCP (First Contentful Paint)", cwv.fcpMs, "ms", 1800, 3000);
+  vital("Speed Index", cwv.speedIndexMs, "ms", 3400, 5800);
+
+  if (pageSpeed.fieldData?.available) {
+    const fd = pageSpeed.fieldData;
+    const label = `Real-world Core Web Vitals (${fd.scope ?? "origin"}-level, past 28 days)`;
+    if (fd.overallCategory === "FAST") findings.push(pass(label, "Actual Chrome users report a FAST experience over the last 28 days — the higher-confidence real-world signal.", `CrUX overall category: FAST`));
+    else if (fd.overallCategory === "AVERAGE")
+      findings.push(warn(label, "Actual Chrome users report an AVERAGE experience over the last 28 days.", `CrUX overall category: AVERAGE`, "medium"));
+    else if (fd.overallCategory === "SLOW")
+      findings.push(fail(label, "Actual Chrome users report a SLOW experience over the last 28 days — this is the higher-confidence signal when it diverges from the lab metrics above.", `CrUX overall category: SLOW`, "high"));
+  } else {
+    findings.push(
+      unknown(
+        "Real-world Core Web Vitals",
+        "No CrUX field data available for this origin — not enough recorded Chrome traffic for Google to report on. The lab metrics above are the best available signal."
+      )
+    );
+  }
+
+  pageSpeed.topIssues.forEach((issue) => {
+    findings.push(warn(issue.title, issue.description, undefined, "low"));
+  });
+
+  return makeModule(
+    "lighthouse",
+    "Lighthouse (Real Browser)",
+    "Real browser-rendered performance, accessibility, best-practices, and SEO scores from a live Google PageSpeed Insights run — distinct from this audit's own deterministic checks.",
+    findings
+  );
+}
+
 export function buildAuditModules(ctx: ModuleContext): AuditModule[] {
   const { signals: s, deep: d, brokenLinks, imageSample, adsTxt, ogImage, pageSpeed, cookieFlags, redirectChain } = ctx;
   const modules: AuditModule[] = [];
