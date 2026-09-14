@@ -105,6 +105,18 @@ export default function Footer() {
           Audityxe audits run live against the URL you enter. Scores and fixes are generated
           automatically and are not a substitute for professional review.
         </p>
+        <p className="mt-2 text-[10px] sm:text-[11px] font-mono text-text-secondary/50 text-center max-w-2xl mx-auto leading-relaxed">
+          Audityxe is the original, open-source work of Zelvior —{" "}
+          <a
+            href="https://github.com/zelvior/audityxe"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-primary transition"
+          >
+            github.com/zelvior/audityxe
+          </a>
+          .
+        </p>
       </div>
     </footer>
   );

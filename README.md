@@ -1,5 +1,15 @@
 # Audityxe
 
+**This is the original work of Zelvior, open-sourced at
+[github.com/zelvior/audityxe](https://github.com/zelvior/audityxe).**
+Licensed under the custom [Audityxe Custom Open-Source License](./LICENSE.md) —
+free to use, modify, and redistribute, provided Zelvior is always credited as
+the original author with a link back to the canonical repository above. The
+Software is provided **as-is**, with no warranty, and Zelvior is **not
+responsible for anything** arising from its use. See `LICENSE.md` for the
+full, binding terms before forking, deploying, or redistributing this
+project.
+
 Instant site audit & Pro promo kit — with a live, deterministic
 scoring engine, a real browser-rendered performance/accessibility pass,
 evidence attached to every finding, full public methodology, and a

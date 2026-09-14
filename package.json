@@ -2,6 +2,9 @@
   "name": "audityxe",
   "version": "1.0.0",
   "private": true,
+  "license": "SEE LICENSE IN LICENSE.md",
+  "author": "Zelvior",
+  "homepage": "https://github.com/zelvior/audityxe",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
