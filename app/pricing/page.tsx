@@ -237,7 +237,7 @@ export default function PricingPage() {
                   onChange={(e) => setPromoInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && applyPromo()}
                   placeholder="Promo code"
-                  className="flex-1 min-w-0 rounded-card bg-black/[0.03] border border-border px-3 py-2 text-xs font-mono uppercase focus:outline-none focus:border-primary/50"
+                  className="flex-1 min-w-0 rounded-card bg-[rgb(var(--color-text-primary)/0.045)] border border-border px-3 py-2 text-xs font-mono uppercase focus:outline-none focus:border-primary/50"
                   disabled={checkingPromo}
                 />
                 <button
@@ -306,14 +306,14 @@ export default function PricingPage() {
                   {isFree ? (
                     <Link
                       href={user ? "/account" : "/register"}
-                      className="w-full text-center py-3 rounded-card glass font-semibold text-sm hover:border-black/15 transition"
+                      className="w-full text-center py-3 rounded-card glass font-semibold text-sm hover:border-[rgb(var(--color-text-primary)/0.2)] transition"
                     >
                       {isCurrentPlan ? "You're on Free" : user ? "Downgrade automatically at expiry" : "Get started free"}
                     </Link>
                   ) : isCurrentPlan ? (
                     <Link
                       href="/account"
-                      className="w-full text-center py-3 rounded-card glass font-semibold text-sm hover:border-black/15 transition"
+                      className="w-full text-center py-3 rounded-card glass font-semibold text-sm hover:border-[rgb(var(--color-text-primary)/0.2)] transition"
                     >
                       Manage in account
                     </Link>

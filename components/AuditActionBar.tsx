@@ -110,7 +110,7 @@ export default function AuditActionBar({ result }: { result: AuditResult }) {
   }
 
   const buttonClass =
-    "flex items-center justify-center w-9 h-9 rounded-full glass text-text-secondary hover:text-primary hover:border-black/10 transition";
+    "flex items-center justify-center w-9 h-9 rounded-full glass text-text-secondary hover:text-primary hover:border-[rgb(var(--color-text-primary)/0.16)] transition";
 
   return (
     <div className="flex items-center gap-2">

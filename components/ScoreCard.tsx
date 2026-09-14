@@ -5,9 +5,9 @@ import { AuditResult } from "@/lib/types";
 import AuditActionBar from "./AuditActionBar";
 
 function colorFor(score: number) {
-  if (score >= 8) return { bar: "bg-emerald", text: "text-emerald", ring: "#3F7D5C" };
-  if (score >= 5) return { bar: "bg-amber", text: "text-amber", ring: "#A8720A" };
-  return { bar: "bg-rose", text: "text-rose", ring: "#B23A2E" };
+  if (score >= 8) return { bar: "bg-emerald", text: "text-emerald", ring: "rgb(var(--color-emerald))" };
+  if (score >= 5) return { bar: "bg-amber", text: "text-amber", ring: "rgb(var(--color-amber))" };
+  return { bar: "bg-rose", text: "text-rose", ring: "rgb(var(--color-rose))" };
 }
 
 export default function ScoreCard({ result }: { result: AuditResult }) {
@@ -29,7 +29,7 @@ export default function ScoreCard({ result }: { result: AuditResult }) {
         <div className="flex flex-col sm:flex-row gap-6 sm:gap-8 items-center sm:items-start mb-8 sm:mb-10">
           <div className="relative w-28 h-28 sm:w-36 sm:h-36 shrink-0">
             <svg viewBox="0 0 120 120" className="w-full h-full -rotate-90">
-              <circle cx="60" cy="60" r="54" fill="none" stroke="#E3D6BE" strokeWidth="10" />
+              <circle cx="60" cy="60" r="54" fill="none" stroke="rgb(var(--color-border))" strokeWidth="10" />
               <motion.circle
                 cx="60"
                 cy="60"

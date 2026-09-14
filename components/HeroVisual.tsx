@@ -126,10 +126,10 @@ export default function HeroVisual() {
         >
           <defs>
             <marker id="hv-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4.5" markerHeight="4.5" orient="auto-start-reverse">
-              <path d="M2 1L8 5L2 9" stroke="rgba(32,27,20,0.18)" strokeWidth="1.5" fill="none" strokeLinecap="round" shapeRendering="geometricPrecision" />
+              <path d="M2 1L8 5L2 9" stroke="rgb(var(--color-text-primary) / 0.18)" strokeWidth="1.5" fill="none" strokeLinecap="round" shapeRendering="geometricPrecision" />
             </marker>
             <marker id="hv-arrow-accent" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4.5" markerHeight="4.5" orient="auto-start-reverse">
-              <path d="M2 1L8 5L2 9" stroke="#B5460A" strokeWidth="1.5" fill="none" strokeLinecap="round" shapeRendering="geometricPrecision" />
+              <path d="M2 1L8 5L2 9" stroke="rgb(var(--color-accent))" strokeWidth="1.5" fill="none" strokeLinecap="round" shapeRendering="geometricPrecision" />
             </marker>
             {/* Very light hand-drawn wobble applied only to the fan-out
                 and results connectors (the curves), never to the
@@ -155,7 +155,7 @@ export default function HeroVisual() {
             <motion.path
               key={`in-${c.label}`}
               d={smoothPath(INPUT_X + 70, INPUT_Y + 14, CHECK_X - 6, c.y + 14)}
-              stroke="rgba(32,27,20,0.18)"
+              stroke="rgb(var(--color-text-primary) / 0.18)"
               strokeWidth="1.5"
               strokeLinecap="round"
               vectorEffect="non-scaling-stroke"
@@ -179,7 +179,7 @@ export default function HeroVisual() {
               y1={c.y + 14}
               x2={MERGE_X}
               y2={c.y + 14}
-              stroke="rgba(32,27,20,0.18)"
+              stroke="rgb(var(--color-text-primary) / 0.18)"
               strokeWidth="1.5"
               vectorEffect="non-scaling-stroke"
               shapeRendering="crispEdges"
@@ -199,7 +199,7 @@ export default function HeroVisual() {
             y1={BUS_TOP}
             x2={MERGE_X}
             y2={BUS_BOTTOM}
-            stroke="rgba(32,27,20,0.18)"
+            stroke="rgb(var(--color-text-primary) / 0.18)"
             strokeWidth="1.5"
             vectorEffect="non-scaling-stroke"
             shapeRendering="crispEdges"
@@ -209,7 +209,7 @@ export default function HeroVisual() {
           />
           <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.3, duration: 0.3 }}>
             {ROW_CENTERS.map((cy, i) => (
-              <circle key={`dot-${i}`} cx={MERGE_X} cy={cy} r={2.5} fill="rgba(32,27,20,0.35)" shapeRendering="geometricPrecision" />
+              <circle key={`dot-${i}`} cx={MERGE_X} cy={cy} r={2.5} fill="rgb(var(--color-text-primary) / 0.35)" shapeRendering="geometricPrecision" />
             ))}
           </motion.g>
 
@@ -218,7 +218,7 @@ export default function HeroVisual() {
               draw-in, since it's the one moment worth the extra cost. */}
           <motion.path
             d={smoothPath(MERGE_X, BUS_MID, RESULT_X - 4, RESULT_Y + 24)}
-            stroke="#B5460A"
+            stroke="rgb(var(--color-accent))"
             strokeOpacity={0.85}
             strokeWidth="1.75"
             strokeLinecap="round"
@@ -230,7 +230,51 @@ export default function HeroVisual() {
             animate={{ pathLength: 1, opacity: 1 }}
             transition={{ delay: 1.45, duration: 0.5 }}
           />
+
+          {/* Continuous "live" signal: a small comet-like pulse travels
+              from URL Input, through each check, along the bus, and out
+              to Results, on a loop — this is what actually reads as
+              "alive" rather than a one-shot entrance animation. Uses
+              SVG's native offset-path/offset-distance (motion path)
+              instead of manually animating cx/cy per frame, so it's a
+              compositor-driven animation, not a layout recalculation. */}
+          {CHECKS.map((c, i) => {
+            const fanPath = smoothPath(INPUT_X + 70, INPUT_Y + 14, CHECK_X - 6, c.y + 14);
+            return (
+              <circle
+                key={`pulse-fan-${c.label}`}
+                r="2.4"
+                fill="rgb(var(--color-primary))"
+                style={{
+                  offsetPath: `path("${fanPath}")`,
+                  offsetRotate: "0deg",
+                  animation: `hv-travel 2.6s ${1.9 + i * 0.35}s linear infinite`,
+                }}
+              />
+            );
+          })}
+          <circle
+            r="2.6"
+            fill="rgb(var(--color-accent))"
+            style={{
+              offsetPath: `path("${smoothPath(MERGE_X, BUS_MID, RESULT_X - 4, RESULT_Y + 24)}")`,
+              offsetRotate: "0deg",
+              animation: "hv-travel 1.4s 3.6s linear infinite",
+            }}
+          />
         </svg>
+
+        {/* sequential glow sweeping through the five checks, looping —
+            reads as "actively scanning" rather than a static list. */}
+        {CHECKS.map((c, i) => (
+          <motion.div
+            key={`scan-${c.label}`}
+            className="absolute rounded-card pointer-events-none"
+            style={{ left: CHECK_X, top: c.y, width: CHECK_NODE_W, height: 46 }}
+            animate={{ opacity: [0, 0, 0.9, 0], boxShadow: ["0 0 0 rgba(0,0,0,0)", "0 0 0 rgba(0,0,0,0)", "0 0 22px rgb(var(--color-primary) / 0.35)", "0 0 0 rgba(0,0,0,0)"] }}
+            transition={{ delay: 2.2 + i * 0.5, duration: 4.5, repeat: Infinity, repeatDelay: 4.5, ease: "easeInOut" }}
+          />
+        ))}
 
         {/* URL input node */}
         <motion.div
@@ -315,6 +359,22 @@ export default function HeroVisual() {
         @media (min-width: 1280px) {
           .hv-scale {
             transform: scale(0.83);
+          }
+        }
+        @keyframes hv-travel {
+          0% {
+            offset-distance: 0%;
+            opacity: 0;
+          }
+          8% {
+            opacity: 1;
+          }
+          92% {
+            opacity: 1;
+          }
+          100% {
+            offset-distance: 100%;
+            opacity: 0;
           }
         }
       `}</style>

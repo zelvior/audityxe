@@ -1,27 +1,31 @@
 import type { Config } from "tailwindcss";
 
-// Single, fixed warm-editorial palette (no runtime theme switching —
-// removed per product decision; this is the one, final, deliberately-
-// chosen accent, matching taste-skill's "lock one accent" rule). Rust
-// reads as considered and human — deliberately not the purple/green
-// "AI SaaS" gradient look.
+// Warm-editorial palette, now theme-aware: every color below resolves
+// through a CSS custom property (defined in globals.css) rather than a
+// fixed hex, so the exact same class names — bg-primary, text-text-
+// secondary, etc. — automatically repaint for light vs dark. The
+// `<alpha-value>` placeholder lets Tailwind's opacity modifiers
+// (bg-primary/50) keep working since these resolve to rgb(r g b / a).
+const cssVar = (name: string) => `rgb(var(--color-${name}) / <alpha-value>)`;
+
 const config: Config = {
+  darkMode: "media",
   content: ["./app/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}"],
   theme: {
     extend: {
       colors: {
-        bg: "#FBF7EF",
-        surface: "#FFFFFF",
-        surface2: "#F1E9D8",
-        border: "#E3D6BE",
-        primary: "#B5460A",
-        secondary: "#8C3703",
-        accent: "#B5460A",
-        emerald: "#3F7D5C",
-        rose: "#B23A2E",
-        amber: "#A8720A",
-        "text-primary": "#201B14",
-        "text-secondary": "#6E6252",
+        bg: cssVar("bg"),
+        surface: cssVar("surface"),
+        surface2: cssVar("surface2"),
+        border: cssVar("border"),
+        primary: cssVar("primary"),
+        secondary: cssVar("secondary"),
+        accent: cssVar("accent"),
+        emerald: cssVar("emerald"),
+        rose: cssVar("rose"),
+        amber: cssVar("amber"),
+        "text-primary": cssVar("text-primary"),
+        "text-secondary": cssVar("text-secondary"),
       },
       borderRadius: {
         card: "20px",

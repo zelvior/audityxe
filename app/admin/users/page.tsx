@@ -181,7 +181,7 @@ export default function AdminUsersPage() {
               onKeyDown={(e) => e.key === "Enter" && submitPassword()}
               placeholder="Password"
               autoFocus
-              className="w-full rounded-card bg-black/[0.03] border border-border px-3 py-2 text-sm mb-3 focus:outline-none focus:border-primary/50"
+              className="w-full rounded-card bg-[rgb(var(--color-text-primary)/0.045)] border border-border px-3 py-2 text-sm mb-3 focus:outline-none focus:border-primary/50"
               disabled={checkingPassword}
             />
             {passwordError && <p className="text-xs text-rose mb-3">{passwordError}</p>}
@@ -219,9 +219,9 @@ export default function AdminUsersPage() {
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && runSearch()}
             placeholder="Search email or UID"
-            className="flex-1 rounded-card bg-black/[0.03] border border-border px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
+            className="flex-1 rounded-card bg-[rgb(var(--color-text-primary)/0.045)] border border-border px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
           />
-          <button onClick={runSearch} className="px-4 py-2 rounded-card glass hover:border-black/15 flex items-center gap-2 text-sm">
+          <button onClick={runSearch} className="px-4 py-2 rounded-card glass hover:border-[rgb(var(--color-text-primary)/0.2)] flex items-center gap-2 text-sm">
             <Search size={14} /> Search
           </button>
         </div>
@@ -270,7 +270,7 @@ export default function AdminUsersPage() {
                           <select
                             value={planDraft}
                             onChange={(e) => setPlanDraft(e.target.value as any)}
-                            className="flex-1 rounded-card bg-black/[0.03] border border-border px-3 py-2 text-xs focus:outline-none focus:border-primary/50"
+                            className="flex-1 rounded-card bg-[rgb(var(--color-text-primary)/0.045)] border border-border px-3 py-2 text-xs focus:outline-none focus:border-primary/50"
                           >
                             <option value="free">Free</option>
                             <option value="standard">Standard</option>
@@ -283,7 +283,7 @@ export default function AdminUsersPage() {
                               value={planDaysDraft}
                               onChange={(e) => setPlanDaysDraft(Number(e.target.value))}
                               placeholder="Days (0 = never expires)"
-                              className="w-40 rounded-card bg-black/[0.03] border border-border px-3 py-2 text-xs focus:outline-none focus:border-primary/50"
+                              className="w-40 rounded-card bg-[rgb(var(--color-text-primary)/0.045)] border border-border px-3 py-2 text-xs focus:outline-none focus:border-primary/50"
                             />
                           )}
                         </div>
@@ -315,14 +315,14 @@ export default function AdminUsersPage() {
                           value={reasonDraft}
                           onChange={(e) => setReasonDraft(e.target.value)}
                           placeholder="Reason (shown to the user)"
-                          className="w-full rounded-card bg-black/[0.03] border border-border px-3 py-2 text-xs focus:outline-none focus:border-primary/50"
+                          className="w-full rounded-card bg-[rgb(var(--color-text-primary)/0.045)] border border-border px-3 py-2 text-xs focus:outline-none focus:border-primary/50"
                         />
                         {pendingAction.type === "suspend" && (
                           <input
                             type="date"
                             value={untilDraft}
                             onChange={(e) => setUntilDraft(e.target.value)}
-                            className="w-full rounded-card bg-black/[0.03] border border-border px-3 py-2 text-xs focus:outline-none focus:border-primary/50"
+                            className="w-full rounded-card bg-[rgb(var(--color-text-primary)/0.045)] border border-border px-3 py-2 text-xs focus:outline-none focus:border-primary/50"
                           />
                         )}
                         <div className="flex gap-2">

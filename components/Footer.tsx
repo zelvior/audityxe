@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Logo from "./Logo";
+import HoverRevealButton from "./HoverRevealButton";
 
 const COLUMNS: { title: string; links: { href: string; label: string }[] }[] = [
   {
@@ -51,12 +52,17 @@ export default function Footer() {
           {/* brand block */}
           <div className="col-span-2 sm:col-span-3 lg:col-span-1 mb-2 lg:mb-0">
             <Link href="/" className="inline-flex items-center gap-2 mb-3">
-              <Logo size={28} />
+              <Logo size={36} />
               <span className="font-display font-bold text-base tracking-tight hand-underline">Audityxe</span>
             </Link>
-            <p className="text-xs text-text-secondary max-w-[220px] leading-relaxed">
+            <p className="text-xs text-text-secondary max-w-[220px] leading-relaxed mb-4">
               Instant, evidence-based website audits — every score backed by a real, live check.
             </p>
+            <HoverRevealButton
+              frontLabel="Star on GitHub"
+              backLabel="Thanks! ⭐"
+              href="https://github.com/zelvior/audityxe"
+            />
           </div>
 
           {COLUMNS.map((col) => (

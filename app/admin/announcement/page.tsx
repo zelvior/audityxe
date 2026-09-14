@@ -183,7 +183,7 @@ export default function AdminAnnouncementPage() {
               onKeyDown={(e) => e.key === "Enter" && submitPassword()}
               placeholder="Password"
               autoFocus
-              className="w-full rounded-card bg-black/[0.03] border border-border px-3 py-2 text-sm mb-3 focus:outline-none focus:border-primary/50"
+              className="w-full rounded-card bg-[rgb(var(--color-text-primary)/0.045)] border border-border px-3 py-2 text-sm mb-3 focus:outline-none focus:border-primary/50"
               disabled={checkingPassword}
             />
             {passwordError && <p className="text-xs text-rose mb-3">{passwordError}</p>}
@@ -224,7 +224,7 @@ export default function AdminAnnouncementPage() {
             maxLength={280}
             rows={3}
             placeholder="e.g. Scheduled maintenance tonight 11pm–1am UTC — audits may be briefly unavailable."
-            className="w-full rounded-card bg-black/[0.03] border border-border px-3 py-2 text-sm mb-1 focus:outline-none focus:border-primary/50 resize-none"
+            className="w-full rounded-card bg-[rgb(var(--color-text-primary)/0.045)] border border-border px-3 py-2 text-sm mb-1 focus:outline-none focus:border-primary/50 resize-none"
           />
           <p className="text-xs text-text-secondary/60 mb-4">{message.length}/280</p>
 
@@ -232,7 +232,7 @@ export default function AdminAnnouncementPage() {
           <select
             value={level}
             onChange={(e) => setLevel(e.target.value as "info" | "warning")}
-            className="w-full rounded-card bg-black/[0.03] border border-border px-3 py-2 text-sm mb-4 focus:outline-none focus:border-primary/50"
+            className="w-full rounded-card bg-[rgb(var(--color-text-primary)/0.045)] border border-border px-3 py-2 text-sm mb-4 focus:outline-none focus:border-primary/50"
           >
             <option value="info">Info (brand color)</option>
             <option value="warning">Warning (amber)</option>
@@ -251,7 +251,7 @@ export default function AdminAnnouncementPage() {
                 type="datetime-local"
                 value={startsAt}
                 onChange={(e) => setStartsAt(e.target.value)}
-                className="w-full rounded-card bg-black/[0.03] border border-border px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
+                className="w-full rounded-card bg-[rgb(var(--color-text-primary)/0.045)] border border-border px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
               />
             </div>
             <div>
@@ -260,7 +260,7 @@ export default function AdminAnnouncementPage() {
                 type="datetime-local"
                 value={endsAt}
                 onChange={(e) => setEndsAt(e.target.value)}
-                className="w-full rounded-card bg-black/[0.03] border border-border px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
+                className="w-full rounded-card bg-[rgb(var(--color-text-primary)/0.045)] border border-border px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
               />
             </div>
           </div>

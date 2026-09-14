@@ -18,7 +18,7 @@ export default function GlobalError({
     <html lang="en">
       <body className="min-h-screen bg-[#FBF7EF] text-[#201B14] font-sans antialiased flex items-center justify-center px-4">
         <div className="max-w-md mx-auto text-center py-16">
-          <div className="w-16 h-16 rounded-card bg-black/5 border border-black/10 flex items-center justify-center mx-auto mb-6">
+          <div className="w-16 h-16 rounded-card bg-[rgb(var(--color-text-primary)/0.07)] border border-[rgb(var(--color-text-primary)/0.12)] flex items-center justify-center mx-auto mb-6">
             <AlertOctagon size={28} className="text-[#B23A2E]" />
           </div>
           <p className="font-mono text-xs text-[#6E6252] mb-2">CRITICAL ERROR</p>

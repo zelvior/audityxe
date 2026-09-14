@@ -13,8 +13,49 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Theme tokens — light is the default (:root), dark is the automatic
+   override applied purely from the OS/browser's prefers-color-scheme,
+   with no manual toggle or JS involved. Every Tailwind color in
+   tailwind.config.ts resolves through these, so bg-primary/text-
+   text-secondary/etc. repaint automatically; nothing elsewhere needs a
+   dark: variant for the base palette. Values are "R G B" (no commas,
+   no rgb()) so Tailwind's rgb(var(--x) / <alpha-value>) pattern works. */
+:root {
+  --color-bg: 251 247 239;
+  --color-surface: 255 255 255;
+  --color-surface2: 241 233 216;
+  --color-border: 227 214 190;
+  --color-primary: 181 70 10;
+  --color-secondary: 140 55 3;
+  --color-accent: 181 70 10;
+  --color-emerald: 63 125 92;
+  --color-rose: 178 58 46;
+  --color-amber: 168 114 10;
+  --color-text-primary: 32 27 20;
+  --color-text-secondary: 110 98 82;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: 18 15 11;
+    --color-surface: 28 23 17;
+    --color-surface2: 36 29 21;
+    --color-border: 61 49 35;
+    --color-primary: 224 122 58;
+    --color-secondary: 196 94 32;
+    --color-accent: 224 122 58;
+    --color-emerald: 94 181 135;
+    --color-rose: 227 112 96;
+    --color-amber: 216 161 78;
+    --color-text-primary: 244 239 228;
+    --color-text-secondary: 176 162 138;
+    color-scheme: dark;
+  }
+}
+
 * {
-  border-color: #E3D6BE;
+  border-color: rgb(var(--color-border));
 }
 
 html {
@@ -23,13 +64,17 @@ html {
 
 body {
   overflow-x: hidden;
-  background: #FBF7EF;
-  color: #201B14;
+  background: rgb(var(--color-bg));
+  color: rgb(var(--color-text-primary));
   line-height: 1.6;
   position: relative;
+  transition: background-color 0.25s ease, color 0.25s ease;
 }
 
-/* Subtle paper grain so the flat warm background doesn't read sterile. */
+/* Subtle paper grain so the flat background doesn't read sterile.
+   Multiply reads correctly on the light paper background; on dark it
+   would just crush everything toward black, so it switches to
+   soft-light there instead, which lightens rather than darkens. */
 body::before {
   content: "";
   position: fixed;
@@ -39,6 +84,13 @@ body::before {
   opacity: 0.5;
   mix-blend-mode: multiply;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+}
+
+@media (prefers-color-scheme: dark) {
+  body::before {
+    mix-blend-mode: soft-light;
+    opacity: 0.7;
+  }
 }
 
 /* Hand-drawn marks — a single reusable underline mark and a single
@@ -88,6 +140,23 @@ body::before {
   pointer-events: none;
 }
 
+/* Same three marks, redrawn with the brighter dark-mode accent
+   (#E07A3A instead of #B5460A) — these are baked SVG data-URIs, so the
+   stroke color can't follow the --color-primary custom property the
+   way plain Tailwind classes do, and needs its own explicit override. */
+@media (prefers-color-scheme: dark) {
+  .hand-underline,
+  .hand-underline--alt {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 24' preserveAspectRatio='none'%3E%3Cpath d='M3 14 C 40 6, 70 20, 110 12 S 180 4, 220 14 S 270 20, 297 10' fill='none' stroke='%23E07A3A' stroke-width='5' stroke-linecap='round'/%3E%3C/svg%3E");
+  }
+  .hand-highlight {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 60' preserveAspectRatio='none'%3E%3Cpath d='M6 34 C 2 20, 8 8, 24 7 C 130 2, 280 3, 380 9 C 396 10, 398 24, 396 34 C 398 46, 392 52, 372 53 C 260 58, 120 57, 20 52 C 6 51, 4 44, 6 34 Z' fill='%23D69E4A' fill-opacity='0.35'/%3E%3C/svg%3E");
+  }
+  .hand-circle::after {
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 100'%3E%3Cpath d='M100 6 C 150 4, 190 30, 188 52 C 192 78, 140 96, 96 94 C 46 96, 8 76, 10 50 C 6 24, 52 4, 100 6 Z' fill='none' stroke='%23E07A3A' stroke-width='4'/%3E%3C/svg%3E") no-repeat center / 100% 100%;
+  }
+}
+
 /* Chromium-based Edge injects its own native reveal-password eye icon
    inside every <input type="password">, sitting directly on top of any
    custom show/hide button placed over the same input (see
@@ -110,10 +179,10 @@ p {
 }
 
 .glass {
-  background: rgba(255, 255, 255, 0.72);
-  border: 1px solid rgba(227, 214, 190, 0.9);
-  box-shadow: 0 8px 24px rgba(140, 55, 3, 0.08);
-  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  background: rgb(var(--color-surface) / 0.72);
+  border: 1px solid rgb(var(--color-border) / 0.9);
+  box-shadow: 0 8px 24px rgb(var(--color-secondary) / 0.08);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, background-color 0.25s ease;
 }
 
 .glass:hover {
@@ -121,11 +190,11 @@ p {
 }
 
 .text-gradient {
-  color: #201B14;
+  color: rgb(var(--color-text-primary));
 }
 
 .prose-legal h2 {
-  color: #201B14;
+  color: rgb(var(--color-text-primary));
   font-family: "Fraunces", serif;
   font-weight: 600;
   font-size: 1.15rem;
@@ -144,17 +213,17 @@ p {
 }
 
 .prose-legal a {
-  color: #B5460A;
+  color: rgb(var(--color-primary));
   text-decoration: underline;
   text-underline-offset: 2px;
 }
 
 ::-webkit-scrollbar { width: 10px; }
-::-webkit-scrollbar-track { background: #FBF7EF; }
-::-webkit-scrollbar-thumb { background: #E3D6BE; border-radius: 8px; }
+::-webkit-scrollbar-track { background: rgb(var(--color-bg)); }
+::-webkit-scrollbar-thumb { background: rgb(var(--color-border)); border-radius: 8px; }
 
 :focus-visible {
-  outline: 2px solid #B5460A;
+  outline: 2px solid rgb(var(--color-primary));
   outline-offset: 2px;
 }
 

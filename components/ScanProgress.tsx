@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { Check, Loader2 } from "lucide-react";
 import { SCAN_STEPS } from "@/lib/constants";
+import IsometricLoader from "@/components/IsometricLoader";
 
 export default function ScanProgress({ activeStep }: { activeStep: number }) {
   return (
@@ -11,9 +12,10 @@ export default function ScanProgress({ activeStep }: { activeStep: number }) {
         <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-primary/20 to-transparent pointer-events-none" />
         <div className="absolute left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/60 to-transparent animate-scan" />
 
-        <h3 className="font-display font-semibold text-lg mb-6 relative">
-          Scanning your site...
-        </h3>
+        <div className="flex items-center justify-between gap-4 mb-6 relative">
+          <h3 className="font-display font-semibold text-lg">Scanning your site...</h3>
+          <IsometricLoader size={56} className="shrink-0 -my-2 hidden sm:block" />
+        </div>
 
         <ul className="space-y-4 relative">
           {SCAN_STEPS.map((step, i) => {
