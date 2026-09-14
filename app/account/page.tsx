@@ -248,13 +248,13 @@ export default function AccountPage() {
                 onChange={(e) => setCode(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && redeemCode()}
                 placeholder="Enter code"
-                className="flex-1 min-w-0 rounded-card bg-white/5 border border-white/10 px-3 py-2 text-sm font-mono uppercase focus:outline-none focus:border-primary/50"
+                className="flex-1 min-w-0 rounded-card bg-black/[0.03] border border-border px-3 py-2 text-sm font-mono uppercase focus:outline-none focus:border-primary/50"
                 disabled={redeeming}
               />
               <button
                 onClick={redeemCode}
                 disabled={redeeming || !code.trim()}
-                className="px-4 py-2 rounded-card bg-primary text-black text-sm font-semibold disabled:opacity-50 flex items-center gap-2"
+                className="px-4 py-2 rounded-card bg-primary text-white text-sm font-semibold disabled:opacity-50 flex items-center gap-2"
               >
                 {redeeming ? <Loader2 size={14} className="animate-spin" /> : "Redeem"}
               </button>
@@ -278,7 +278,7 @@ export default function AccountPage() {
           {user.emailVerified && (
             <Link
               href="/admin"
-              className="w-full flex items-center justify-center gap-2 py-3 rounded-card glass text-sm font-semibold hover:border-white/20 transition mb-3"
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-card glass text-sm font-semibold hover:border-black/15 transition mb-3"
             >
               <LayoutDashboard size={16} /> Admin Dashboard
             </Link>
@@ -286,7 +286,7 @@ export default function AccountPage() {
 
           <Link
             href="/settings"
-            className="w-full flex items-center justify-center gap-2 py-3 rounded-card glass text-sm font-semibold hover:border-white/20 transition mb-3"
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-card glass text-sm font-semibold hover:border-black/15 transition mb-3"
           >
             <SettingsIcon size={16} />
             Settings

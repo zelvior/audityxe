@@ -172,7 +172,7 @@ export default function PricingPage() {
           <div className="text-center mb-8 sm:mb-10">
             <p className="text-xs font-mono text-text-secondary mb-3">PRICING</p>
             <h1 className="font-display font-bold text-3xl sm:text-4xl md:text-5xl tracking-tight text-gradient mb-4">
-              Simple, usage-based plans
+              Simple, <span className="hand-underline">usage-based</span> plans
             </h1>
             <p className="text-text-secondary text-sm sm:text-base max-w-lg mx-auto">
               Every plan gets the full audit engine — all 6 score categories and the full 17-area
@@ -224,7 +224,7 @@ export default function PricingPage() {
                     setPromo(null);
                     setPromoInput("");
                   }}
-                  className="text-text-secondary hover:text-white"
+                  className="text-text-secondary hover:text-text-primary"
                 >
                   Remove
                 </button>
@@ -237,7 +237,7 @@ export default function PricingPage() {
                   onChange={(e) => setPromoInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && applyPromo()}
                   placeholder="Promo code"
-                  className="flex-1 min-w-0 rounded-card bg-white/5 border border-white/10 px-3 py-2 text-xs font-mono uppercase focus:outline-none focus:border-primary/50"
+                  className="flex-1 min-w-0 rounded-card bg-black/[0.03] border border-border px-3 py-2 text-xs font-mono uppercase focus:outline-none focus:border-primary/50"
                   disabled={checkingPromo}
                 />
                 <button
@@ -306,14 +306,14 @@ export default function PricingPage() {
                   {isFree ? (
                     <Link
                       href={user ? "/account" : "/register"}
-                      className="w-full text-center py-3 rounded-card glass font-semibold text-sm hover:border-white/20 transition"
+                      className="w-full text-center py-3 rounded-card glass font-semibold text-sm hover:border-black/15 transition"
                     >
                       {isCurrentPlan ? "You're on Free" : user ? "Downgrade automatically at expiry" : "Get started free"}
                     </Link>
                   ) : isCurrentPlan ? (
                     <Link
                       href="/account"
-                      className="w-full text-center py-3 rounded-card glass font-semibold text-sm hover:border-white/20 transition"
+                      className="w-full text-center py-3 rounded-card glass font-semibold text-sm hover:border-black/15 transition"
                     >
                       Manage in account
                     </Link>

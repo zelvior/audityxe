@@ -192,7 +192,7 @@ export default function FaqPage() {
 
           <p className="text-xs font-mono text-text-secondary mb-3">FAQ</p>
           <h1 className="font-display font-bold text-3xl sm:text-4xl tracking-tight mb-8">
-            Frequently asked questions
+            Frequently asked <span className="hand-highlight">questions</span>
           </h1>
 
           <div className="space-y-6">

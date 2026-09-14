@@ -33,7 +33,7 @@ export default function ContactPage() {
           </Link>
 
           <h1 className="font-display font-bold text-2xl sm:text-3xl md:text-4xl tracking-tight mb-2">
-            Contact
+            <span className="hand-underline">Contact</span>
           </h1>
           <p className="text-sm sm:text-base text-text-secondary mb-8">
             Questions, bug reports, or feedback on an audit result — send it over and we'll get

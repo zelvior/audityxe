@@ -116,7 +116,7 @@ export default function AuditModules({ modules }: { modules: AuditModule[] }) {
     <section className="px-4 sm:px-6 py-8 sm:py-10">
       <div className="max-w-4xl mx-auto">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-1">
-          <h2 className="font-display font-semibold text-xl sm:text-2xl">Full Deep Audit</h2>
+          <h2 className="font-display font-semibold text-xl sm:text-2xl">Full <span className="hand-underline">Deep Audit</span></h2>
         </div>
         <p className="text-text-secondary text-xs sm:text-sm mb-5">
           {modules.length} areas checked live against this URL: SEO, performance, security,

@@ -131,6 +131,14 @@ export default function HeroVisual() {
             <marker id="hv-arrow-accent" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4.5" markerHeight="4.5" orient="auto-start-reverse">
               <path d="M2 1L8 5L2 9" stroke="#B5460A" strokeWidth="1.5" fill="none" strokeLinecap="round" shapeRendering="geometricPrecision" />
             </marker>
+            {/* Very light hand-drawn wobble applied only to the fan-out
+                and results connectors (the curves), never to the
+                perfectly straight/axis-aligned bus segments, which
+                should stay crisp schematic lines. */}
+            <filter id="hv-rough" x="-20%" y="-20%" width="140%" height="140%">
+              <feTurbulence type="fractalNoise" baseFrequency="0.02 0.06" numOctaves="1" seed="4" result="n" />
+              <feDisplacementMap in="SourceGraphic" in2="n" scale="2.2" xChannelSelector="R" yChannelSelector="G" />
+            </filter>
           </defs>
 
           {/* input → each check (fan-out, five distinct targets — never
@@ -153,15 +161,17 @@ export default function HeroVisual() {
               vectorEffect="non-scaling-stroke"
               shapeRendering="geometricPrecision"
               markerEnd="url(#hv-arrow)"
+              filter="url(#hv-rough)"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.5 + i * 0.08, duration: 0.35 }}
             />
           ))}
 
-          {/* each check → merge bus: plain straight lines, each at its
-              own y, so five of them can share a target x without ever
-              overlapping one another. */}
+          {/* each check → merge bus: kept perfectly straight and
+              axis-free of the hand-drawn filter — these are the exact
+              schematic joins onto the bus, at the exact same y as
+              their row, so the junction dots line up precisely. */}
           {CHECKS.map((c, i) => (
             <motion.line
               key={`bus-${c.label}`}
@@ -215,6 +225,7 @@ export default function HeroVisual() {
             vectorEffect="non-scaling-stroke"
             shapeRendering="geometricPrecision"
             markerEnd="url(#hv-arrow-accent)"
+            filter="url(#hv-rough)"
             initial={{ pathLength: 0, opacity: 0 }}
             animate={{ pathLength: 1, opacity: 1 }}
             transition={{ delay: 1.45, duration: 0.5 }}
@@ -225,10 +236,19 @@ export default function HeroVisual() {
         <motion.div
           initial={{ opacity: 0, scale: 0.85, y: 6 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
+          whileHover={{ y: -3, scale: 1.03 }}
           transition={{ delay: 0.15, duration: 0.4, ease: "easeOut" }}
-          className="absolute glass border border-white/[0.06] rounded-card px-3.5 py-3 flex items-center gap-2.5 shadow-glow"
+          className="absolute glass border border-black/[0.06] rounded-card px-3.5 py-3 flex items-center gap-2.5 shadow-glow"
           style={{ left: INPUT_X, top: INPUT_Y }}
         >
+          {/* "live" pulse — signals this is the actively-running step,
+              not just a static diagram. */}
+          <motion.span
+            className="absolute -inset-1 rounded-card border border-primary/40 pointer-events-none"
+            initial={{ opacity: 0.6, scale: 1 }}
+            animate={{ opacity: 0, scale: 1.12 }}
+            transition={{ delay: 1.6, duration: 1.6, repeat: Infinity, ease: "easeOut" }}
+          />
           <IconChip icon={Link2} />
           <span className="text-[11px] font-mono text-text-secondary whitespace-nowrap">URL Input</span>
         </motion.div>
@@ -240,8 +260,9 @@ export default function HeroVisual() {
             custom={i}
             initial="hidden"
             animate="show"
+            whileHover={{ y: -3, scale: 1.04 }}
             variants={pop}
-            className="absolute glass border border-white/[0.06] rounded-card px-3.5 py-3 flex items-center gap-2.5 shadow-glow"
+            className="absolute glass border border-black/[0.06] rounded-card px-3.5 py-3 flex items-center gap-2.5 shadow-glow"
             style={{ left: CHECK_X, top: y, width: CHECK_NODE_W }}
           >
             <IconChip icon={Icon} />
@@ -253,19 +274,20 @@ export default function HeroVisual() {
         <motion.div
           initial={{ opacity: 0, scale: 0.85, y: 6 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
+          whileHover={{ y: -3, scale: 1.04 }}
           transition={{ delay: 1.55, duration: 0.45, ease: "easeOut" }}
           className="absolute glass border border-accent/25 rounded-card px-3.5 py-3 flex items-center gap-2.5 shadow-glow"
           style={{ left: RESULT_X, top: RESULT_Y, width: RESULT_NODE_W }}
         >
           <IconChip icon={FileCode2} tone="accent" />
           <div className="leading-tight min-w-0">
-            <p className="text-[11px] font-semibold text-text-primary whitespace-nowrap">Results</p>
+            <p className="text-[11px] font-semibold text-text-primary whitespace-nowrap hand-underline hand-underline--alt">Results</p>
             <p className="text-[10px] font-mono text-text-secondary whitespace-nowrap">Score + fixes</p>
           </div>
         </motion.div>
 
         <motion.div
-          animate={{ y: [0, -5, 0] }}
+          animate={{ y: [0, -5, 0], rotate: [0, 8, 0] }}
           transition={{ delay: 2.1, duration: 2.6, repeat: Infinity, ease: "easeInOut" }}
           className="absolute rounded-full bg-accent/15 border border-accent/30 p-2"
           style={{ left: RESULT_X + RESULT_NODE_W - 10, top: RESULT_Y - 16 }}

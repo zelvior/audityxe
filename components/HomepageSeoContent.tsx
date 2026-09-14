@@ -16,7 +16,7 @@ export default function HomepageSeoContent() {
     <section className="px-4 sm:px-8 py-16 sm:py-24 border-t border-border">
       <div className="max-w-3xl mx-auto">
         <h2 className="font-display font-bold text-2xl sm:text-3xl mb-4">
-          Audityxe: a free website audit tool built on real evidence
+          Audityxe: a free website audit tool built on <span className="hand-underline">real evidence</span>
         </h2>
         <p className="text-sm sm:text-base text-text-secondary mb-4 leading-relaxed">
           Audityxe is a free website audit tool and website analysis tool you run entirely online:
@@ -40,7 +40,7 @@ export default function HomepageSeoContent() {
         </p>
 
         <h2 className="font-display font-bold text-xl sm:text-2xl mb-4">
-          What Audityxe checks: SEO, performance, accessibility, security &amp; UX
+          What Audityxe <span className="hand-highlight">checks</span>: SEO, performance, accessibility, security &amp; UX
         </h2>
 
         <h3 className="font-display font-semibold text-base sm:text-lg mb-2 mt-6">
@@ -95,7 +95,7 @@ export default function HomepageSeoContent() {
         </p>
 
         <h2 className="font-display font-bold text-xl sm:text-2xl mb-4 mt-10">
-          How to audit a website: a step-by-step checklist
+          How to audit a website: a <span className="hand-underline hand-underline--alt">step-by-step</span> checklist
         </h2>
         <p className="text-sm sm:text-base text-text-secondary mb-4 leading-relaxed">
           If you're wondering how to audit a website or how to check website quality without
@@ -117,7 +117,7 @@ export default function HomepageSeoContent() {
         </p>
 
         <h2 className="font-display font-bold text-xl sm:text-2xl mb-4">
-          Understanding your Audityxe score
+          Understanding your <span className="hand-highlight">Audityxe score</span>
         </h2>
         <p className="text-sm sm:text-base text-text-secondary mb-4 leading-relaxed">
           Your website audit score is a website quality score out of 10, built from six weighted

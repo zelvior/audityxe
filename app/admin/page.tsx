@@ -243,14 +243,14 @@ export default function AdminHubPage() {
               onKeyDown={(e) => e.key === "Enter" && verifyPassword()}
               placeholder="Password"
               autoFocus
-              className="w-full rounded-card bg-white/5 border border-white/10 px-3 py-2 text-sm mb-3 focus:outline-none focus:border-primary/50"
+              className="w-full rounded-card bg-black/[0.03] border border-border px-3 py-2 text-sm mb-3 focus:outline-none focus:border-primary/50"
               disabled={checkingPassword}
             />
             {passwordError && <p className="text-xs text-rose mb-3">{passwordError}</p>}
             <button
               onClick={verifyPassword}
               disabled={checkingPassword || !adminPassword.trim()}
-              className="w-full py-2 rounded-card bg-primary text-black text-sm font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
+              className="w-full py-2 rounded-card bg-primary text-white text-sm font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {checkingPassword ? <Loader2 size={14} className="animate-spin" /> : "Continue"}
             </button>
@@ -276,7 +276,7 @@ export default function AdminHubPage() {
               key={t.id}
               onClick={() => setTab(t.id)}
               className={`px-3.5 py-2 rounded-card text-xs font-semibold flex items-center gap-1.5 transition ${
-                tab === t.id ? "bg-primary text-black" : "glass hover:border-white/20 text-text-secondary"
+                tab === t.id ? "bg-primary text-white" : "glass hover:border-black/15 text-text-secondary"
               }`}
             >
               <t.icon size={13} /> {t.label}
@@ -421,9 +421,9 @@ function DashboardTab({ getToken, passwordEntered }: { getToken: () => Promise<s
             onChange={(e) => setSearchQ(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && runBloomSearch()}
             placeholder="Exact email or UID"
-            className="flex-1 rounded-card bg-white/5 border border-white/10 px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
+            className="flex-1 rounded-card bg-black/[0.03] border border-border px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
           />
-          <button onClick={runBloomSearch} className="px-4 py-2 rounded-card glass hover:border-white/20 flex items-center gap-2 text-sm">
+          <button onClick={runBloomSearch} className="px-4 py-2 rounded-card glass hover:border-black/15 flex items-center gap-2 text-sm">
             {searching ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />} Search
           </button>
         </div>
@@ -431,7 +431,7 @@ function DashboardTab({ getToken, passwordEntered }: { getToken: () => Promise<s
         {searchResults && searchResults.length > 0 && (
           <div className="space-y-2">
             {searchResults.map((u) => (
-              <div key={u.uid} className="text-xs bg-white/5 rounded-card p-2 flex justify-between gap-2">
+              <div key={u.uid} className="text-xs bg-black/[0.03] rounded-card p-2 flex justify-between gap-2">
                 <span>{u.email || u.uid}</span>
                 <span className="text-text-secondary font-mono">{u.uid}</span>
               </div>
@@ -612,7 +612,7 @@ function CodesTab({ getToken, passwordEntered }: { getToken: () => Promise<strin
               value={customCode}
               onChange={(e) => setCustomCode(e.target.value)}
               placeholder="Auto-generate"
-              className="w-full rounded-card bg-white/5 border border-white/10 px-3 py-2 text-sm font-mono uppercase focus:outline-none focus:border-primary/50"
+              className="w-full rounded-card bg-black/[0.03] border border-border px-3 py-2 text-sm font-mono uppercase focus:outline-none focus:border-primary/50"
             />
           </div>
           <div>
@@ -620,7 +620,7 @@ function CodesTab({ getToken, passwordEntered }: { getToken: () => Promise<strin
             <select
               value={codeType}
               onChange={(e) => setCodeType(e.target.value as "plan_grant" | "percent_off")}
-              className="w-full rounded-card bg-white/5 border border-white/10 px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
+              className="w-full rounded-card bg-black/[0.03] border border-border px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
             >
               <option value="plan_grant">Plan grant (instant free access)</option>
               <option value="percent_off">Percent off (applied at checkout)</option>
@@ -631,7 +631,7 @@ function CodesTab({ getToken, passwordEntered }: { getToken: () => Promise<strin
             <select
               value={plan}
               onChange={(e) => setPlan(e.target.value as PlanId)}
-              className="w-full rounded-card bg-white/5 border border-white/10 px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
+              className="w-full rounded-card bg-black/[0.03] border border-border px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
             >
               <option value="standard">{PLANS.standard.name}</option>
               <option value="pro">{PLANS.pro.name}</option>
@@ -645,7 +645,7 @@ function CodesTab({ getToken, passwordEntered }: { getToken: () => Promise<strin
                 min={1}
                 value={durationDays}
                 onChange={(e) => setDurationDays(Number(e.target.value))}
-                className="w-full rounded-card bg-white/5 border border-white/10 px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
+                className="w-full rounded-card bg-black/[0.03] border border-border px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
               />
             </div>
           ) : (
@@ -657,7 +657,7 @@ function CodesTab({ getToken, passwordEntered }: { getToken: () => Promise<strin
                 max={100}
                 value={percentOff}
                 onChange={(e) => setPercentOff(Number(e.target.value))}
-                className="w-full rounded-card bg-white/5 border border-white/10 px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
+                className="w-full rounded-card bg-black/[0.03] border border-border px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
               />
             </div>
           )}
@@ -668,7 +668,7 @@ function CodesTab({ getToken, passwordEntered }: { getToken: () => Promise<strin
               min={1}
               value={maxRedemptions}
               onChange={(e) => setMaxRedemptions(Number(e.target.value))}
-              className="w-full rounded-card bg-white/5 border border-white/10 px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
+              className="w-full rounded-card bg-black/[0.03] border border-border px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
             />
           </div>
           <div className="col-span-2 sm:col-span-1">
@@ -678,7 +678,7 @@ function CodesTab({ getToken, passwordEntered }: { getToken: () => Promise<strin
               value={note}
               onChange={(e) => setNote(e.target.value)}
               placeholder="e.g. YouTube giveaway"
-              className="w-full rounded-card bg-white/5 border border-white/10 px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
+              className="w-full rounded-card bg-black/[0.03] border border-border px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
             />
           </div>
         </div>
@@ -686,7 +686,7 @@ function CodesTab({ getToken, passwordEntered }: { getToken: () => Promise<strin
         <button
           onClick={createCode}
           disabled={creating}
-          className="px-4 py-2 rounded-card bg-primary text-black text-sm font-semibold disabled:opacity-50 flex items-center gap-2"
+          className="px-4 py-2 rounded-card bg-primary text-white text-sm font-semibold disabled:opacity-50 flex items-center gap-2"
         >
           {creating ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />} Create code
         </button>
@@ -704,7 +704,7 @@ function CodesTab({ getToken, passwordEntered }: { getToken: () => Promise<strin
               max={500}
               value={batchCount}
               onChange={(e) => setBatchCount(Number(e.target.value))}
-              className="w-full rounded-card bg-white/5 border border-white/10 px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
+              className="w-full rounded-card bg-black/[0.03] border border-border px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
             />
           </div>
           <div>
@@ -712,7 +712,7 @@ function CodesTab({ getToken, passwordEntered }: { getToken: () => Promise<strin
             <select
               value={batchPlan}
               onChange={(e) => setBatchPlan(e.target.value as PlanId)}
-              className="w-full rounded-card bg-white/5 border border-white/10 px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
+              className="w-full rounded-card bg-black/[0.03] border border-border px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
             >
               <option value="standard">{PLANS.standard.name}</option>
               <option value="pro">{PLANS.pro.name}</option>
@@ -725,7 +725,7 @@ function CodesTab({ getToken, passwordEntered }: { getToken: () => Promise<strin
               min={1}
               value={batchDurationDays}
               onChange={(e) => setBatchDurationDays(Number(e.target.value))}
-              className="w-full rounded-card bg-white/5 border border-white/10 px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
+              className="w-full rounded-card bg-black/[0.03] border border-border px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
             />
           </div>
           <div>
@@ -735,7 +735,7 @@ function CodesTab({ getToken, passwordEntered }: { getToken: () => Promise<strin
               value={batchNote}
               onChange={(e) => setBatchNote(e.target.value)}
               placeholder="e.g. Launch giveaway"
-              className="w-full rounded-card bg-white/5 border border-white/10 px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
+              className="w-full rounded-card bg-black/[0.03] border border-border px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
             />
           </div>
         </div>
@@ -743,17 +743,17 @@ function CodesTab({ getToken, passwordEntered }: { getToken: () => Promise<strin
         <button
           onClick={generateBatch}
           disabled={generatingBatch}
-          className="px-4 py-2 rounded-card bg-primary text-black text-sm font-semibold disabled:opacity-50 flex items-center gap-2"
+          className="px-4 py-2 rounded-card bg-primary text-white text-sm font-semibold disabled:opacity-50 flex items-center gap-2"
         >
           {generatingBatch ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />} Generate {batchCount} codes
         </button>
         {batchResult && (
-          <div className="mt-4 border-t border-white/10 pt-4">
+          <div className="mt-4 border-t border-border pt-4">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs text-text-secondary">{batchResult.length} codes generated</span>
               <button
                 onClick={() => navigator.clipboard?.writeText(batchResult!.join("\n"))}
-                className="text-xs px-2 py-1 rounded-card glass hover:border-white/20 flex items-center gap-1"
+                className="text-xs px-2 py-1 rounded-card glass hover:border-black/15 flex items-center gap-1"
               >
                 <Copy size={11} /> Copy all
               </button>
@@ -800,10 +800,10 @@ function CodesTab({ getToken, passwordEntered }: { getToken: () => Promise<strin
                 {c.note && <span>"{c.note}"</span>}
               </div>
               <div className="flex items-center gap-2">
-                <button onClick={() => toggleActive(c.code, !c.active)} className="p-2 rounded-card glass hover:border-white/20">
+                <button onClick={() => toggleActive(c.code, !c.active)} className="p-2 rounded-card glass hover:border-black/15">
                   <Power size={14} className={c.active ? "text-emerald" : "text-text-secondary"} />
                 </button>
-                <button onClick={() => removeCode(c.code)} className="p-2 rounded-card glass hover:border-white/20">
+                <button onClick={() => removeCode(c.code)} className="p-2 rounded-card glass hover:border-black/15">
                   <Trash2 size={14} className="text-rose" />
                 </button>
               </div>
@@ -893,9 +893,9 @@ function UsersTab({ getToken, passwordEntered }: { getToken: () => Promise<strin
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && fetchUsers(query)}
           placeholder="Search email or UID"
-          className="flex-1 rounded-card bg-white/5 border border-white/10 px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
+          className="flex-1 rounded-card bg-black/[0.03] border border-border px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
         />
-        <button onClick={() => fetchUsers(query)} className="px-4 py-2 rounded-card glass hover:border-white/20 flex items-center gap-2 text-sm">
+        <button onClick={() => fetchUsers(query)} className="px-4 py-2 rounded-card glass hover:border-black/15 flex items-center gap-2 text-sm">
           <Search size={14} /> Search
         </button>
       </div>
@@ -933,14 +933,14 @@ function UsersTab({ getToken, passwordEntered }: { getToken: () => Promise<strin
               )}
 
               {pendingAction?.uid === u.uid ? (
-                <div className="mt-2 space-y-2 border-t border-white/10 pt-3">
+                <div className="mt-2 space-y-2 border-t border-border pt-3">
                   {pendingAction.type === "set-plan" ? (
                     <>
                       <div className="flex gap-2">
                         <select
                           value={planDraft}
                           onChange={(e) => setPlanDraft(e.target.value as any)}
-                          className="flex-1 rounded-card bg-white/5 border border-white/10 px-3 py-2 text-xs focus:outline-none focus:border-primary/50"
+                          className="flex-1 rounded-card bg-black/[0.03] border border-border px-3 py-2 text-xs focus:outline-none focus:border-primary/50"
                         >
                           <option value="free">Free</option>
                           <option value="standard">Standard</option>
@@ -953,7 +953,7 @@ function UsersTab({ getToken, passwordEntered }: { getToken: () => Promise<strin
                             value={planDaysDraft}
                             onChange={(e) => setPlanDaysDraft(Number(e.target.value))}
                             placeholder="Days (0 = never)"
-                            className="w-40 rounded-card bg-white/5 border border-white/10 px-3 py-2 text-xs focus:outline-none focus:border-primary/50"
+                            className="w-40 rounded-card bg-black/[0.03] border border-border px-3 py-2 text-xs focus:outline-none focus:border-primary/50"
                           />
                         )}
                       </div>
@@ -966,7 +966,7 @@ function UsersTab({ getToken, passwordEntered }: { getToken: () => Promise<strin
                             })
                           }
                           disabled={actionTarget === u.uid}
-                          className="px-3 py-1.5 rounded-card bg-primary text-black text-xs font-semibold disabled:opacity-50"
+                          className="px-3 py-1.5 rounded-card bg-primary text-white text-xs font-semibold disabled:opacity-50"
                         >
                           {actionTarget === u.uid ? <Loader2 size={12} className="animate-spin" /> : "Apply"}
                         </button>
@@ -982,14 +982,14 @@ function UsersTab({ getToken, passwordEntered }: { getToken: () => Promise<strin
                         value={reasonDraft}
                         onChange={(e) => setReasonDraft(e.target.value)}
                         placeholder="Reason (shown to the user)"
-                        className="w-full rounded-card bg-white/5 border border-white/10 px-3 py-2 text-xs focus:outline-none focus:border-primary/50"
+                        className="w-full rounded-card bg-black/[0.03] border border-border px-3 py-2 text-xs focus:outline-none focus:border-primary/50"
                       />
                       {pendingAction.type === "suspend" && (
                         <input
                           type="date"
                           value={untilDraft}
                           onChange={(e) => setUntilDraft(e.target.value)}
-                          className="w-full rounded-card bg-white/5 border border-white/10 px-3 py-2 text-xs focus:outline-none focus:border-primary/50"
+                          className="w-full rounded-card bg-black/[0.03] border border-border px-3 py-2 text-xs focus:outline-none focus:border-primary/50"
                         />
                       )}
                       <div className="flex gap-2">
@@ -1001,7 +1001,7 @@ function UsersTab({ getToken, passwordEntered }: { getToken: () => Promise<strin
                             })
                           }
                           disabled={actionTarget === u.uid || (pendingAction.type === "suspend" && !untilDraft)}
-                          className="px-3 py-1.5 rounded-card bg-rose text-black text-xs font-semibold disabled:opacity-50"
+                          className="px-3 py-1.5 rounded-card bg-rose text-white text-xs font-semibold disabled:opacity-50"
                         >
                           {actionTarget === u.uid ? <Loader2 size={12} className="animate-spin" /> : "Confirm"}
                         </button>
@@ -1157,7 +1157,7 @@ function AuditsTab({ getToken, passwordEntered }: { getToken: () => Promise<stri
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && fetchAudits(query, status)}
           placeholder="Search URL, email, or UID"
-          className="flex-1 min-w-[200px] rounded-card bg-white/5 border border-white/10 px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
+          className="flex-1 min-w-[200px] rounded-card bg-black/[0.03] border border-border px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
         />
         <select
           value={status}
@@ -1166,13 +1166,13 @@ function AuditsTab({ getToken, passwordEntered }: { getToken: () => Promise<stri
             setStatus(v);
             fetchAudits(query, v);
           }}
-          className="rounded-card bg-white/5 border border-white/10 px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
+          className="rounded-card bg-black/[0.03] border border-border px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
         >
           <option value="">All statuses</option>
           <option value="success">Success</option>
           <option value="failed">Failed</option>
         </select>
-        <button onClick={() => fetchAudits(query, status)} className="px-4 py-2 rounded-card glass hover:border-white/20 flex items-center gap-2 text-sm">
+        <button onClick={() => fetchAudits(query, status)} className="px-4 py-2 rounded-card glass hover:border-black/15 flex items-center gap-2 text-sm">
           <Search size={14} /> Search
         </button>
       </div>
@@ -1298,7 +1298,7 @@ function AnnouncementTab({ getToken, passwordEntered }: { getToken: () => Promis
         maxLength={280}
         rows={3}
         placeholder="e.g. Scheduled maintenance tonight 11pm–1am UTC."
-        className="w-full rounded-card bg-white/5 border border-white/10 px-3 py-2 text-sm mb-1 focus:outline-none focus:border-primary/50 resize-none"
+        className="w-full rounded-card bg-black/[0.03] border border-border px-3 py-2 text-sm mb-1 focus:outline-none focus:border-primary/50 resize-none"
       />
       <p className="text-xs text-text-secondary/60 mb-4">{message.length}/280</p>
 
@@ -1306,7 +1306,7 @@ function AnnouncementTab({ getToken, passwordEntered }: { getToken: () => Promis
       <select
         value={level}
         onChange={(e) => setLevel(e.target.value as "info" | "warning")}
-        className="w-full rounded-card bg-white/5 border border-white/10 px-3 py-2 text-sm mb-4 focus:outline-none focus:border-primary/50"
+        className="w-full rounded-card bg-black/[0.03] border border-border px-3 py-2 text-sm mb-4 focus:outline-none focus:border-primary/50"
       >
         <option value="info">Info (brand color)</option>
         <option value="warning">Warning (amber)</option>
@@ -1319,7 +1319,7 @@ function AnnouncementTab({ getToken, passwordEntered }: { getToken: () => Promis
         <button
           onClick={() => save(true)}
           disabled={saving || !message.trim()}
-          className="flex-1 py-2 rounded-card bg-primary text-black text-sm font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
+          className="flex-1 py-2 rounded-card bg-primary text-white text-sm font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
         >
           {saving ? <Loader2 size={14} className="animate-spin" /> : active ? "Update & keep live" : "Publish"}
         </button>

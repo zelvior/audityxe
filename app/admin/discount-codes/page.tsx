@@ -268,14 +268,14 @@ export default function AdminDiscountCodesPage() {
               onKeyDown={(e) => e.key === "Enter" && submitPassword()}
               placeholder="Password"
               autoFocus
-              className="w-full rounded-card bg-white/5 border border-white/10 px-3 py-2 text-sm mb-3 focus:outline-none focus:border-primary/50"
+              className="w-full rounded-card bg-black/[0.03] border border-border px-3 py-2 text-sm mb-3 focus:outline-none focus:border-primary/50"
               disabled={checkingPassword}
             />
             {passwordError && <p className="text-xs text-rose mb-3">{passwordError}</p>}
             <button
               onClick={submitPassword}
               disabled={checkingPassword || !adminPassword.trim()}
-              className="w-full py-2 rounded-card bg-primary text-black text-sm font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
+              className="w-full py-2 rounded-card bg-primary text-white text-sm font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {checkingPassword ? <Loader2 size={14} className="animate-spin" /> : "Continue"}
             </button>
@@ -290,7 +290,7 @@ export default function AdminDiscountCodesPage() {
     <>
       <Header />
       <main className="min-h-screen pt-28 pb-20 px-4 max-w-3xl mx-auto">
-        <Link href="/account" className="inline-flex items-center gap-2 text-sm text-text-secondary hover:text-white mb-6">
+        <Link href="/account" className="inline-flex items-center gap-2 text-sm text-text-secondary hover:text-text-primary mb-6">
           <ArrowLeft size={16} /> Back to account
         </Link>
 
@@ -311,7 +311,7 @@ export default function AdminDiscountCodesPage() {
                 value={customCode}
                 onChange={(e) => setCustomCode(e.target.value)}
                 placeholder="Auto-generate"
-                className="w-full rounded-card bg-white/5 border border-white/10 px-3 py-2 text-sm font-mono uppercase focus:outline-none focus:border-primary/50"
+                className="w-full rounded-card bg-black/[0.03] border border-border px-3 py-2 text-sm font-mono uppercase focus:outline-none focus:border-primary/50"
               />
             </div>
             <div>
@@ -319,7 +319,7 @@ export default function AdminDiscountCodesPage() {
               <select
                 value={codeType}
                 onChange={(e) => setCodeType(e.target.value as "plan_grant" | "percent_off")}
-                className="w-full rounded-card bg-white/5 border border-white/10 px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
+                className="w-full rounded-card bg-black/[0.03] border border-border px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
               >
                 <option value="plan_grant">Plan grant (instant free access)</option>
                 <option value="percent_off">Percent off (applied at checkout)</option>
@@ -330,7 +330,7 @@ export default function AdminDiscountCodesPage() {
               <select
                 value={plan}
                 onChange={(e) => setPlan(e.target.value as PlanId)}
-                className="w-full rounded-card bg-white/5 border border-white/10 px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
+                className="w-full rounded-card bg-black/[0.03] border border-border px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
               >
                 <option value="standard">{PLANS.standard.name}</option>
                 <option value="pro">{PLANS.pro.name}</option>
@@ -344,7 +344,7 @@ export default function AdminDiscountCodesPage() {
                   min={1}
                   value={durationDays}
                   onChange={(e) => setDurationDays(Number(e.target.value))}
-                  className="w-full rounded-card bg-white/5 border border-white/10 px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
+                  className="w-full rounded-card bg-black/[0.03] border border-border px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
                 />
               </div>
             ) : (
@@ -356,7 +356,7 @@ export default function AdminDiscountCodesPage() {
                   max={100}
                   value={percentOff}
                   onChange={(e) => setPercentOff(Number(e.target.value))}
-                  className="w-full rounded-card bg-white/5 border border-white/10 px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
+                  className="w-full rounded-card bg-black/[0.03] border border-border px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
                 />
               </div>
             )}
@@ -367,7 +367,7 @@ export default function AdminDiscountCodesPage() {
                 min={1}
                 value={maxRedemptions}
                 onChange={(e) => setMaxRedemptions(Number(e.target.value))}
-                className="w-full rounded-card bg-white/5 border border-white/10 px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
+                className="w-full rounded-card bg-black/[0.03] border border-border px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
               />
             </div>
             <div className="col-span-2 sm:col-span-1">
@@ -377,7 +377,7 @@ export default function AdminDiscountCodesPage() {
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 placeholder="e.g. YouTube giveaway"
-                className="w-full rounded-card bg-white/5 border border-white/10 px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
+                className="w-full rounded-card bg-black/[0.03] border border-border px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
               />
             </div>
           </div>
@@ -385,7 +385,7 @@ export default function AdminDiscountCodesPage() {
           <button
             onClick={createCode}
             disabled={creating}
-            className="px-4 py-2 rounded-card bg-primary text-black text-sm font-semibold disabled:opacity-50 flex items-center gap-2"
+            className="px-4 py-2 rounded-card bg-primary text-white text-sm font-semibold disabled:opacity-50 flex items-center gap-2"
           >
             {creating ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />} Create code
           </button>
@@ -405,7 +405,7 @@ export default function AdminDiscountCodesPage() {
                 max={500}
                 value={batchCount}
                 onChange={(e) => setBatchCount(Number(e.target.value))}
-                className="w-full rounded-card bg-white/5 border border-white/10 px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
+                className="w-full rounded-card bg-black/[0.03] border border-border px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
               />
             </div>
             <div>
@@ -413,7 +413,7 @@ export default function AdminDiscountCodesPage() {
               <select
                 value={batchPlan}
                 onChange={(e) => setBatchPlan(e.target.value as PlanId)}
-                className="w-full rounded-card bg-white/5 border border-white/10 px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
+                className="w-full rounded-card bg-black/[0.03] border border-border px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
               >
                 <option value="standard">{PLANS.standard.name}</option>
                 <option value="pro">{PLANS.pro.name}</option>
@@ -426,7 +426,7 @@ export default function AdminDiscountCodesPage() {
                 min={1}
                 value={batchDurationDays}
                 onChange={(e) => setBatchDurationDays(Number(e.target.value))}
-                className="w-full rounded-card bg-white/5 border border-white/10 px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
+                className="w-full rounded-card bg-black/[0.03] border border-border px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
               />
             </div>
             <div>
@@ -436,7 +436,7 @@ export default function AdminDiscountCodesPage() {
                 value={batchNote}
                 onChange={(e) => setBatchNote(e.target.value)}
                 placeholder="e.g. Launch giveaway"
-                className="w-full rounded-card bg-white/5 border border-white/10 px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
+                className="w-full rounded-card bg-black/[0.03] border border-border px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
               />
             </div>
           </div>
@@ -444,18 +444,18 @@ export default function AdminDiscountCodesPage() {
           <button
             onClick={generateBatch}
             disabled={generatingBatch}
-            className="px-4 py-2 rounded-card bg-primary text-black text-sm font-semibold disabled:opacity-50 flex items-center gap-2"
+            className="px-4 py-2 rounded-card bg-primary text-white text-sm font-semibold disabled:opacity-50 flex items-center gap-2"
           >
             {generatingBatch ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />} Generate {batchCount} codes
           </button>
 
           {batchResult && (
-            <div className="mt-4 border-t border-white/10 pt-4">
+            <div className="mt-4 border-t border-border pt-4">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs text-text-secondary">{batchResult.length} codes generated</span>
                 <button
                   onClick={() => navigator.clipboard?.writeText(batchResult.join("\n"))}
-                  className="text-xs px-2 py-1 rounded-card glass hover:border-white/20 flex items-center gap-1"
+                  className="text-xs px-2 py-1 rounded-card glass hover:border-black/15 flex items-center gap-1"
                 >
                   <Copy size={11} /> Copy all
                 </button>
@@ -508,14 +508,14 @@ export default function AdminDiscountCodesPage() {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => toggleActive(c.code, !c.active)}
-                    className="p-2 rounded-card glass hover:border-white/20"
+                    className="p-2 rounded-card glass hover:border-black/15"
                     title={c.active ? "Disable" : "Enable"}
                   >
                     <Power size={14} className={c.active ? "text-emerald" : "text-text-secondary"} />
                   </button>
                   <button
                     onClick={() => removeCode(c.code)}
-                    className="p-2 rounded-card glass hover:border-white/20"
+                    className="p-2 rounded-card glass hover:border-black/15"
                     title="Delete"
                   >
                     <Trash2 size={14} className="text-rose" />

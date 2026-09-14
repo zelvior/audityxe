@@ -9,7 +9,7 @@ import { Eye, EyeOff } from "lucide-react";
  * over it), so pass the same classes you'd give a plain input.
  *
  * Two bugs fixed here:
- * 1. The toggle used `hover:text-white` — a hardcoded color that broke
+ * 1. The toggle used `hover:text-text-primary` — a hardcoded color that broke
  *    under the Paper Light theme (a white icon on a near-white
  *    background is effectively invisible on hover). Swapped for the
  *    theme-token `hover:text-primary`, which resolves correctly no

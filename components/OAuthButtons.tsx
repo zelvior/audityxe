@@ -40,7 +40,7 @@ export default function OAuthButtons({
         type="button"
         onClick={onGoogle}
         disabled={disabled}
-        className="flex items-center justify-center gap-2 py-2.5 rounded-card glass text-sm font-medium hover:border-white/20 transition disabled:opacity-50"
+        className="flex items-center justify-center gap-2 py-2.5 rounded-card glass text-sm font-medium hover:border-black/15 transition disabled:opacity-50"
       >
         <GoogleIcon />
         Google
@@ -49,7 +49,7 @@ export default function OAuthButtons({
         type="button"
         onClick={onGithub}
         disabled={disabled}
-        className="flex items-center justify-center gap-2 py-2.5 rounded-card glass text-sm font-medium hover:border-white/20 transition disabled:opacity-50"
+        className="flex items-center justify-center gap-2 py-2.5 rounded-card glass text-sm font-medium hover:border-black/15 transition disabled:opacity-50"
       >
         <Github size={16} />
         GitHub

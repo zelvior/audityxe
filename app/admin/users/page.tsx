@@ -181,14 +181,14 @@ export default function AdminUsersPage() {
               onKeyDown={(e) => e.key === "Enter" && submitPassword()}
               placeholder="Password"
               autoFocus
-              className="w-full rounded-card bg-white/5 border border-white/10 px-3 py-2 text-sm mb-3 focus:outline-none focus:border-primary/50"
+              className="w-full rounded-card bg-black/[0.03] border border-border px-3 py-2 text-sm mb-3 focus:outline-none focus:border-primary/50"
               disabled={checkingPassword}
             />
             {passwordError && <p className="text-xs text-rose mb-3">{passwordError}</p>}
             <button
               onClick={submitPassword}
               disabled={checkingPassword || !adminPassword.trim()}
-              className="w-full py-2 rounded-card bg-primary text-black text-sm font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
+              className="w-full py-2 rounded-card bg-primary text-white text-sm font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {checkingPassword ? <Loader2 size={14} className="animate-spin" /> : "Continue"}
             </button>
@@ -203,7 +203,7 @@ export default function AdminUsersPage() {
     <>
       <Header />
       <main className="min-h-screen pt-28 pb-20 px-4 max-w-3xl mx-auto">
-        <Link href="/account" className="inline-flex items-center gap-2 text-sm text-text-secondary hover:text-white mb-6">
+        <Link href="/account" className="inline-flex items-center gap-2 text-sm text-text-secondary hover:text-text-primary mb-6">
           <ArrowLeft size={16} /> Back to account
         </Link>
 
@@ -219,9 +219,9 @@ export default function AdminUsersPage() {
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && runSearch()}
             placeholder="Search email or UID"
-            className="flex-1 rounded-card bg-white/5 border border-white/10 px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
+            className="flex-1 rounded-card bg-black/[0.03] border border-border px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
           />
-          <button onClick={runSearch} className="px-4 py-2 rounded-card glass hover:border-white/20 flex items-center gap-2 text-sm">
+          <button onClick={runSearch} className="px-4 py-2 rounded-card glass hover:border-black/15 flex items-center gap-2 text-sm">
             <Search size={14} /> Search
           </button>
         </div>
@@ -263,14 +263,14 @@ export default function AdminUsersPage() {
                 )}
 
                 {pendingAction?.uid === u.uid ? (
-                  <div className="mt-2 space-y-2 border-t border-white/10 pt-3">
+                  <div className="mt-2 space-y-2 border-t border-border pt-3">
                     {pendingAction.type === "set-plan" ? (
                       <>
                         <div className="flex gap-2">
                           <select
                             value={planDraft}
                             onChange={(e) => setPlanDraft(e.target.value as any)}
-                            className="flex-1 rounded-card bg-white/5 border border-white/10 px-3 py-2 text-xs focus:outline-none focus:border-primary/50"
+                            className="flex-1 rounded-card bg-black/[0.03] border border-border px-3 py-2 text-xs focus:outline-none focus:border-primary/50"
                           >
                             <option value="free">Free</option>
                             <option value="standard">Standard</option>
@@ -283,7 +283,7 @@ export default function AdminUsersPage() {
                               value={planDaysDraft}
                               onChange={(e) => setPlanDaysDraft(Number(e.target.value))}
                               placeholder="Days (0 = never expires)"
-                              className="w-40 rounded-card bg-white/5 border border-white/10 px-3 py-2 text-xs focus:outline-none focus:border-primary/50"
+                              className="w-40 rounded-card bg-black/[0.03] border border-border px-3 py-2 text-xs focus:outline-none focus:border-primary/50"
                             />
                           )}
                         </div>
@@ -299,7 +299,7 @@ export default function AdminUsersPage() {
                               })
                             }
                             disabled={actionTarget === u.uid}
-                            className="px-3 py-1.5 rounded-card bg-primary text-black text-xs font-semibold disabled:opacity-50"
+                            className="px-3 py-1.5 rounded-card bg-primary text-white text-xs font-semibold disabled:opacity-50"
                           >
                             {actionTarget === u.uid ? <Loader2 size={12} className="animate-spin" /> : "Apply"}
                           </button>
@@ -315,14 +315,14 @@ export default function AdminUsersPage() {
                           value={reasonDraft}
                           onChange={(e) => setReasonDraft(e.target.value)}
                           placeholder="Reason (shown to the user)"
-                          className="w-full rounded-card bg-white/5 border border-white/10 px-3 py-2 text-xs focus:outline-none focus:border-primary/50"
+                          className="w-full rounded-card bg-black/[0.03] border border-border px-3 py-2 text-xs focus:outline-none focus:border-primary/50"
                         />
                         {pendingAction.type === "suspend" && (
                           <input
                             type="date"
                             value={untilDraft}
                             onChange={(e) => setUntilDraft(e.target.value)}
-                            className="w-full rounded-card bg-white/5 border border-white/10 px-3 py-2 text-xs focus:outline-none focus:border-primary/50"
+                            className="w-full rounded-card bg-black/[0.03] border border-border px-3 py-2 text-xs focus:outline-none focus:border-primary/50"
                           />
                         )}
                         <div className="flex gap-2">
@@ -334,7 +334,7 @@ export default function AdminUsersPage() {
                               })
                             }
                             disabled={actionTarget === u.uid || (pendingAction.type === "suspend" && !untilDraft)}
-                            className="px-3 py-1.5 rounded-card bg-rose text-black text-xs font-semibold disabled:opacity-50"
+                            className="px-3 py-1.5 rounded-card bg-rose text-white text-xs font-semibold disabled:opacity-50"
                           >
                             {actionTarget === u.uid ? <Loader2 size={12} className="animate-spin" /> : "Confirm"}
                           </button>

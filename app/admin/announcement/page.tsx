@@ -14,6 +14,24 @@ interface Announcement {
   active: boolean;
   message: string;
   level: "info" | "warning";
+  startsAt: string | null;
+  endsAt: string | null;
+}
+
+/** <input type="datetime-local"> works in local time with no timezone
+ * suffix; Firestore/the API store ISO UTC. These convert between the
+ * two without pulling in a date library for two one-line conversions. */
+function isoToLocalInputValue(iso: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+function localInputValueToIso(v: string): string | null {
+  if (!v) return null;
+  const d = new Date(v);
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
 }
 
 export default function AdminAnnouncementPage() {
@@ -30,6 +48,8 @@ export default function AdminAnnouncementPage() {
   const [message, setMessage] = useState("");
   const [level, setLevel] = useState<"info" | "warning">("info");
   const [active, setActive] = useState(false);
+  const [startsAt, setStartsAt] = useState(""); // datetime-local string, local time
+  const [endsAt, setEndsAt] = useState("");
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [saved, setSaved] = useState(false);
@@ -76,6 +96,8 @@ export default function AdminAnnouncementPage() {
         setMessage(data.announcement.message);
         setLevel(data.announcement.level);
         setActive(data.announcement.active);
+        setStartsAt(isoToLocalInputValue(data.announcement.startsAt));
+        setEndsAt(isoToLocalInputValue(data.announcement.endsAt));
       } catch (err) {
         setPasswordError(err instanceof Error ? err.message : "Something went wrong.");
       } finally {
@@ -107,7 +129,13 @@ export default function AdminAnnouncementPage() {
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
             "x-admin-password": passwordEntered,
           },
-          body: JSON.stringify({ message, level, active: nextActive }),
+          body: JSON.stringify({
+            message,
+            level,
+            active: nextActive,
+            startsAt: localInputValueToIso(startsAt),
+            endsAt: localInputValueToIso(endsAt),
+          }),
         });
         if (!ok) throw new Error(error || "Failed to save.");
         setActive(nextActive);
@@ -119,7 +147,7 @@ export default function AdminAnnouncementPage() {
         setSaving(false);
       }
     },
-    [getToken, passwordEntered, message, level]
+    [getToken, passwordEntered, message, level, startsAt, endsAt]
   );
 
   if (loading || !user) {
@@ -155,14 +183,14 @@ export default function AdminAnnouncementPage() {
               onKeyDown={(e) => e.key === "Enter" && submitPassword()}
               placeholder="Password"
               autoFocus
-              className="w-full rounded-card bg-white/5 border border-white/10 px-3 py-2 text-sm mb-3 focus:outline-none focus:border-primary/50"
+              className="w-full rounded-card bg-black/[0.03] border border-border px-3 py-2 text-sm mb-3 focus:outline-none focus:border-primary/50"
               disabled={checkingPassword}
             />
             {passwordError && <p className="text-xs text-rose mb-3">{passwordError}</p>}
             <button
               onClick={submitPassword}
               disabled={checkingPassword || !adminPassword.trim()}
-              className="w-full py-2 rounded-card bg-primary text-black text-sm font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
+              className="w-full py-2 rounded-card bg-primary text-white text-sm font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {checkingPassword ? <Loader2 size={14} className="animate-spin" /> : "Continue"}
             </button>
@@ -177,7 +205,7 @@ export default function AdminAnnouncementPage() {
     <>
       <Header />
       <main className="min-h-screen pt-28 pb-20 px-4 max-w-2xl mx-auto">
-        <Link href="/account" className="inline-flex items-center gap-2 text-sm text-text-secondary hover:text-white mb-6">
+        <Link href="/account" className="inline-flex items-center gap-2 text-sm text-text-secondary hover:text-text-primary mb-6">
           <ArrowLeft size={16} /> Back to account
         </Link>
 
@@ -196,7 +224,7 @@ export default function AdminAnnouncementPage() {
             maxLength={280}
             rows={3}
             placeholder="e.g. Scheduled maintenance tonight 11pm–1am UTC — audits may be briefly unavailable."
-            className="w-full rounded-card bg-white/5 border border-white/10 px-3 py-2 text-sm mb-1 focus:outline-none focus:border-primary/50 resize-none"
+            className="w-full rounded-card bg-black/[0.03] border border-border px-3 py-2 text-sm mb-1 focus:outline-none focus:border-primary/50 resize-none"
           />
           <p className="text-xs text-text-secondary/60 mb-4">{message.length}/280</p>
 
@@ -204,11 +232,58 @@ export default function AdminAnnouncementPage() {
           <select
             value={level}
             onChange={(e) => setLevel(e.target.value as "info" | "warning")}
-            className="w-full rounded-card bg-white/5 border border-white/10 px-3 py-2 text-sm mb-4 focus:outline-none focus:border-primary/50"
+            className="w-full rounded-card bg-black/[0.03] border border-border px-3 py-2 text-sm mb-4 focus:outline-none focus:border-primary/50"
           >
             <option value="info">Info (brand color)</option>
             <option value="warning">Warning (amber)</option>
           </select>
+
+          <label className="text-xs text-text-secondary block mb-1">Schedule (optional)</label>
+          <p className="text-xs text-text-secondary/70 mb-2">
+            Leave either blank for no limit. Times are your local timezone — converted to UTC on save.
+            The banner only shows while <span className="font-medium">Active</span> is on <em>and</em> the current
+            time falls inside this window.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-1">
+            <div>
+              <span className="text-[11px] text-text-secondary/70 block mb-1">Starts showing</span>
+              <input
+                type="datetime-local"
+                value={startsAt}
+                onChange={(e) => setStartsAt(e.target.value)}
+                className="w-full rounded-card bg-black/[0.03] border border-border px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
+              />
+            </div>
+            <div>
+              <span className="text-[11px] text-text-secondary/70 block mb-1">Stops showing</span>
+              <input
+                type="datetime-local"
+                value={endsAt}
+                onChange={(e) => setEndsAt(e.target.value)}
+                className="w-full rounded-card bg-black/[0.03] border border-border px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
+              />
+            </div>
+          </div>
+          {(() => {
+            const s = localInputValueToIso(startsAt);
+            const e = localInputValueToIso(endsAt);
+            if (s && e && new Date(e) <= new Date(s)) {
+              return <p className="text-xs text-rose mb-4">Stop time must be after the start time.</p>;
+            }
+            const now = new Date();
+            const notYetStarted = s && now < new Date(s);
+            const alreadyEnded = e && now >= new Date(e);
+            if (active && (notYetStarted || alreadyEnded)) {
+              return (
+                <p className="text-xs text-amber mb-4">
+                  {notYetStarted
+                    ? `Active, but scheduled to start ${new Date(s!).toLocaleString()} — not visible to visitors yet.`
+                    : `Active, but the schedule already ended ${new Date(e!).toLocaleString()} — no longer visible to visitors.`}
+                </p>
+              );
+            }
+            return <div className="mb-4" />;
+          })()}
 
           {saveError && <p className="text-xs text-rose mb-3">{saveError}</p>}
           {saved && <p className="text-xs text-emerald mb-3">Saved.</p>}
@@ -217,7 +292,7 @@ export default function AdminAnnouncementPage() {
             <button
               onClick={() => save(true)}
               disabled={saving || !message.trim()}
-              className="flex-1 py-2 rounded-card bg-primary text-black text-sm font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
+              className="flex-1 py-2 rounded-card bg-primary text-white text-sm font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {saving ? <Loader2 size={14} className="animate-spin" /> : active ? "Update & keep live" : "Publish"}
             </button>

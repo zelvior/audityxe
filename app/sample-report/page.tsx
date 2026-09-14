@@ -62,7 +62,7 @@ export default async function SampleReportPage() {
           <div className="glass rounded-card p-5 sm:p-6 mb-6">
             <p className="text-xs font-mono text-primary mb-2">REAL, LIVE SAMPLE — NOT A MOCKUP</p>
             <h1 className="font-display font-bold text-2xl sm:text-3xl tracking-tight mb-2">
-              This is an actual Audityxe audit of {SAMPLE_TARGET}
+              This is an <span className="hand-highlight">actual</span> Audityxe audit of {SAMPLE_TARGET}
             </h1>
             <p className="text-sm text-text-secondary">
               Every number below was measured live from {SAMPLE_TARGET}'s real HTML and HTTP

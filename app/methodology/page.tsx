@@ -44,7 +44,7 @@ export default function MethodologyPage() {
 
           <p className="text-xs font-mono text-text-secondary mb-3">METHODOLOGY</p>
           <h1 className="font-display font-bold text-3xl sm:text-4xl tracking-tight mb-4">
-            How Audityxe actually measures a site
+            How Audityxe <span className="hand-underline hand-underline--alt">actually measures</span> a site
           </h1>
           <p className="text-text-secondary text-sm sm:text-base mb-10">
             No black box. Here's exactly what happens between you pasting a URL and getting a

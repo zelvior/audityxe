@@ -46,7 +46,7 @@ export default function ModerationGuard() {
         <p className="text-sm text-text-secondary mb-4">{alertMessage}</p>
         <button
           onClick={() => (window.location.href = "/")}
-          className="px-4 py-2 rounded-card bg-primary text-black text-sm font-semibold"
+          className="px-4 py-2 rounded-card bg-primary text-white text-sm font-semibold"
         >
           Return to homepage
         </button>

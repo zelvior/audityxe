@@ -13,7 +13,7 @@ export default function CompetitorBattle({ result }: { result: AuditResult }) {
     <section className="px-4 sm:px-6 py-6 sm:py-10">
       <div className="max-w-4xl mx-auto">
         <h2 className="font-display font-semibold text-xl sm:text-2xl mb-1 flex items-center gap-2">
-          <Swords size={18} className="text-accent shrink-0" /> Head-to-Head Battle
+          <Swords size={18} className="text-accent shrink-0" /> <span className="hand-underline">Head-to-Head</span> Battle
         </h2>
         <p className="text-text-secondary text-xs sm:text-sm mb-5 sm:mb-6 break-words">
           {result.url} vs {competitor.url}

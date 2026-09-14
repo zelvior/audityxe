@@ -145,7 +145,7 @@ function VerifyEmailContent() {
                 <button
                   onClick={handleResend}
                   disabled={sending || sent}
-                  className="flex items-center justify-center gap-2 py-3 px-4 rounded-card glass text-sm font-medium hover:border-white/20 transition disabled:opacity-50"
+                  className="flex items-center justify-center gap-2 py-3 px-4 rounded-card glass text-sm font-medium hover:border-black/15 transition disabled:opacity-50"
                 >
                   <Send size={14} />
                   {sent ? "Sent" : sending ? "Sending…" : "Resend"}

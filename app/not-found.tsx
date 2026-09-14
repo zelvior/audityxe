@@ -23,7 +23,7 @@ export default function NotFound() {
           </p>
           <Link
             href="/"
-            className="inline-flex items-center gap-2 px-5 py-3 rounded-btn bg-secondary text-text-primary font-semibold text-sm hover:brightness-110 transition"
+            className="inline-flex items-center gap-2 px-5 py-3 rounded-btn bg-secondary text-white font-semibold text-sm hover:brightness-110 transition"
           >
             <ArrowLeft size={16} />
             Back to Audityxe

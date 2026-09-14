@@ -61,7 +61,7 @@ export default function NotFoundGame() {
             </p>
             <button
               onClick={start}
-              className="px-4 py-2 rounded-btn bg-secondary text-text-primary text-sm font-semibold hover:brightness-110 transition"
+              className="px-4 py-2 rounded-btn bg-secondary text-white text-sm font-semibold hover:brightness-110 transition"
             >
               {over ? "Play again" : "Catch the 200"}
             </button>

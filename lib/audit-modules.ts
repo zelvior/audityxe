@@ -184,7 +184,7 @@ export function buildLighthouseModule(pageSpeed: PageSpeedSummary): AuditModule 
 
   return makeModule(
     "lighthouse",
-    "Lighthouse (Real Browser)",
+    "Lighthouse Audit",
     "Real browser-rendered performance, accessibility, best-practices, and SEO scores from a live Google PageSpeed Insights run — distinct from this audit's own deterministic checks.",
     findings
   );
@@ -1207,86 +1207,6 @@ export function buildAuditModules(ctx: ModuleContext): AuditModule[] {
       ]
     )
   );
-
-  /* 17. Real browser-rendered audit (PageSpeed Insights / Lighthouse) ── */
-  if (pageSpeed.fetched) {
-    const cwv = pageSpeed.coreWebVitals;
-    modules.push(
-      makeModule(
-        "browser-audit",
-        "Browser-Rendered Audit",
-        "Measured by actually rendering this page in real Chrome and running a full audit \u2014 not estimated from HTML alone.",
-        [
-          pageSpeed.performanceScore !== null
-            ? (pageSpeed.performanceScore >= 90 ? pass : pageSpeed.performanceScore >= 50 ? warn : fail)(
-                "Rendered performance score",
-                `${pageSpeed.performanceScore}/100.`,
-                `Real Chrome rendered this page end-to-end and scored it ${pageSpeed.performanceScore}/100 on performance.`
-              )
-            : warn("Rendered performance score", "Could not be measured for this run."),
-          pageSpeed.accessibilityScore !== null
-            ? (pageSpeed.accessibilityScore >= 90 ? pass : pageSpeed.accessibilityScore >= 50 ? warn : fail)(
-                "Rendered accessibility score",
-                `${pageSpeed.accessibilityScore}/100.`,
-                `Real Chrome ran a full accessibility audit (contrast, ARIA, labels, focus order) against the rendered page and scored ${pageSpeed.accessibilityScore}/100.`
-              )
-            : warn("Rendered accessibility score", "Could not be measured for this run."),
-          pageSpeed.bestPracticesScore !== null
-            ? (pageSpeed.bestPracticesScore >= 90 ? pass : pageSpeed.bestPracticesScore >= 50 ? warn : fail)(
-                "Best practices score",
-                `${pageSpeed.bestPracticesScore}/100.`
-              )
-            : warn("Best practices score", "Could not be measured for this run."),
-          cwv.lcpMs !== null
-            ? (cwv.lcpMs <= 2500 ? pass : cwv.lcpMs <= 4000 ? warn : fail)(
-                "Largest Contentful Paint",
-                `${(cwv.lcpMs / 1000).toFixed(1)}s (target: under 2.5s).`,
-                `Measured the actual time for the largest visible element to render in a real browser: ${cwv.lcpMs}ms.`
-              )
-            : warn("Largest Contentful Paint", "Not measured."),
-          cwv.clsScore !== null
-            ? (cwv.clsScore <= 0.1 ? pass : cwv.clsScore <= 0.25 ? warn : fail)(
-                "Cumulative Layout Shift",
-                `${cwv.clsScore.toFixed(3)} (target: under 0.1).`,
-                `Measured actual visual instability during page load in a real browser: a CLS score of ${cwv.clsScore.toFixed(3)}.`
-              )
-            : warn("Cumulative Layout Shift", "Not measured."),
-          cwv.tbtMs !== null
-            ? (cwv.tbtMs <= 200 ? pass : cwv.tbtMs <= 600 ? warn : fail)(
-                "Total Blocking Time",
-                `${cwv.tbtMs}ms (target: under 200ms).`,
-                `Measured actual main-thread blocking time between first paint and interactivity in a real browser: ${cwv.tbtMs}ms.`
-              )
-            : warn("Total Blocking Time", "Not measured."),
-          ...(pageSpeed.fieldData?.available
-            ? [
-                pass(
-                  "Real-world Core Web Vitals (field data)",
-                  `From actual Chrome users over the past 28 days (${pageSpeed.fieldData.scope}-level, CrUX): overall ${pageSpeed.fieldData.overallCategory ?? "unrated"}` +
-                    (pageSpeed.fieldData.lcpMs !== null ? `, LCP ${(pageSpeed.fieldData.lcpMs / 1000).toFixed(1)}s` : "") +
-                    (pageSpeed.fieldData.inpMs !== null ? `, INP ${pageSpeed.fieldData.inpMs}ms` : "") +
-                    (pageSpeed.fieldData.clsScore !== null ? `, CLS ${pageSpeed.fieldData.clsScore.toFixed(3)}` : "") +
-                    ". This is what real visitors actually experienced, not a single simulated lab run \u2014 treat it as the higher-confidence number if it diverges from the lab metrics above.",
-                  undefined,
-                  "high"
-                ),
-              ]
-            : [
-                warn(
-                  "Real-world Core Web Vitals (field data)",
-                  "No CrUX field data is available for this origin (not enough real Chrome traffic for Google to report on) \u2014 the lab metrics above are the best available signal, but they reflect one simulated run, not real visitors.",
-                  undefined,
-                  "low",
-                  "medium"
-                ),
-              ]),
-          ...(pageSpeed.topIssues.slice(0, 4).map((issue) =>
-            warn(issue.title, issue.description.slice(0, 200), `Flagged by a real browser-rendered audit (check id: ${issue.id}).`)
-          )),
-        ]
-      )
-    );
-  }
 
   /* 18. Multi-page crawl: internal link graph, orphan pages, extended
    * broken-link coverage, and a JS-rendered-content caveat ─────────── */

@@ -136,14 +136,14 @@ export default function AdminActivityPage() {
               onKeyDown={(e) => e.key === "Enter" && submitPassword()}
               placeholder="Password"
               autoFocus
-              className="w-full rounded-card bg-white/5 border border-white/10 px-3 py-2 text-sm mb-3 focus:outline-none focus:border-primary/50"
+              className="w-full rounded-card bg-black/[0.03] border border-border px-3 py-2 text-sm mb-3 focus:outline-none focus:border-primary/50"
               disabled={checkingPassword}
             />
             {passwordError && <p className="text-xs text-rose mb-3">{passwordError}</p>}
             <button
               onClick={submitPassword}
               disabled={checkingPassword || !adminPassword.trim()}
-              className="w-full py-2 rounded-card bg-primary text-black text-sm font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
+              className="w-full py-2 rounded-card bg-primary text-white text-sm font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {checkingPassword ? <Loader2 size={14} className="animate-spin" /> : "Continue"}
             </button>
@@ -158,7 +158,7 @@ export default function AdminActivityPage() {
     <>
       <Header />
       <main className="min-h-screen pt-28 pb-20 px-4 max-w-3xl mx-auto">
-        <Link href="/account" className="inline-flex items-center gap-2 text-sm text-text-secondary hover:text-white mb-6">
+        <Link href="/account" className="inline-flex items-center gap-2 text-sm text-text-secondary hover:text-text-primary mb-6">
           <ArrowLeft size={16} /> Back to account
         </Link>
 

@@ -43,7 +43,7 @@ export default function BadgePage() {
       <div className="flex-1 max-w-2xl mx-auto w-full px-4 sm:px-6 py-14 sm:py-20">
         <p className="font-mono text-xs text-text-secondary mb-2">BADGE</p>
         <h1 className="font-display font-bold text-2xl sm:text-3xl mb-3">
-          Get your "Audited by Audityxe" badge
+          Get your <span className="hand-underline">"Audited by Audityxe"</span> badge
         </h1>
         <p className="text-sm text-text-secondary mb-8">
           Drop this in your README or footer to show your real audit score. The badge shows your

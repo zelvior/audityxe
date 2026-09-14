@@ -4,10 +4,10 @@ import { motion } from "framer-motion";
 import { ShieldCheck, Gauge, Search, Accessibility } from "lucide-react";
 
 const BADGES = [
-  { icon: ShieldCheck, x: 24, y: 40, delay: 0.5 },
-  { icon: Gauge, x: 372, y: 64, delay: 0.65 },
-  { icon: Search, x: 30, y: 470, delay: 0.8 },
-  { icon: Accessibility, x: 378, y: 500, delay: 0.95 },
+  { icon: ShieldCheck, x: 90, y: 130, delay: 0.5 },
+  { icon: Gauge, x: 430, y: 165, delay: 0.65 },
+  { icon: Search, x: 85, y: 480, delay: 0.8 },
+  { icon: Accessibility, x: 435, y: 510, delay: 0.95 },
 ];
 
 export default function AuthSidePanel() {
@@ -60,21 +60,25 @@ export default function AuthSidePanel() {
           drift out of place everywhere else — percentages track the
           same scaled backdrop at any panel size. */}
       {BADGES.map(({ icon: Icon, x, y, delay }, i) => (
-        <motion.div
+        <div
           key={i}
-          className="absolute glass rounded-2xl p-3 shadow-glow"
-          style={{ left: `${(x / 520) * 100}%`, top: `${(y / 640) * 100}%` }}
-          initial={{ opacity: 0, y: 12, scale: 0.85 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ delay, duration: 0.5, ease: "easeOut" }}
+          className="absolute"
+          style={{ left: `${(x / 520) * 100}%`, top: `${(y / 640) * 100}%`, transform: "translate(-50%, -50%)" }}
         >
           <motion.div
-            animate={{ y: [0, -6, 0] }}
-            transition={{ delay: delay + 1, duration: 3 + i * 0.4, repeat: Infinity, ease: "easeInOut" }}
+            className="glass rounded-2xl p-3 shadow-glow"
+            initial={{ opacity: 0, y: 12, scale: 0.85 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ delay, duration: 0.5, ease: "easeOut" }}
           >
-            <Icon size={18} className="text-primary" />
+            <motion.div
+              animate={{ y: [0, -6, 0] }}
+              transition={{ delay: delay + 1, duration: 3 + i * 0.4, repeat: Infinity, ease: "easeInOut" }}
+            >
+              <Icon size={18} className="text-primary" />
+            </motion.div>
           </motion.div>
-        </motion.div>
+        </div>
       ))}
 
       {/* central "audit report" card */}
@@ -129,7 +133,7 @@ export default function AuthSidePanel() {
         ))}
 
         <motion.div
-          className="absolute -left-6 -bottom-6 w-14 h-14 rounded-full bg-text-primary flex items-center justify-center shadow-glow"
+          className="absolute -left-6 -bottom-6 w-14 h-14 rounded-full bg-[#F0C46B] flex items-center justify-center shadow-glow"
           initial={{ opacity: 0, scale: 0.6 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.9, duration: 0.4, ease: "easeOut" }}
@@ -159,10 +163,10 @@ export default function AuthSidePanel() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 1.2, duration: 0.5 }}
       >
-        <p className="text-text-primary font-display font-semibold text-lg leading-snug">
+        <p className="text-[#F4EFE4] font-display font-semibold text-lg leading-snug">
           Every audit, backed by real evidence.
         </p>
-        <p className="text-primary/80 text-sm mt-1">
+        <p className="text-[#F0C46B] text-sm mt-1">
           No black-box scores — just deterministic checks you can verify yourself.
         </p>
       </motion.div>

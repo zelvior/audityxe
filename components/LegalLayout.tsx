@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, FileText } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { breadcrumbJsonLd } from "@/lib/breadcrumb";
@@ -37,15 +37,34 @@ export default function LegalLayout({
             <ArrowLeft size={14} /> Back to Audityxe
           </Link>
 
-          <h1 className="font-display font-bold text-2xl sm:text-3xl md:text-4xl tracking-tight mb-2">
-            {title}
-          </h1>
-          <p className="text-xs sm:text-sm font-mono text-text-secondary mb-8 sm:mb-10">
+          <div className="flex items-center gap-3 mb-3">
+            <span className="flex items-center justify-center w-10 h-10 rounded-card bg-primary/10 border border-primary/20 shrink-0">
+              <FileText size={18} className="text-primary" />
+            </span>
+            <h1 className="font-display font-bold text-2xl sm:text-3xl md:text-4xl tracking-tight hand-underline">
+              {title}
+            </h1>
+          </div>
+          <span className="inline-block text-[11px] font-mono text-text-secondary bg-surface2 border border-border/70 rounded-full px-2.5 py-1 mb-8 sm:mb-10">
             Last updated: {updated}
-          </p>
+          </span>
 
           <div className="prose-legal space-y-6 sm:space-y-8 text-sm sm:text-base text-text-secondary leading-relaxed">
             {children}
+          </div>
+
+          <div className="mt-12 pt-6 border-t border-border/60 flex items-start gap-3 text-xs sm:text-sm text-text-secondary">
+            <p>
+              Questions about this page? Reach out via the{" "}
+              <Link href="/contact" className="text-primary hover:underline underline-offset-2">
+                Contact page
+              </Link>
+              , or see our other legal documents in the{" "}
+              <Link href="/trust-center" className="text-primary hover:underline underline-offset-2">
+                Trust Center
+              </Link>
+              .
+            </p>
           </div>
         </div>
       </div>

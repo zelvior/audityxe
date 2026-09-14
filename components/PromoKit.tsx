@@ -17,7 +17,7 @@ export default function PromoKit({ result }: { result: AuditResult }) {
     return (
       <section className="px-4 sm:px-6 py-6 sm:py-10">
         <div className="max-w-4xl mx-auto">
-          <h2 className="font-display font-semibold text-xl sm:text-2xl mb-1">Share Your Results</h2>
+          <h2 className="font-display font-semibold text-xl sm:text-2xl mb-1">Share Your <span className="hand-highlight">Results</span></h2>
           <div className="glass rounded-card p-8 text-center mt-4">
             <Lock size={22} className="text-text-secondary mx-auto mb-3" />
             <p className="text-sm text-text-secondary mb-4">
@@ -71,7 +71,7 @@ export default function PromoKit({ result }: { result: AuditResult }) {
   return (
     <section className="px-4 sm:px-6 py-6 sm:py-10">
       <div className="max-w-4xl mx-auto">
-        <h2 className="font-display font-semibold text-xl sm:text-2xl mb-1">Share Your Results</h2>
+        <h2 className="font-display font-semibold text-xl sm:text-2xl mb-1">Share Your <span className="hand-highlight">Results</span></h2>
         <p className="text-text-secondary text-xs sm:text-sm mb-5 sm:mb-6">
           Ready-to-post copy and a shareable banner, generated from your audit.
         </p>

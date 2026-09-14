@@ -114,7 +114,7 @@ export default function ChangelogPage() {
       <Header />
       <div className="flex-1 max-w-3xl mx-auto w-full px-4 sm:px-6 py-14 sm:py-20">
         <p className="font-mono text-xs text-text-secondary mb-2">CHANGELOG</p>
-        <h1 className="font-display font-bold text-2xl sm:text-3xl mb-10">What's changed</h1>
+        <h1 className="font-display font-bold text-2xl sm:text-3xl mb-10">What's <span className="hand-underline">changed</span></h1>
         <div className="flex flex-col gap-8">
           {ENTRIES.map((e) => (
             <div key={e.version} className="glass rounded-card p-5 sm:p-6">

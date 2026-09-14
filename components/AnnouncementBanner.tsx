@@ -8,6 +8,8 @@ interface Announcement {
   active: boolean;
   message: string;
   level: "info" | "warning";
+  startsAt?: string | null;
+  endsAt?: string | null;
 }
 
 const DISMISS_KEY = "audityxe_announcement_dismissed";
@@ -37,7 +39,7 @@ export default function AnnouncementBanner() {
   return (
     <div
       className={`sticky top-0 z-50 flex items-center justify-center gap-2 px-4 py-2 text-xs sm:text-sm text-center ${
-        isWarning ? "bg-amber-500/15 text-amber-300 border-b border-amber-500/30" : "bg-primary/15 text-primary border-b border-primary/30"
+        isWarning ? "bg-amber/15 text-amber border-b border-amber/30" : "bg-primary/15 text-primary border-b border-primary/30"
       }`}
     >
       {isWarning ? <AlertTriangle size={14} className="shrink-0" /> : <Info size={14} className="shrink-0" />}

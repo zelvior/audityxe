@@ -589,7 +589,7 @@ export default function SettingsPage() {
                 <button
                   type="submit"
                   disabled={passwordSaving}
-                  className="flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-lg glass hover:border-white/20 transition disabled:opacity-50"
+                  className="flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-lg glass hover:border-black/15 transition disabled:opacity-50"
                 >
                   {passwordSaving ? (
                     <Loader2 size={13} className="animate-spin" />
@@ -631,7 +631,7 @@ export default function SettingsPage() {
             <button
               onClick={handleExportData}
               disabled={exporting}
-              className="flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-lg glass hover:border-white/20 transition disabled:opacity-50 mb-3"
+              className="flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-lg glass hover:border-black/15 transition disabled:opacity-50 mb-3"
             >
               {exporting ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
               Export my data (JSON)
@@ -678,7 +678,7 @@ export default function SettingsPage() {
                         setDeleteError("");
                         setDeletePassword("");
                       }}
-                      className="text-xs font-medium px-4 py-2 rounded-lg glass hover:border-white/20 transition"
+                      className="text-xs font-medium px-4 py-2 rounded-lg glass hover:border-black/15 transition"
                     >
                       Cancel
                     </button>

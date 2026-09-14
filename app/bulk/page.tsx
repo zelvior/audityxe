@@ -114,7 +114,7 @@ export default function BulkAuditPage() {
 
           <div className="flex items-center gap-2 mb-2">
             <Layers size={20} className="text-primary" />
-            <h1 className="font-display font-bold text-2xl sm:text-3xl tracking-tight">Bulk Audit</h1>
+            <h1 className="font-display font-bold text-2xl sm:text-3xl tracking-tight"><span className="hand-highlight">Bulk</span> Audit</h1>
             <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-accent/15 text-accent">PRO</span>
           </div>
           <p className="text-sm text-text-secondary mb-6">
