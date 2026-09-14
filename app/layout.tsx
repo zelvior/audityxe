@@ -103,13 +103,10 @@ export const metadata: Metadata = {
   verification: {
     google: process.env.GOOGLE_SITE_VERIFICATION || "hUqXugrHc_xzhUYio3bjW6G1dcc87Iyi8IL4fpCIiN0",
   },
-  icons: {
-    icon: [
-      { url: "/favicon.ico", sizes: "any" },
-      { url: "/logo-mark-192.png", type: "image/png", sizes: "192x192" },
-    ],
-    apple: "/logo-mark-192.png",
-  },
+  // No manual `icons` block: app/icon.png + app/apple-icon.png already
+  // auto-generate hashed, cache-busting <link rel="icon"> tags. A
+  // manual block pinning the static /favicon.ico path fought with
+  // that and let browsers keep serving the old cached favicon.
 };
 
 export const viewport: Viewport = {

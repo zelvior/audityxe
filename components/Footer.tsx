@@ -33,6 +33,7 @@ const COLUMNS: { title: string; links: { href: string; label: string }[] }[] = [
       { href: "/dpa", label: "DPA" },
       { href: "/acceptable-use", label: "Acceptable Use" },
       { href: "/third-party-services", label: "Third-Party Services" },
+      { href: "/license", label: "License" },
     ],
   },
   {

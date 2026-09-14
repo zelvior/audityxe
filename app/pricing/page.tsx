@@ -264,7 +264,7 @@ export default function PricingPage() {
                 <div
                   key={plan.id}
                   className={`glass rounded-card p-6 sm:p-7 flex flex-col relative ${
-                    plan.id === "standard" ? "border-primary/50 shadow-glow" : ""
+                    plan.id === "standard" ? "border-primary/50" : ""
                   } ${isCurrentPlan ? "ring-2 ring-emerald/50" : ""}`}
                 >
                   {isCurrentPlan ? (

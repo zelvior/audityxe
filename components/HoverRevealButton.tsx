@@ -35,10 +35,6 @@ export default function HoverRevealButton({
           border-radius: 10px;
           position: relative;
           overflow: hidden;
-          transition: box-shadow 0.4s ease;
-        }
-        .hv-reveal-btn:hover {
-          box-shadow: 0 4px 24px rgb(var(--color-accent) / 0.35);
         }
         .hv-reveal-btn__front,
         .hv-reveal-btn__back {

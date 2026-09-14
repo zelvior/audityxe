@@ -5,10 +5,8 @@ interface LogoProps {
   className?: string;
 }
 
-// Real trimmed pixel dimensions of the new source PNG (900×836) — used
-// to preserve its actual aspect ratio rather than stretching it into a
-// square box.
-const MARK_ASPECT_RATIO = 900 / 836;
+// Real trimmed pixel dimensions of the current source PNG (900×889).
+const MARK_ASPECT_RATIO = 900 / 889;
 
 /**
  * Audityxe's real brand mark — the uploaded artwork, auto-trimmed of its

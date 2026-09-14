@@ -126,19 +126,11 @@ export default function HeroVisual() {
         >
           <defs>
             <marker id="hv-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4.5" markerHeight="4.5" orient="auto-start-reverse">
-              <path d="M2 1L8 5L2 9" stroke="rgb(var(--color-text-primary) / 0.18)" strokeWidth="1.5" fill="none" strokeLinecap="round" shapeRendering="geometricPrecision" />
+              <path d="M2 1L8 5L2 9" stroke="rgb(var(--color-text-primary) / 0.32)" strokeWidth="1.5" fill="none" strokeLinecap="round" shapeRendering="geometricPrecision" />
             </marker>
             <marker id="hv-arrow-accent" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4.5" markerHeight="4.5" orient="auto-start-reverse">
               <path d="M2 1L8 5L2 9" stroke="rgb(var(--color-accent))" strokeWidth="1.5" fill="none" strokeLinecap="round" shapeRendering="geometricPrecision" />
             </marker>
-            {/* Very light hand-drawn wobble applied only to the fan-out
-                and results connectors (the curves), never to the
-                perfectly straight/axis-aligned bus segments, which
-                should stay crisp schematic lines. */}
-            <filter id="hv-rough" x="-20%" y="-20%" width="140%" height="140%">
-              <feTurbulence type="fractalNoise" baseFrequency="0.02 0.06" numOctaves="1" seed="4" result="n" />
-              <feDisplacementMap in="SourceGraphic" in2="n" scale="2.2" xChannelSelector="R" yChannelSelector="G" />
-            </filter>
           </defs>
 
           {/* input → each check (fan-out, five distinct targets — never
@@ -155,13 +147,12 @@ export default function HeroVisual() {
             <motion.path
               key={`in-${c.label}`}
               d={smoothPath(INPUT_X + 70, INPUT_Y + 14, CHECK_X - 6, c.y + 14)}
-              stroke="rgb(var(--color-text-primary) / 0.18)"
+              stroke="rgb(var(--color-text-primary) / 0.32)"
               strokeWidth="1.5"
               strokeLinecap="round"
               vectorEffect="non-scaling-stroke"
               shapeRendering="geometricPrecision"
               markerEnd="url(#hv-arrow)"
-              filter="url(#hv-rough)"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.5 + i * 0.08, duration: 0.35 }}
@@ -179,7 +170,7 @@ export default function HeroVisual() {
               y1={c.y + 14}
               x2={MERGE_X}
               y2={c.y + 14}
-              stroke="rgb(var(--color-text-primary) / 0.18)"
+              stroke="rgb(var(--color-text-primary) / 0.32)"
               strokeWidth="1.5"
               vectorEffect="non-scaling-stroke"
               shapeRendering="crispEdges"
@@ -199,7 +190,7 @@ export default function HeroVisual() {
             y1={BUS_TOP}
             x2={MERGE_X}
             y2={BUS_BOTTOM}
-            stroke="rgb(var(--color-text-primary) / 0.18)"
+            stroke="rgb(var(--color-text-primary) / 0.32)"
             strokeWidth="1.5"
             vectorEffect="non-scaling-stroke"
             shapeRendering="crispEdges"
@@ -209,7 +200,7 @@ export default function HeroVisual() {
           />
           <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.3, duration: 0.3 }}>
             {ROW_CENTERS.map((cy, i) => (
-              <circle key={`dot-${i}`} cx={MERGE_X} cy={cy} r={2.5} fill="rgb(var(--color-text-primary) / 0.35)" shapeRendering="geometricPrecision" />
+              <circle key={`dot-${i}`} cx={MERGE_X} cy={cy} r={2.5} fill="rgb(var(--color-text-primary) / 0.5)" shapeRendering="geometricPrecision" />
             ))}
           </motion.g>
 
@@ -225,7 +216,6 @@ export default function HeroVisual() {
             vectorEffect="non-scaling-stroke"
             shapeRendering="geometricPrecision"
             markerEnd="url(#hv-arrow-accent)"
-            filter="url(#hv-rough)"
             initial={{ pathLength: 0, opacity: 0 }}
             animate={{ pathLength: 1, opacity: 1 }}
             transition={{ delay: 1.45, duration: 0.5 }}
@@ -264,14 +254,15 @@ export default function HeroVisual() {
           />
         </svg>
 
-        {/* sequential glow sweeping through the five checks, looping —
-            reads as "actively scanning" rather than a static list. */}
+        {/* sequential highlight sweeping through the five checks,
+            looping — reads as "actively scanning" rather than a static
+            list, via a plain border/background pulse (no glow/shadow). */}
         {CHECKS.map((c, i) => (
           <motion.div
             key={`scan-${c.label}`}
-            className="absolute rounded-card pointer-events-none"
+            className="absolute rounded-card pointer-events-none border-2 border-primary bg-primary/10"
             style={{ left: CHECK_X, top: c.y, width: CHECK_NODE_W, height: 46 }}
-            animate={{ opacity: [0, 0, 0.9, 0], boxShadow: ["0 0 0 rgba(0,0,0,0)", "0 0 0 rgba(0,0,0,0)", "0 0 22px rgb(var(--color-primary) / 0.35)", "0 0 0 rgba(0,0,0,0)"] }}
+            animate={{ opacity: [0, 0, 1, 0] }}
             transition={{ delay: 2.2 + i * 0.5, duration: 4.5, repeat: Infinity, repeatDelay: 4.5, ease: "easeInOut" }}
           />
         ))}
@@ -282,7 +273,7 @@ export default function HeroVisual() {
           animate={{ opacity: 1, scale: 1, y: 0 }}
           whileHover={{ y: -3, scale: 1.03 }}
           transition={{ delay: 0.15, duration: 0.4, ease: "easeOut" }}
-          className="absolute glass border border-black/[0.06] rounded-card px-3.5 py-3 flex items-center gap-2.5 shadow-glow"
+          className="absolute glass border border-black/[0.06] rounded-card px-3.5 py-3 flex items-center gap-2.5"
           style={{ left: INPUT_X, top: INPUT_Y }}
         >
           {/* "live" pulse — signals this is the actively-running step,
@@ -306,7 +297,7 @@ export default function HeroVisual() {
             animate="show"
             whileHover={{ y: -3, scale: 1.04 }}
             variants={pop}
-            className="absolute glass border border-black/[0.06] rounded-card px-3.5 py-3 flex items-center gap-2.5 shadow-glow"
+            className="absolute glass border border-black/[0.06] rounded-card px-3.5 py-3 flex items-center gap-2.5"
             style={{ left: CHECK_X, top: y, width: CHECK_NODE_W }}
           >
             <IconChip icon={Icon} />
@@ -320,12 +311,12 @@ export default function HeroVisual() {
           animate={{ opacity: 1, scale: 1, y: 0 }}
           whileHover={{ y: -3, scale: 1.04 }}
           transition={{ delay: 1.55, duration: 0.45, ease: "easeOut" }}
-          className="absolute glass border border-accent/25 rounded-card px-3.5 py-3 flex items-center gap-2.5 shadow-glow"
+          className="absolute glass border border-accent/25 rounded-card px-3.5 py-3 flex items-center gap-2.5"
           style={{ left: RESULT_X, top: RESULT_Y, width: RESULT_NODE_W }}
         >
           <IconChip icon={FileCode2} tone="accent" />
           <div className="leading-tight min-w-0">
-            <p className="text-[11px] font-semibold text-text-primary whitespace-nowrap hand-underline hand-underline--alt">Results</p>
+            <p className="text-[11px] font-semibold text-text-primary whitespace-nowrap">Results</p>
             <p className="text-[10px] font-mono text-text-secondary whitespace-nowrap">Score + fixes</p>
           </div>
         </motion.div>

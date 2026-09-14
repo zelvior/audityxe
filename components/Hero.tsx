@@ -78,7 +78,7 @@ export default function Hero({
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15 }}
           onSubmit={handleSubmit}
-          className="mt-7 sm:mt-9 glass rounded-card p-2 flex flex-col sm:flex-row gap-2 shadow-glow"
+          className="mt-7 sm:mt-9 glass rounded-card p-2 flex flex-col sm:flex-row gap-2"
         >
           <input
             type="text"

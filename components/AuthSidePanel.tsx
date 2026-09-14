@@ -66,7 +66,7 @@ export default function AuthSidePanel() {
           style={{ left: `${(x / 520) * 100}%`, top: `${(y / 640) * 100}%`, transform: "translate(-50%, -50%)" }}
         >
           <motion.div
-            className="glass rounded-2xl p-3 shadow-glow"
+            className="glass rounded-2xl p-3"
             initial={{ opacity: 0, y: 12, scale: 0.85 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={{ delay, duration: 0.5, ease: "easeOut" }}
@@ -83,7 +83,7 @@ export default function AuthSidePanel() {
 
       {/* central "audit report" card */}
       <motion.div
-        className="relative glass rounded-card p-6 w-[260px] shadow-glow"
+        className="relative glass rounded-card p-6 w-[260px]"
         initial={{ opacity: 0, y: 24, scale: 0.94 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.6, ease: "easeOut" }}
@@ -133,7 +133,7 @@ export default function AuthSidePanel() {
         ))}
 
         <motion.div
-          className="absolute -left-6 -bottom-6 w-14 h-14 rounded-full bg-[#F0C46B] flex items-center justify-center shadow-glow"
+          className="absolute -left-6 -bottom-6 w-14 h-14 rounded-full bg-[#F0C46B] flex items-center justify-center"
           initial={{ opacity: 0, scale: 0.6 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.9, duration: 0.4, ease: "easeOut" }}

@@ -37,11 +37,6 @@ const config: Config = {
         body: ["'Public Sans'", "ui-sans-serif", "system-ui", "sans-serif"],
         mono: ["ui-monospace", "SFMono-Regular", "monospace"],
       },
-      boxShadow: {
-        glow: "0 1px 2px rgba(0,0,0,0.4)",
-        glowViolet: "0 1px 3px rgba(0,0,0,0.5)",
-        card: "0 8px 24px rgba(0,0,0,0.35)",
-      },
       keyframes: {
         scan: {
           "0%": { transform: "translateY(-100%)" },
