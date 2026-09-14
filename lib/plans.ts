@@ -26,7 +26,7 @@ export const PLANS: Record<PlanId, Plan> = {
     features: [
       "2 audits per day",
       "All 6 scoring categories",
-      "Full 17-area deep audit breakdown",
+      "Full multi-area deep audit breakdown",
       "Priority fixes with code snippets and real evidence",
     ],
   },

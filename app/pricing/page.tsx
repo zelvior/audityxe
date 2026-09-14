@@ -175,7 +175,7 @@ export default function PricingPage() {
               Simple, <span className="hand-underline">usage-based</span> plans
             </h1>
             <p className="text-text-secondary text-sm sm:text-base max-w-lg mx-auto">
-              Every plan gets the full audit engine — all 6 score categories and the full 17-area
+              Every plan gets the full audit engine — all 6 score categories and the full multi-area
               deep audit. Higher tiers get more audits per day and competitor comparisons.
             </p>
             <p className="text-[11px] font-mono text-text-secondary/60 mt-3 flex items-center justify-center gap-1.5">
@@ -378,7 +378,7 @@ export default function PricingPage() {
                 </thead>
                 <tbody className="text-text-secondary">
                   {[
-                    ["All 6 score categories + 17-area deep audit", true, true, true],
+                    ["All 6 score categories + multi-area deep audit", true, true, true],
                     ["Written verdict + promo copy", true, true, true],
                     ["Daily audits", String(PLANS.free.dailyAudits), String(PLANS.standard.dailyAudits), String(PLANS.pro.dailyAudits)],
                     ["Competitor comparison", PLANS.free.competitorAudits, PLANS.standard.competitorAudits, PLANS.pro.competitorAudits],

@@ -13,7 +13,7 @@ export default function AboutPage() {
     <LegalLayout title="About Audityxe" updated="August 2026" path="about">
       <p>
         Audityxe is an instant website audit and promo-kit generator. Paste in a URL, and it
-        fetches the live page, scores it across six categories plus a 17-area deep breakdown,
+        fetches the live page, scores it across six categories plus a multi-area deep breakdown,
         hands you exact code fixes with real evidence for the weakest spots, and packages the
         result into ready-to-post social copy and a downloadable banner.
       </p>

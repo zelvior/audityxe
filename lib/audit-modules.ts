@@ -671,6 +671,14 @@ export function buildAuditModules(ctx: ModuleContext): AuditModule[] {
         d.accessibility.iframesWithoutTitle === 0
           ? pass("iframe titles", "No untitled <iframe> elements found.")
           : warn("iframe titles", `${d.accessibility.iframesWithoutTitle} <iframe> element(s) missing a title attribute.`),
+        d.accessibility.suppressesFocusOutlineWithoutReplacement
+          ? fail(
+              "Keyboard focus visibility",
+              "CSS sets outline: none/0 with no visible :focus or :focus-visible replacement (box-shadow, border, or outline rule) found — keyboard users can't see which element is focused.",
+              undefined,
+              "high"
+            )
+          : pass("Keyboard focus visibility", "No focus-outline suppression without a visible replacement was found."),
       ]
     )
   );
@@ -1324,6 +1332,59 @@ export function buildAuditModules(ctx: ModuleContext): AuditModule[] {
       [...cookieFindings, ...redirectFindings]
     )
   );
+
+  /* 19. AI Crawler Readiness (GEO) — Generative Engine Optimization:
+   * whether AI answer engines (ChatGPT, Claude, Perplexity, Google's
+   * AI Overviews) can actually read and cite this site, which is a
+   * distinct question from classic SEO crawlability. ───────────────── */
+  {
+    const rb = s.robotsTxt;
+    const llms = s.llmsTxt;
+    const geoFindings: AuditModuleFinding[] = [];
+
+    if (!rb.fetched) {
+      geoFindings.push(unknown("AI crawler access", "robots.txt could not be checked.", "Request timed out or failed to connect."));
+    } else if (rb.aiBotsBlocked.length > 0) {
+      geoFindings.push(
+        warn(
+          "AI crawler access",
+          `robots.txt explicitly blocks ${rb.aiBotsBlocked.length} named AI crawler${rb.aiBotsBlocked.length > 1 ? "s" : ""} — content won't be readable for AI-search citations from these.`,
+          rb.aiBotsBlocked.join(", "),
+          "medium"
+        )
+      );
+    } else if (rb.blocksAllCrawlers) {
+      geoFindings.push(warn("AI crawler access", "robots.txt disallows all crawlers, which also blocks every AI answer engine.", undefined, "medium"));
+    } else {
+      geoFindings.push(pass("AI crawler access", "No named AI crawler (GPTBot, ClaudeBot, PerplexityBot, Google-Extended, etc.) is blocked in robots.txt."));
+    }
+
+    if (!llms.fetched) {
+      geoFindings.push(unknown("llms.txt", "Could not be checked.", "Request timed out or failed to connect."));
+    } else if (llms.exists && llms.hasContent) {
+      geoFindings.push(pass("llms.txt", "Present with real content — gives AI answer engines a clean, direct summary of the site.", llms.checkedUrl));
+    } else if (llms.exists && !llms.hasContent) {
+      geoFindings.push(warn("llms.txt", "Exists but is effectively empty.", llms.checkedUrl, "low"));
+    } else {
+      geoFindings.push(
+        warn(
+          "llms.txt",
+          "Not found. This is an emerging (not yet universal) convention some AI answer engines use to understand a site — a root-level, plain-markdown summary, the way robots.txt/sitemap.xml serve traditional crawlers.",
+          llms.checkedUrl,
+          "low"
+        )
+      );
+    }
+
+    modules.push(
+      makeModule(
+        "ai-crawler-readiness",
+        "AI Crawler Readiness (GEO)",
+        "Whether AI answer engines like ChatGPT, Claude, and Perplexity can crawl and cite this site — a distinct question from classic search-engine SEO.",
+        geoFindings
+      )
+    );
+  }
 
   return modules;
 }

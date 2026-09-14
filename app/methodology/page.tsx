@@ -60,13 +60,14 @@ export default function MethodologyPage() {
               PageSpeed pass adds separately, below); this first pass reads what any server or bot
               would actually receive.
             </p>
-            <p>From that single live fetch, the pipeline runs roughly seventeen distinct checks across six categories:</p>
+            <p>From that single live fetch, the pipeline runs dozens of distinct checks across six scored categories, plus additional deep-audit modules (AI Crawler Readiness among them) shown separately from the six category scores:</p>
             <ul className="list-disc pl-5 space-y-1.5">
               <li><strong>Technical &amp; Metadata Health</strong> — title tag, meta description, canonical tag, viewport meta, charset, doctype.</li>
               <li><strong>SEO Foundations</strong> — heading hierarchy (one H1, logical H2/H3 order), structured data (JSON-LD), robots.txt and sitemap.xml fetched live and checked for real matches, Open Graph and Twitter Card tags.</li>
               <li><strong>Security</strong> — HTTPS enforcement, HSTS, Content-Security-Policy, X-Frame-Options, X-Content-Type-Options, and other response headers read directly off the live HTTP response.</li>
-              <li><strong>Accessibility</strong> — image alt text coverage, form label association, color-contrast heuristics, heading structure re-checked from an accessibility angle.</li>
+              <li><strong>Accessibility</strong> — image alt text coverage, form label association, color-contrast heuristics, keyboard focus visibility (flags CSS that suppresses the focus outline with no visible replacement), heading structure re-checked from an accessibility angle.</li>
               <li><strong>UX &amp; Technical Hygiene</strong> — mobile viewport configuration, tap-target sizing signals, a sampled pass over on-page links and images to flag ones that 404 or fail to load, ads.txt presence where relevant.</li>
+              <li><strong>AI Crawler Readiness (GEO)</strong> — a deep-audit module, not one of the six scored categories: whether AI answer engines like ChatGPT, Claude, and Perplexity can actually crawl and cite the site, via named AI-bot rules in robots.txt and whether an <code>llms.txt</code> is present.</li>
               <li><strong>Performance</strong> (Pro only) — a real browser-rendered pass via Google PageSpeed Insights, covering Core Web Vitals (LCP, CLS, TBT, FCP, Speed Index) rather than estimating from static HTML.</li>
             </ul>
             <p>
@@ -148,8 +149,9 @@ export default function MethodologyPage() {
           <Section title="3. Live network requests made during a single audit">
             <ul className="list-disc list-inside space-y-1.5">
               <li>The target page itself, with manual redirect-chain tracking (real hop count, HTTPS→HTTP downgrade detection)</li>
-              <li><code>/robots.txt</code> — existence, rules, sitemap cross-reference</li>
+              <li><code>/robots.txt</code> — existence, rules, sitemap cross-reference, and whether any named AI crawler (GPTBot, ClaudeBot, PerplexityBot, Google-Extended, etc.) is specifically blocked</li>
               <li><code>/sitemap.xml</code> — validity, URL count, freshness data</li>
+              <li><code>/llms.txt</code> — existence and whether it has real content, for AI-answer-engine readiness</li>
               <li><code>/ads.txt</code> — existence and entry count</li>
               <li>Up to 10 on-page links, checked live via HEAD/GET for broken (404/410/5xx) responses</li>
               <li>Up to 8 on-page images, checked live via HEAD for actual file size and content-type</li>

@@ -11,6 +11,23 @@ export const metadata: Metadata = {
 
 const ENTRIES: { version: string; date: string; changes: string[] }[] = [
   {
+    version: "2.0.0",
+    date: "September 2026",
+    changes: [
+      "Full visual redesign off the old dark \"AI-purple\" gradient palette onto a warm-editorial rust/paper theme (Fraunces + Public Sans typography, hand-drawn underline/highlight marks), then rebuilt again as a proper light/dark theme that now follows the visitor's OS-level color-scheme preference automatically — every color token resolves through CSS custom properties instead of fixed hex, so nothing needed a manual toggle.",
+      "Replaced the brand mark: the previous logo was a cropped, recolored raster export of an uploaded image and never got fully crisp no matter how the edges were cleaned up. Rebuilt it as a hand-coded vector (open \"A\" outline with an integrated checkmark + dot), rendered inline with theme-aware colors in the app itself, and re-exported the favicon/apple-icon/manifest icons from that same vector with a genuinely transparent background (the old favicon had a stray cream box behind it on dark browser chrome).",
+      "Removed the static homepage audit-flow diagram entirely and replaced it with an interactive tile-swap puzzle of the six audit steps — shuffled with a fresh random seed on every visit, so it's different for every visitor instead of a fixed illustration.",
+      "Added a new \"AI Crawler Readiness (GEO)\" audit module: real checks for a root llms.txt and for whether robots.txt explicitly blocks any named AI answer-engine crawler (GPTBot, ClaudeBot, PerplexityBot, Google-Extended, and others) — a distinct question from classic search-engine crawlability.",
+      "Added a new accessibility check: flags CSS that suppresses the keyboard focus outline (outline: none/0) with no visible :focus/:focus-visible replacement, one of the most common ways a site becomes unusable by keyboard.",
+      "Both new checks flow through the existing JSON and PDF export builder automatically (it reads modules/findings generically, nothing was hardcoded to a fixed module list) — verified in this pass rather than assumed.",
+      "Added a Credits page crediting every real tool, framework, font, and interactive-component source used to build Audityxe, wired into the footer; added a full custom open-source LICENSE (attribution-required) with its own in-app /license page, also wired into the footer.",
+      "Removed all box-shadow/glow effects site-wide per direct feedback — flat borders and background tints only, including the hover-reveal footer button and the homepage puzzle's scan-style highlight.",
+      "Redesigned the footer (from a flat wall of 19 links to grouped columns with a brand block) and the legal-page layout (icon badge, hand-underlined title, status pill) across all legal/credits/license pages, which share one layout component.",
+      "Fixed a real duplicate-module bug: the audit engine was independently building two near-identical Lighthouse/PageSpeed modules under different names, crowding each other in the results list. Removed the redundant one and renamed the surviving module to \"Lighthouse Audit\" to match the homepage's own wording.",
+      "Corrected several homepage/pricing/FAQ copy references to a stale, no-longer-accurate \"17-area\" deep-audit count now that the module list has grown further.",
+    ],
+  },
+  {
     version: "1.9.0",
     date: "September 2026",
     changes: [

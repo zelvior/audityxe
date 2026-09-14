@@ -104,6 +104,7 @@ export interface Signals {
   // Site-wide (fetched separately from /robots.txt and /sitemap.xml)
   robotsTxt: RobotsSignals;
   sitemap: SitemapSignals;
+  llmsTxt: LlmsTxtSignals;
 
   // Security & performance (from the real HTTP response itself)
   security: SecuritySignals;
@@ -164,6 +165,38 @@ export interface RobotsSignals {
   ruleCount: number;
   checkedUrl: string;
   httpStatus: number | null;
+  /** Named AI answer-engine crawlers (GPTBot, ClaudeBot, PerplexityBot,
+   * Google-Extended, etc.) that this robots.txt explicitly disallows —
+   * distinct from blocksAllCrawlers, since a site can welcome regular
+   * search engines while quietly locking out every AI crawler that
+   * would otherwise cite it in ChatGPT/Claude/Perplexity answers. */
+  aiBotsBlocked: string[];
+}
+
+/** A handful of well-known AI answer-engine crawler user-agents worth
+ * checking robots.txt for by name — not exhaustive, but covers the
+ * major ones a site owner would actually want to reason about. */
+const KNOWN_AI_CRAWLERS = [
+  "GPTBot",
+  "ChatGPT-User",
+  "ClaudeBot",
+  "Claude-Web",
+  "anthropic-ai",
+  "PerplexityBot",
+  "Google-Extended",
+  "CCBot",
+  "Bytespider",
+  "Applebot-Extended",
+] as const;
+
+export interface LlmsTxtSignals {
+  fetched: boolean;
+  exists: boolean;
+  httpStatus: number | null;
+  /** Rough non-empty-content check — a 200 response with an
+   * effectively blank body isn't a real llms.txt. */
+  hasContent: boolean;
+  checkedUrl: string;
 }
 
 export interface SitemapSignals {
@@ -334,7 +367,8 @@ function extractSignals(html: string, finalUrl: string): Signals {
     hasManifest: has(/<link[^>]+rel=["']manifest["']/i),
 
     // Populated by auditOne() after this function returns — placeholders here.
-    robotsTxt: { fetched: false, exists: false, blocksAllCrawlers: false, referencesSitemap: false, sitemapUrls: [], ruleCount: 0, checkedUrl: "", httpStatus: null },
+    robotsTxt: { fetched: false, exists: false, blocksAllCrawlers: false, referencesSitemap: false, sitemapUrls: [], ruleCount: 0, checkedUrl: "", httpStatus: null, aiBotsBlocked: [] },
+    llmsTxt: { fetched: false, exists: false, httpStatus: null, hasContent: false, checkedUrl: "" },
     sitemap: { fetched: false, exists: false, isValidXml: false, urlCount: 0, hasLastmod: false, isSitemapIndex: false, checkedUrl: "", httpStatus: null },
     security: {
       finalIsHttps: finalUrl.startsWith("https://"),
@@ -1195,10 +1229,10 @@ async function analyzeRobotsTxt(origin: string): Promise<RobotsSignals> {
   const checkedUrl = `${origin}/robots.txt`;
   const res = await fetchWithTimeout(checkedUrl, 4000);
   if (!res) {
-    return { fetched: false, exists: false, blocksAllCrawlers: false, referencesSitemap: false, sitemapUrls: [], ruleCount: 0, checkedUrl, httpStatus: null };
+    return { fetched: false, exists: false, blocksAllCrawlers: false, referencesSitemap: false, sitemapUrls: [], ruleCount: 0, checkedUrl, httpStatus: null, aiBotsBlocked: [] };
   }
   if (!res.ok) {
-    return { fetched: true, exists: false, blocksAllCrawlers: false, referencesSitemap: false, sitemapUrls: [], ruleCount: 0, checkedUrl, httpStatus: res.status };
+    return { fetched: true, exists: false, blocksAllCrawlers: false, referencesSitemap: false, sitemapUrls: [], ruleCount: 0, checkedUrl, httpStatus: res.status, aiBotsBlocked: [] };
   }
 
   const text = await res.text();
@@ -1221,6 +1255,41 @@ async function analyzeRobotsTxt(origin: string): Promise<RobotsSignals> {
 
   const ruleCount = lines.filter((l) => /^(disallow|allow):/i.test(l)).length;
 
+  // Walk robots.txt block-by-block (each starts at a User-agent line)
+  // and record which named AI crawlers get a "Disallow: /" (or any
+  // disallow with no matching Allow) inside their own block — distinct
+  // from the wildcard "blocks everyone" case above.
+  const aiBotsBlocked: string[] = [];
+  {
+    let currentAgents: string[] = [];
+    let blockHasFullDisallow = false;
+    const flush = () => {
+      if (blockHasFullDisallow) {
+        for (const a of currentAgents) {
+          const known = KNOWN_AI_CRAWLERS.find((k) => k.toLowerCase() === a.toLowerCase());
+          if (known && !aiBotsBlocked.includes(known)) aiBotsBlocked.push(known);
+        }
+      }
+    };
+    for (const line of lines) {
+      if (/^user-agent:/i.test(line)) {
+        const agent = line.replace(/^user-agent:\s*/i, "").trim();
+        // A new User-agent line that isn't immediately preceded by
+        // another User-agent line starts a new block.
+        if (blockHasFullDisallow || currentAgents.length === 0) {
+          flush();
+          currentAgents = [agent];
+          blockHasFullDisallow = false;
+        } else {
+          currentAgents.push(agent);
+        }
+        continue;
+      }
+      if (/^disallow:\s*\/\s*$/i.test(line)) blockHasFullDisallow = true;
+    }
+    flush();
+  }
+
   return {
     fetched: true,
     exists: true,
@@ -1230,7 +1299,21 @@ async function analyzeRobotsTxt(origin: string): Promise<RobotsSignals> {
     ruleCount,
     checkedUrl,
     httpStatus: res.status,
+    aiBotsBlocked,
   };
+}
+
+/** Fetches the real /llms.txt for the target origin — the emerging
+ * convention (proposed by Jeremy Howard/Answer.AI) for giving AI
+ * answer engines a clean, markdown, LLM-readable summary of a site,
+ * the way robots.txt/sitemap.xml serve traditional crawlers. */
+async function analyzeLlmsTxt(origin: string): Promise<LlmsTxtSignals> {
+  const checkedUrl = `${origin}/llms.txt`;
+  const res = await fetchWithTimeout(checkedUrl, 4000);
+  if (!res) return { fetched: false, exists: false, httpStatus: null, hasContent: false, checkedUrl };
+  if (!res.ok) return { fetched: true, exists: false, httpStatus: res.status, hasContent: false, checkedUrl };
+  const text = await res.text();
+  return { fetched: true, exists: true, httpStatus: res.status, hasContent: text.trim().length > 20, checkedUrl };
 }
 
 /** Fetches and parses the real /sitemap.xml (or the URL referenced from
@@ -1507,7 +1590,7 @@ async function auditOne(rawUrl: string) {
   // round-trips (each with its own retry), which could add up to ~16s
   // on a slow/unresponsive host and was a real contributor to the whole
   // audit occasionally exceeding serverless function time limits.
-  const [robotsTxt, defaultSitemap, tlsCert] = await Promise.all([
+  const [robotsTxt, defaultSitemap, tlsCert, llmsTxt] = await Promise.all([
     analyzeRobotsTxt(origin),
     analyzeSitemapAt(defaultSitemapUrl),
     fetched.finalUrl.startsWith("https://")
@@ -1532,6 +1615,7 @@ async function auditOne(rawUrl: string) {
           keyBits: null,
           keyType: null,
         }),
+    analyzeLlmsTxt(origin),
   ]);
 
   let sitemap = defaultSitemap;
@@ -1544,6 +1628,7 @@ async function auditOne(rawUrl: string) {
 
   signals.robotsTxt = robotsTxt;
   signals.sitemap = sitemap;
+  signals.llmsTxt = llmsTxt;
 
   const categories = scoreFromSignals(signals);
   const overall = Math.round((categories.reduce((sum, c) => sum + c.score, 0) / categories.length) * 10) / 10;

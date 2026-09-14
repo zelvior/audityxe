@@ -18,6 +18,12 @@ export interface AccessibilitySignals {
   ariaHiddenOnBodyOrHtml: boolean;
   imagesWithGenericAlt: number;
   iframesWithoutTitle: number;
+  /** `outline: none`/`outline: 0` with no visible replacement (a
+   * `:focus`/`:focus-visible` box-shadow or border rule) found in
+   * inline <style> blocks or style="" attributes — the single most
+   * common way sites accidentally make themselves unusable by
+   * keyboard, per WCAG 2.1's focus-visibility guidance. */
+  suppressesFocusOutlineWithoutReplacement: boolean;
 }
 
 export interface TechStackSignals {
@@ -431,6 +437,15 @@ export function extractDeepSignals(html: string, serverHeaderValue?: string | nu
     ariaHiddenOnBodyOrHtml: /<(html|body)[^>]+aria-hidden\s*=\s*["']true["']/i.test(html),
     imagesWithGenericAlt,
     iframesWithoutTitle,
+    suppressesFocusOutlineWithoutReplacement: (() => {
+      const styleBlocks = [...html.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/gi)].map((m) => m[1]).join("\n");
+      const inlineStyleAttrs = [...html.matchAll(/style\s*=\s*"([^"]*)"/gi)].map((m) => m[1]).join("\n");
+      const css = styleBlocks + "\n" + inlineStyleAttrs;
+      const suppresses = /outline\s*:\s*(none|0)\b/i.test(css);
+      if (!suppresses) return false;
+      const hasReplacement = /:focus(-visible)?\s*\{[^}]*(box-shadow|border|outline)\s*:/i.test(styleBlocks);
+      return !hasReplacement;
+    })(),
   };
 
   /* ── Technical stack ─────────────────────────────────────── */

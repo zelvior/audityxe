@@ -4,7 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Plus, X, Lock, Loader2 } from "lucide-react";
-import HeroVisual from "./HeroVisual";
+import AuditPuzzle from "./AuditPuzzle";
 import { PlanId } from "@/lib/plans";
 
 interface HeroProps {
@@ -181,7 +181,7 @@ export default function Hero({
         )}
       </div>
 
-      <HeroVisual />
+      <AuditPuzzle />
       </div>
     </section>
   );

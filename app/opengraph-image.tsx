@@ -63,7 +63,7 @@ export default async function OpengraphImage() {
             maxWidth: 860,
           }}
         >
-          Live-measured scores and a 17-area deep audit, with evidence-based fixes — for any URL.
+          Live-measured scores and a multi-area deep audit, with evidence-based fixes — for any URL.
         </div>
       </div>
     ),

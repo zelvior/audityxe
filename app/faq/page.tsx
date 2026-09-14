@@ -33,7 +33,7 @@ const FAQ_SCHEMA = [
   },
   {
     q: "What's the difference between the Free, Standard, and Pro plans?",
-    a: "Free gives a limited number of audits per day with the full 6-category score and 17-area breakdown. Standard adds more daily audits and competitor head-to-head comparison. Pro adds real browser-rendered PageSpeed performance auditing, bulk audits for agencies, and AI-generated promo copy using your own API key.",
+    a: "Free gives a limited number of audits per day with the full 6-category score and multi-area breakdown. Standard adds more daily audits and competitor head-to-head comparison. Pro adds real browser-rendered PageSpeed performance auditing, bulk audits for agencies, and AI-generated promo copy using your own API key.",
   },
   {
     q: "Is Audityxe's audit data stored?",
@@ -71,7 +71,7 @@ const FAQS: { q: string; a: React.ReactNode }[] = [
     q: "How are the scores actually calculated — is this just guesswork?",
     a: (
       <>
-        No — and this is worth being precise about. All 6 category scores and the full 17-area
+        No — and this is worth being precise about. All 6 category scores and the full multi-area
         deep audit come from parsing the real live HTML and HTTP response of your page: heading
         structure, meta tags, security headers, redirect chains, robots.txt/sitemap.xml fetched
         live, sampled broken-link and image checks over real HTTP requests, plus a real
@@ -94,7 +94,7 @@ const FAQS: { q: string; a: React.ReactNode }[] = [
     q: "What's the difference between Free, Standard, and Pro?",
     a: (
       <>
-        All three get the identical audit engine — the same 6 scores and 17-area deep audit,
+        All three get the identical audit engine — the same 6 scores and multi-area deep audit,
         nothing is dumbed down on Free. The only differences are daily audit volume (3 / 20 / 50
         per day) and whether competitor head-to-head comparisons are unlocked (Standard and Pro
         only). See the full breakdown on{" "}
