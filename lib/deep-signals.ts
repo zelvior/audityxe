@@ -172,6 +172,20 @@ export interface CspOriginSignals {
   connectOrigins: string[];
 }
 
+export interface LinkAndCrawlerSignals {
+  blankTargetLinkCount: number;
+  blankTargetMissingNoopener: number;
+  xRobotsTagValue: string | null;
+  xRobotsTagBlocksIndexing: boolean;
+  /** True only when the HTTP-header-level directive and the HTML
+   * meta-tag-level directive actively disagree on noindex — not just
+   * "one exists and the other doesn't," which would flag the (very
+   * common and totally fine) case of a site only using one or the
+   * other. */
+  metaRobotsVsHeaderConflict: boolean;
+  aiTrainingOptOut: boolean;
+}
+
 export interface DeepSignals {
   accessibility: AccessibilitySignals;
   techStack: TechStackSignals;
@@ -185,6 +199,7 @@ export interface DeepSignals {
   vibeCoded: VibeCodedSignals;
   sri: SriSignals;
   cspOrigins: CspOriginSignals;
+  linkSafety: LinkAndCrawlerSignals;
 }
 
 function attr(tag: string, name: string): string | null {
@@ -373,7 +388,7 @@ function matchAll(text: string, patterns: [RegExp, string][]): string[] {
   return Array.from(found);
 }
 
-export function extractDeepSignals(html: string, serverHeaderValue?: string | null): DeepSignals {
+export function extractDeepSignals(html: string, serverHeaderValue?: string | null, xRobotsTagValue?: string | null): DeepSignals {
   const has = (re: RegExp) => re.test(html);
   const bodyMatch = html.match(/<body[\s\S]*?>([\s\S]*)<\/body>/i);
   const bodyHtml = bodyMatch ? bodyMatch[1] : html;
@@ -837,6 +852,39 @@ export function extractDeepSignals(html: string, serverHeaderValue?: string | nu
     crossOriginStylesheetsMissingIntegrity,
   };
 
+  /* ── target="_blank" tabnabbing risk ─────────────────────────────
+   * A link that opens in a new tab without rel="noopener" (or
+   * "noreferrer", which implies it) gives the opened page a live
+   * `window.opener` reference back to the original tab — a known
+   * phishing/tabnabbing vector. Purely an HTML-level check, no new
+   * network request needed. */
+  const blankTargetLinks = [...html.matchAll(/<a\b[^>]*\btarget\s*=\s*["']_blank["'][^>]*>/gi)];
+  const blankTargetMissingNoopener = blankTargetLinks.filter(
+    (m) => !/\brel\s*=\s*["'][^"']*\b(noopener|noreferrer)\b/i.test(m[0])
+  ).length;
+
+  /* ── AI-training opt-out & header-level indexing block ───────────
+   * Two things a check that only reads the visible page would miss:
+   * (1) an X-Robots-Tag HTTP header can block indexing even when the
+   * HTML <meta name="robots"> looks fine — sites sometimes set one and
+   * forget the other; (2) "noai"/"noimageai" is an emerging opt-out
+   * signal (used by some AI-training crawlers) distinct from classic
+   * noindex — worth surfacing since it's part of the same "what can
+   * crawl this site" question as the GEO module. */
+  const metaRobotsMatch = html.match(/<meta[^>]+name\s*=\s*["']robots["'][^>]*content\s*=\s*["']([^"']*)["'][^>]*>/i);
+  const metaRobotsContent = (metaRobotsMatch ? metaRobotsMatch[1] : "").toLowerCase();
+  const xRobotsTagLower = (xRobotsTagValue || "").toLowerCase();
+  const linkSafety: LinkAndCrawlerSignals = {
+    blankTargetLinkCount: blankTargetLinks.length,
+    blankTargetMissingNoopener,
+    xRobotsTagValue: xRobotsTagValue || null,
+    xRobotsTagBlocksIndexing: /\b(noindex)\b/.test(xRobotsTagLower),
+    metaRobotsVsHeaderConflict:
+      /\b(noindex)\b/.test(xRobotsTagLower) !== /\b(noindex)\b/.test(metaRobotsContent) &&
+      (xRobotsTagLower.length > 0 || metaRobotsContent.length > 0),
+    aiTrainingOptOut: /\b(noai|noimageai)\b/.test(metaRobotsContent) || /\b(noai|noimageai)\b/.test(xRobotsTagLower),
+  };
+
   /* ── CSP-relevant origins, bucketed by resource type ─────────── */
   const originOf = (url: string): string | null => {
     try {
@@ -894,5 +942,6 @@ export function extractDeepSignals(html: string, serverHeaderValue?: string | nu
     vibeCoded,
     sri,
     cspOrigins,
+    linkSafety,
   };
 }

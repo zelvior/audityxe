@@ -154,6 +154,11 @@ export interface SecuritySignals {
   formsWithInsecureAction: number;
   corsAllowsAnyOrigin: boolean;
   corsAllowsCredentialsWithWildcard: boolean;
+  /** The raw X-Robots-Tag response header, if present — a page can be
+   * blocked from indexing at the HTTP-header level even when its HTML
+   * <meta name="robots"> tag looks perfectly fine, which a check that
+   * only reads the HTML would miss entirely. */
+  xRobotsTagValue: string | null;
 }
 
 export interface RobotsSignals {
@@ -420,6 +425,7 @@ function extractSignals(html: string, finalUrl: string): Signals {
         : 0,
       corsAllowsAnyOrigin: false,
       corsAllowsCredentialsWithWildcard: false,
+      xRobotsTagValue: null,
     },
   };
 }
@@ -1563,6 +1569,7 @@ function extractSecurityFromResponse(
     cookiesTrackingSuspectedCount,
     corsAllowsAnyOrigin: corsOrigin === "*",
     corsAllowsCredentialsWithWildcard: corsOrigin === "*" && corsCredentials === "true",
+    xRobotsTagValue: get("x-robots-tag") || null,
   };
 }
 
@@ -1695,7 +1702,7 @@ async function runAuditInner(
   const includePageSpeed = options.includePageSpeed ?? true;
 
   const primary = await auditOne(rawUrl);
-  const deepSignals = extractDeepSignals(primary.html, primary.signals.security.serverHeaderValue);
+  const deepSignals = extractDeepSignals(primary.html, primary.signals.security.serverHeaderValue, primary.signals.security.xRobotsTagValue);
   const fixes = buildFixes(primary.signals, primary.categories, deepSignals);
 
   // Classified synchronously from signals already on hand — no extra

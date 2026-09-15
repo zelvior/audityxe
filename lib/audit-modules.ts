@@ -561,8 +561,16 @@ export function buildAuditModules(ctx: ModuleContext): AuditModule[] {
       : smExp.exposedSourceMaps.length === 0
       ? pass("Source map exposure", `No exposed .js.map files found (sampled ${smExp.scriptsSampled} script${smExp.scriptsSampled === 1 ? "" : "s"}).`)
       : warn("Source map exposure", `${smExp.exposedSourceMaps.length} publicly accessible .js.map file(s) found — can reveal original, unminified source code.`, undefined, "high"),
+    d.linkSafety.blankTargetLinkCount === 0
+      ? pass("target=\"_blank\" safety", "No target=\"_blank\" links found.")
+      : d.linkSafety.blankTargetMissingNoopener === 0
+      ? pass("target=\"_blank\" safety", `All ${d.linkSafety.blankTargetLinkCount} target="_blank" link(s) include rel="noopener".`)
+      : warn(
+          "target=\"_blank\" safety",
+          `${d.linkSafety.blankTargetMissingNoopener} of ${d.linkSafety.blankTargetLinkCount} target="_blank" link(s) are missing rel="noopener" — the opened page gets a live window.opener reference back (a tabnabbing risk).`
+        ),
   ];
-  modules.push(makeModule("sri-source-maps", "Subresource Integrity & Source Maps", "SRI coverage on cross-origin assets and public exposure of JS source maps.", sriFindings));
+  modules.push(makeModule("sri-source-maps", "Subresource Integrity & Link Safety", "SRI coverage on cross-origin assets, public exposure of JS source maps, and target=\"_blank\" tabnabbing risk.", sriFindings));
 
   /* 3g. Trust signals: security.txt, favicon & manifest ───────────── */
   const secTxt = ctx.securityTxt;
@@ -1375,6 +1383,35 @@ export function buildAuditModules(ctx: ModuleContext): AuditModule[] {
         )
       );
     }
+
+    const ls = d.linkSafety;
+    if (ls.xRobotsTagBlocksIndexing) {
+      geoFindings.push(
+        warn(
+          "X-Robots-Tag header",
+          "The X-Robots-Tag response header blocks indexing (noindex) — this blocks every crawler, AI included, even if robots.txt and the HTML meta tag look fine.",
+          ls.xRobotsTagValue || undefined,
+          "high"
+        )
+      );
+    } else {
+      geoFindings.push(pass("X-Robots-Tag header", "No header-level noindex directive found."));
+    }
+    if (ls.metaRobotsVsHeaderConflict) {
+      geoFindings.push(
+        warn(
+          "Meta robots vs. header conflict",
+          "The HTML <meta name=\"robots\"> tag and the X-Robots-Tag HTTP header disagree on whether this page should be indexed — worth resolving so the intent is unambiguous to every crawler.",
+          undefined,
+          "medium"
+        )
+      );
+    }
+    geoFindings.push(
+      ls.aiTrainingOptOut
+        ? pass("AI-training opt-out signal", "A noai/noimageai directive is present — this site has explicitly opted out of AI-training use of its content (separate from being crawlable for AI-search citations, which is unaffected).")
+        : pass("AI-training opt-out signal", "No noai/noimageai opt-out directive found — not required, just noted for sites that want one.")
+    );
 
     modules.push(
       makeModule(

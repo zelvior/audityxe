@@ -11,6 +11,16 @@ export const metadata: Metadata = {
 
 const ENTRIES: { version: string; date: string; changes: string[] }[] = [
   {
+    version: "2.2.0",
+    date: "September 2026",
+    changes: [
+      "Extended the AI Crawler Readiness (GEO) module with two new checks: whether the X-Robots-Tag HTTP response header blocks indexing independently of (and sometimes in conflict with) the HTML <meta name=\"robots\"> tag — a header-level block a check that only reads the visible page would miss entirely — and whether a noai/noimageai AI-training opt-out signal is present.",
+      "Added a new target=\"_blank\" tabnabbing check to the Subresource Integrity module (now \"Subresource Integrity & Link Safety\"): flags links that open in a new tab without rel=\"noopener\"/\"noreferrer\", which otherwise hand the opened page a live window.opener reference back to the original tab.",
+      "Both new checks required zero new network requests — they're computed from the same single page fetch and response headers Audityxe already has in memory for every audit, so they add real depth without adding load time.",
+      "Re-verified after this addition that JSON export, PDF export, and the in-app module list all still read the modules/findings array generically with no hardcoded per-check list — the two new findings appear in all three automatically.",
+    ],
+  },
+  {
     version: "2.1.0",
     date: "September 2026",
     changes: [
