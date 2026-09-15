@@ -11,6 +11,15 @@ export const metadata: Metadata = {
 
 const ENTRIES: { version: string; date: string; changes: string[] }[] = [
   {
+    version: "2.1.0",
+    date: "September 2026",
+    changes: [
+      "Replaced the homepage's tile-swap puzzle with a full \"Audit Defender\" mini-game: a 60-second, 32-issue, multiple-choice find-the-bug challenge spanning all six audit categories (SEO, Performance, Security, Accessibility, UI/UX, Mobile), with live score/accuracy tracking and a final letter grade. Desktop-only by design — it no longer renders at all on mobile viewports.",
+      "Reverted the brand mark back to the actual uploaded logo artwork (a previous pass had substituted a hand-redrawn vector approximation). Reprocessed the original file with a proper flood-fill background removal — background is now only ever removed where it's actually reachable from the canvas edge, instead of a flat color-distance threshold — plus edge-color un-blending to remove the pale fringe that kept showing up around the strokes.",
+      "Verified end-to-end that the audit engine's module list (UI cards, JSON export, and PDF export) all read from the same generic modules/findings array with no hardcoded per-module id list anywhere — confirming the AI Crawler Readiness (GEO) module and the keyboard-focus accessibility check added last release require no extra wiring and already appear correctly in every surface, including the live sample report (which runs a real audit, not a static fixture).",
+    ],
+  },
+  {
     version: "2.0.0",
     date: "September 2026",
     changes: [

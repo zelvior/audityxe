@@ -1,62 +1,36 @@
+import Image from "next/image";
+
 interface LogoProps {
   size?: number;
   className?: string;
 }
 
+// Real trimmed pixel dimensions of the current source PNG (900×817).
+const MARK_ASPECT_RATIO = 900 / 817;
+
 /**
- * Audityxe's brand mark — a clean hand-built vector redraw (an open "A"
- * outline with an integrated checkmark + dot), not a raster export.
- * Previous versions used a cropped/recolored PNG of the original
- * uploaded artwork, which — being a small mark on a large, heavily
- * compressed source image — never got fully crisp no matter how the
- * edges were cleaned up, and always risked a leftover background
- * fringe. An inline SVG has neither problem: it's infinitely crisp at
- * any size, has no background to remove, and its two colors are driven
- * by the same theme CSS variables as the rest of the site, so it
- * repaints correctly for light/dark automatically instead of needing a
- * separate flattened PNG per theme.
- *
- * The favicon (app/icon.png), Apple touch icon (app/apple-icon.png),
- * and the various /public/logo-mark-*.png files are static rasterized
- * exports of this same shape (see public/logo-mark.svg in the design
- * source) for the handful of spots that require a real image file
- * (favicon, manifest icons, OG image, PDF export).
+ * Audityxe's real brand mark — the person's own uploaded artwork,
+ * cleaned rather than replaced: background removed via flood-fill
+ * (reachability from the canvas edges, not just a raw color-distance
+ * threshold, so it doesn't misfire on enclosed pixels), edge pixels
+ * un-blended against the source's cream background to remove baked-in
+ * color fringing, and the purple ink recolored to the site's ink/rust
+ * palette. This is the single source of truth for the mark used across
+ * the Header, Footer, loading screen, and other in-app spots. The
+ * favicon (app/icon.png), Apple touch icon (app/apple-icon.png), and
+ * the /public/logo-mark-*.png files are separately-sized static
+ * exports of this same cleaned artwork.
  */
 export default function Logo({ size = 40, className = "" }: LogoProps) {
+  const width = Math.round(size * MARK_ASPECT_RATIO);
   return (
-    <svg
-      viewBox="0 0 100 100"
-      width={size}
+    <Image
+      src="/logo-mark-trimmed.png"
+      alt="Audityxe"
+      width={width}
       height={size}
       className={`shrink-0 ${className}`}
-      aria-label="Audityxe"
-      role="img"
-    >
-      <path
-        d="M50 10 L14 88 L27 88"
-        fill="none"
-        stroke="rgb(var(--color-text-primary))"
-        strokeWidth="7.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M50 10 L86 88 L73 88"
-        fill="none"
-        stroke="rgb(var(--color-text-primary))"
-        strokeWidth="7.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <circle cx="40" cy="50" r="5" fill="rgb(var(--color-accent))" />
-      <path
-        d="M35 58 L46 70 L80 26"
-        fill="none"
-        stroke="rgb(var(--color-accent))"
-        strokeWidth="8.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
+      priority
+    />
   );
 }
