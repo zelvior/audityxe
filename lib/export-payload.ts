@@ -51,6 +51,8 @@ export function buildAuditExportPayload(result: AuditResult) {
     fixes: result.fixes,
     performance: {
       fetched: result.pageSpeed?.fetched ?? false,
+      attempted: result.pageSpeed?.attempted ?? false,
+      errorMessage: result.pageSpeed?.errorMessage ?? null,
       locked: result.pageSpeedLocked ?? false,
       lockReason: result.pageSpeedLockReason ?? null,
       // Lab scores/CWV below are from a single automated Lighthouse run

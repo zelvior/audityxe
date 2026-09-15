@@ -1763,11 +1763,13 @@ async function runAuditInner(
     redirectChain,
   });
 
-  // Previously the Lighthouse/PageSpeed data only reached the JSON/PDF
-  // export's separate `pageSpeed` field — it had no card in the actual
-  // Full Deep Audit module list shown in the app. buildLighthouseModule
-  // returns null when no real-browser pass was run (locked plan or not
-  // requested), so this only appends a module when there's real data.
+  // buildLighthouseModule returns null only when no real-browser pass
+  // was requested at all (locked plan, or the toggle was off). When one
+  // WAS requested but failed (bad BYOK key, quota, timeout, PSI
+  // outage), it still returns a module — with the real failure reason
+  // as a finding — rather than silently vanishing, which previously
+  // made a broken API key indistinguishable from Lighthouse never
+  // having run.
   const lighthouseModule = buildLighthouseModule(pageSpeed);
   if (lighthouseModule) modules.push(lighthouseModule);
 

@@ -13,6 +13,13 @@ export interface AccessibilitySignals {
   buttonsWithoutAccessibleName: number;
   totalLinks: number;
   linksWithoutAccessibleName: number;
+  /** Links whose entire visible text is a non-descriptive phrase like
+   * "click here" or "read more" — a real SEO and screen-reader-
+   * navigation problem (screen readers can list all links on a page
+   * out of context, so "click here" ×5 tells a blind user nothing
+   * about where each one goes), distinct from having no accessible
+   * name at all. */
+  genericLinkTextCount: number;
   hasSkipLink: boolean;
   positiveTabindexCount: number;
   ariaHiddenOnBodyOrHtml: boolean;
@@ -62,6 +69,12 @@ export interface HtmlStructureSignals {
   duplicateIdCount: number;
   deprecatedTagsUsed: string[];
   commentCount: number;
+  /** More than one <title> or canonical <link> tag — technically
+   * invalid HTML, and browsers/search engines resolve the conflict
+   * unpredictably (usually "last one wins," which is rarely what was
+   * intended). */
+  duplicateTitleTagCount: number;
+  duplicateCanonicalTagCount: number;
 }
 
 export interface ThirdPartyScriptSignals {
@@ -423,11 +436,14 @@ export function extractDeepSignals(html: string, serverHeaderValue?: string | nu
 
   const linkTags = [...bodyHtml.matchAll(/<a\b([^>]*href[^>]*)>([\s\S]*?)<\/a>/gi)];
   let linksWithoutAccessibleName = 0;
+  let genericLinkTextCount = 0;
+  const genericLinkWords = /^(click here|here|read more|learn more|more|this link|link|click|more info|details)\.?$/i;
   for (const [, attrs, inner] of linkTags) {
     const text = inner.replace(/<[^>]+>/g, "").trim();
     const hasAriaLabel = /aria-label\s*=/i.test(attrs);
     const hasImgAlt = /<img[^>]+alt\s*=\s*["'][^"']+["']/i.test(inner);
     if (!text && !hasAriaLabel && !hasImgAlt) linksWithoutAccessibleName++;
+    if (text && !hasAriaLabel && genericLinkWords.test(text)) genericLinkTextCount++;
   }
 
   const genericAltWords = /^(image|photo|picture|img|banner|icon|graphic)\.?$/i;
@@ -445,6 +461,7 @@ export function extractDeepSignals(html: string, serverHeaderValue?: string | nu
     buttonsWithoutAccessibleName,
     totalLinks: linkTags.length,
     linksWithoutAccessibleName,
+    genericLinkTextCount,
     hasSkipLink: /href\s*=\s*["']#(main|content|skip)/i.test(bodyHtml.slice(0, 2000)),
     positiveTabindexCount: [...html.matchAll(/tabindex\s*=\s*["'](\d+)["']/gi)].filter(
       (m) => Number(m[1]) > 0
@@ -545,6 +562,11 @@ export function extractDeepSignals(html: string, serverHeaderValue?: string | nu
   );
   const deprecatedTags = ["center", "font", "marquee", "blink", "big", "strike", "acronym"];
   const deprecatedTagsUsed = deprecatedTags.filter((tag) => new RegExp(`<${tag}\\b`, "i").test(bodyHtml));
+  const duplicateTitleTagCount = Math.max(0, (html.match(/<title\b[^>]*>/gi) || []).length - 1);
+  const duplicateCanonicalTagCount = Math.max(
+    0,
+    [...html.matchAll(/<link\b[^>]*rel\s*=\s*["']canonical["'][^>]*>/gi)].length - 1
+  );
 
   const htmlStructure: HtmlStructureSignals = {
     hasHeaderTag: /<header\b/i.test(bodyHtml),
@@ -560,6 +582,8 @@ export function extractDeepSignals(html: string, serverHeaderValue?: string | nu
     duplicateIdCount,
     deprecatedTagsUsed,
     commentCount: (html.match(/<!--[\s\S]*?-->/g) || []).length,
+    duplicateTitleTagCount,
+    duplicateCanonicalTagCount,
   };
 
   /* ── Third-party scripts ─────────────────────────────────── */

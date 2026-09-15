@@ -11,6 +11,34 @@ export const metadata: Metadata = {
 
 const ENTRIES: { version: string; date: string; changes: string[] }[] = [
   {
+    version: "2.5.0",
+    date: "September 2026",
+    changes: [
+      "Did a full pass cross-referencing every field the audit engine actually computes (DeepSignals + Signals, ~120 fields total) against what's actually surfaced in a finding, to find genuinely unwired data rather than guessing. Found and wired 11 real gaps: <nav>/<article>/<section> semantic-tag detection into the HTML Structure module's landmark check, HTML comment volume, a skip-to-content link check and link-count context in Accessibility, detected ad-network scripts and pricing signals in the relevant modules, and Twitter/Facebook social-tag completeness (twitter:creator, twitter:image, fb:app_id) in Social Metadata.",
+      "Confirmed the remaining flagged fields were false positives, not real gaps: several structured-data type booleans (hasFaqPage, hasProduct, etc.) are derived from — and already redundant with — the schema types list already shown as text; buzzwordCount is redundant with the buzzwordsFound list already displayed; and a batch of Signals-level fields (hasFavicon, isHttps, ctaButtonCount, and others) are wired into the six scored category cards' own evidence narrative, a different part of the UI from the Full Deep Audit modules grid, not missing.",
+    ],
+  },
+  {
+    version: "2.4.0",
+    date: "September 2026",
+    changes: [
+      "Fixed the real cause of the Lighthouse module vanishing entirely on failure (including with a custom/BYOK PageSpeed Insights API key): PageSpeed Insights failures were being swallowed silently with zero error information, and the Lighthouse module simply returned null whenever that happened — visually indistinguishable from Lighthouse never having been requested at all. It now always appears when a real-browser pass was requested, and shows the actual failure reason (invalid key, key not authorized for this API, quota exceeded, timeout, or the raw PSI error message) when it fails.",
+      "Added live validation of a BYOK PageSpeed Insights key at save time (Settings page): it's now tested against the real PSI endpoint before being stored, so a mistyped or wrongly-restricted key is caught immediately with the actual reason, instead of silently saving and only failing much later during an audit.",
+      "Surfaced the same failure/attempted state in both the JSON export (`performance.attempted` / `performance.errorMessage`) and the PDF export (a clear \"pass was requested but did not complete\" page with the real reason), not just the in-app module card.",
+      "Verified every other module in the Full Deep Audit list (SEO, Performance, Security Headers, SSL/TLS, and the rest of the ~24 deep modules) renders with no hidden filtering or truncation in the UI — the module list component applies no slice/limit, only the visible critical/warning filter toggle the person controls themselves.",
+    ],
+  },
+  {
+    version: "2.3.0",
+    date: "September 2026",
+    changes: [
+      "Audited the entire existing check library before adding anything (it already covers SPF/DKIM/DMARC, DNSSEC, CAA records, subdomain-takeover detection against 20 known services, exposed .env/.git/config-file scanning, directory-listing detection, per-cookie security flags, Subresource Integrity, CSP strength, JSON-LD type detection, and far more — all free and unlimited) to find genuine remaining gaps rather than duplicate existing coverage.",
+      "Added duplicate <title> tag and duplicate canonical-tag detection to the SEO module — multiple of either is technically invalid HTML that browsers and search engines resolve unpredictably.",
+      "Added a \"descriptive link text\" check to the Accessibility module — flags links whose entire visible text is a non-descriptive phrase like \"click here\" or \"read more,\" which leaves screen-reader users navigating a page's link list with zero context on where each one goes.",
+      "All new checks (this release and the two before it) are computed entirely from data already fetched for the audit — zero added network requests, zero added load time.",
+    ],
+  },
+  {
     version: "2.2.0",
     date: "September 2026",
     changes: [

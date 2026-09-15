@@ -70,6 +70,16 @@ export interface AuditModule {
 
 export interface PageSpeedSummary {
   fetched: boolean;
+  /** Distinct from `fetched`: true whenever a PageSpeed Insights call
+   * was actually attempted (includePageSpeed was on), regardless of
+   * whether it succeeded — so a failure can be told apart from "never
+   * requested" (a locked plan, or the toggle left off). */
+  attempted: boolean;
+  /** Human-readable reason the call failed, when `attempted` is true
+   * and `fetched` is false — surfaced directly to the person instead
+   * of the Lighthouse module just silently not appearing, which gave
+   * zero signal for diagnosing e.g. an invalid BYOK API key. */
+  errorMessage: string | null;
   performanceScore: number | null;
   accessibilityScore: number | null;
   bestPracticesScore: number | null;

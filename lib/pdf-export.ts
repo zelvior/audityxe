@@ -319,7 +319,19 @@ export function generateAuditPdf(result: AuditResult) {
   });
 
   /* ── PageSpeed lab data ─────────────────────────────────────── */
-  if (result.pageSpeed?.fetched) {
+  if (result.pageSpeed?.attempted && !result.pageSpeed?.fetched) {
+    doc.addPage();
+    y = sectionHeading(doc, 20, "Performance (lab measurement data)");
+    doc.setFontSize(9);
+    doc.setTextColor(...findingColor("fail"));
+    doc.text("A real-browser (Lighthouse) pass was requested but did not complete.", MARGIN, y);
+    y += 6;
+    doc.setFontSize(8.5);
+    doc.setTextColor(MUTED);
+    const reason = result.pageSpeed.errorMessage || "Unknown error.";
+    const wrapped = doc.splitTextToSize(reason, CONTENT_W);
+    doc.text(wrapped, MARGIN, y);
+  } else if (result.pageSpeed?.fetched) {
     doc.addPage();
     y = sectionHeading(doc, 20, "Performance (lab measurement data)");
     doc.setFontSize(8.5);

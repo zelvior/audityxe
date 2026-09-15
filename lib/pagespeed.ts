@@ -22,6 +22,8 @@ const PSI_TIMEOUT_MS = 12000;
 
 export const EMPTY_PAGESPEED_SUMMARY: PageSpeedSummary = {
   fetched: false,
+  attempted: false,
+  errorMessage: null,
   performanceScore: null,
   accessibilityScore: null,
   bestPracticesScore: null,
@@ -71,7 +73,7 @@ function extractFieldData(data: {
 }
 
 export async function fetchPageSpeedInsights(targetUrl: string, byokApiKey?: string | null): Promise<PageSpeedSummary> {
-  const empty: PageSpeedSummary = EMPTY_PAGESPEED_SUMMARY;
+  const empty: PageSpeedSummary = { ...EMPTY_PAGESPEED_SUMMARY, attempted: true };
 
   const apiKey = byokApiKey || process.env.PAGESPEED_API_KEY;
   const params = new URLSearchParams();
@@ -88,11 +90,37 @@ export async function fetchPageSpeedInsights(targetUrl: string, byokApiKey?: str
       signal: controller.signal,
     });
     if (!res.ok) {
-      return empty;
+      // PSI returns a real, specific JSON error body on failure (bad
+      // key, key restricted to the wrong API/referrer, quota
+      // exceeded, target URL unreachable by Google's crawler, etc.) —
+      // surface it instead of silently returning "no data" with zero
+      // explanation, which is what made a broken BYOK key look
+      // indistinguishable from Lighthouse simply not running.
+      let reason = `PageSpeed Insights returned HTTP ${res.status}.`;
+      try {
+        const errBody = await res.json();
+        const msg = errBody?.error?.message;
+        if (typeof msg === "string" && msg.trim()) reason = msg.trim();
+      } catch {
+        // body wasn't JSON — keep the generic status-based reason
+      }
+      if (res.status === 400 && apiKey) reason = `Invalid PageSpeed Insights API key or malformed request. (${reason})`;
+      if (res.status === 403) reason = `PageSpeed Insights API key isn't authorized for this API, or is restricted to a different referrer/IP. (${reason})`;
+      if (res.status === 429) reason = `PageSpeed Insights quota exceeded for ${apiKey ? "this API key" : "the shared free tier"}. (${reason})`;
+      return { ...empty, errorMessage: reason };
     }
     const data = await res.json();
     const lh = data?.lighthouseResult;
-    if (!lh) return empty;
+    if (!lh) {
+      const psiError = data?.error?.message;
+      return {
+        ...empty,
+        errorMessage:
+          typeof psiError === "string" && psiError.trim()
+            ? psiError.trim()
+            : "PageSpeed Insights responded but returned no Lighthouse result for this URL (it may be unreachable from Google's crawler, or blocked for automated tools).",
+      };
+    }
 
     const categories = lh.categories || {};
     const audits: Record<string, { score: number | null; title?: string; description?: string; numericValue?: number }> =
@@ -119,6 +147,8 @@ export async function fetchPageSpeedInsights(targetUrl: string, byokApiKey?: str
 
     return {
       fetched: true,
+      attempted: true,
+      errorMessage: null,
       performanceScore: pct(categories.performance),
       accessibilityScore: pct(categories.accessibility),
       bestPracticesScore: pct(categories["best-practices"]),
@@ -133,8 +163,14 @@ export async function fetchPageSpeedInsights(targetUrl: string, byokApiKey?: str
       topIssues: failingAudits,
       fieldData: extractFieldData(data),
     };
-  } catch {
-    return empty;
+  } catch (err) {
+    const isAbort = err instanceof Error && err.name === "AbortError";
+    return {
+      ...empty,
+      errorMessage: isAbort
+        ? `PageSpeed Insights didn't respond within ${PSI_TIMEOUT_MS / 1000}s — Google's Lighthouse run is likely just slow for this URL right now.`
+        : `PageSpeed Insights request failed: ${err instanceof Error ? err.message : "unknown network error"}.`,
+    };
   } finally {
     clearTimeout(timer);
   }

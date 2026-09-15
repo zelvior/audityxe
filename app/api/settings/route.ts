@@ -106,7 +106,38 @@ export async function PATCH(req: NextRequest) {
         if (typeof body.psiApiKey !== "string" || body.psiApiKey.length < 10 || body.psiApiKey.length > 300) {
           return NextResponse.json({ error: "That doesn't look like a valid API key." }, { status: 400 });
         }
-        await savePsiByokKey(identity.uid, body.psiApiKey.trim());
+        // Actually test the key against the real PSI endpoint before
+        // saving it — previously any string in the right length range
+        // was accepted with no live check, so a mistyped or wrongly-
+        // restricted key would only surface as a failure much later,
+        // during an actual audit (and, until the Lighthouse module fix
+        // above, with no visible error at all).
+        const trimmedKey = body.psiApiKey.trim();
+        try {
+          const testUrl = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(
+            "https://example.com"
+          )}&category=performance&key=${encodeURIComponent(trimmedKey)}`;
+          const testController = new AbortController();
+          const testTimer = setTimeout(() => testController.abort(), 10000);
+          const testRes = await fetch(testUrl, { signal: testController.signal }).finally(() => clearTimeout(testTimer));
+          if (!testRes.ok) {
+            let reason = `PageSpeed Insights rejected this key (HTTP ${testRes.status}).`;
+            try {
+              const errBody = await testRes.json();
+              if (typeof errBody?.error?.message === "string") reason = errBody.error.message;
+            } catch {
+              // non-JSON error body — keep the generic reason
+            }
+            return NextResponse.json({ error: reason }, { status: 400 });
+          }
+        } catch (err) {
+          const isAbort = err instanceof Error && err.name === "AbortError";
+          return NextResponse.json(
+            { error: isAbort ? "Timed out testing this key against PageSpeed Insights — please try again." : "Couldn't reach PageSpeed Insights to test this key. Please try again." },
+            { status: 502 }
+          );
+        }
+        await savePsiByokKey(identity.uid, trimmedKey);
       }
     }
 

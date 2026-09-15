@@ -124,7 +124,23 @@ function makeModule(id: string, label: string, summary: string, findings: AuditM
  * simply skip pushing anything rather than showing an empty module.
  */
 export function buildLighthouseModule(pageSpeed: PageSpeedSummary): AuditModule | null {
-  if (!pageSpeed.fetched) return null;
+  // Not requested at all (locked plan, or the toggle was left off) —
+  // correctly show nothing, since nothing was asked for.
+  if (!pageSpeed.attempted) return null;
+
+  // Requested, but failed — show a real module with the actual reason
+  // instead of silently vanishing, which is indistinguishable from
+  // "Lighthouse wasn't enabled" and gives zero signal for diagnosing a
+  // bad BYOK API key, a quota limit, or a timeout.
+  if (!pageSpeed.fetched) {
+    return makeModule(
+      "lighthouse",
+      "Lighthouse Audit",
+      "Real browser-rendered performance, accessibility, best-practices, and SEO scores from a live Google PageSpeed Insights run.",
+      [fail("PageSpeed Insights run failed", pageSpeed.errorMessage || "Unknown error — the request did not return usable data.", undefined, "medium")]
+    );
+  }
+
   const findings: AuditModuleFinding[] = [];
 
   const category = (label: string, value: number | null) => {
@@ -206,12 +222,18 @@ export function buildAuditModules(ctx: ModuleContext): AuditModule[] {
             ? pass("Title tag", `${s.title.length} characters — within the ideal range.`)
             : warn("Title tag", `${s.title.length} characters — outside the ideal 15-65 range.`)
           : fail("Title tag", "Missing entirely."),
+        d.htmlStructure.duplicateTitleTagCount === 0
+          ? pass("Single title tag", "Exactly one <title> tag found.")
+          : warn("Single title tag", `${d.htmlStructure.duplicateTitleTagCount + 1} <title> tags found — browsers and search engines resolve this unpredictably.`),
         s.metaDescription
           ? s.metaDescription.length <= 160
             ? pass("Meta description", `${s.metaDescription.length} characters.`)
             : warn("Meta description", `${s.metaDescription.length} characters — will be truncated in search results.`)
           : fail("Meta description", "Missing entirely."),
         s.hasCanonical ? pass("Canonical tag", "Present.") : warn("Canonical tag", "Missing — risk of duplicate-content dilution."),
+        d.htmlStructure.duplicateCanonicalTagCount === 0
+          ? pass("Single canonical tag", "At most one canonical tag found.")
+          : fail("Single canonical tag", `${d.htmlStructure.duplicateCanonicalTagCount + 1} conflicting canonical tags found — search engines may pick the wrong one.`),
         s.h1Count === 1 ? pass("H1 heading", "Exactly one H1 found.") : fail("H1 heading", `${s.h1Count} H1 tags found (should be exactly 1).`),
         s.robotsTxt.exists
           ? s.robotsTxt.blocksAllCrawlers
@@ -591,6 +613,9 @@ export function buildAuditModules(ctx: ModuleContext): AuditModule[] {
       : favMan.manifestExists
       ? pass("Web app manifest", "manifest.json is linked and resolves correctly.")
       : fail("Web app manifest", `manifest is linked (${favMan.manifestUrl}) but the file doesn't resolve — PWA install will fail.`),
+    d.mobile.hasMaskIcon
+      ? pass("Safari pinned-tab icon", "A mask-icon is declared for Safari's pinned-tab/toolbar UI.")
+      : unknown("Safari pinned-tab icon", "No rel=\"mask-icon\" found — optional, only affects Safari's pinned-tab display."),
   ];
   modules.push(makeModule("trust-signals", "Trust Signals (security.txt, Favicon & Manifest)", "Vulnerability disclosure policy and PWA/browser icon setup.", trustFindings));
 
@@ -662,8 +687,24 @@ export function buildAuditModules(ctx: ModuleContext): AuditModule[] {
           ? pass("Button names", `All ${d.accessibility.totalButtons} button(s) have accessible text.`)
           : warn("Button names", `${d.accessibility.buttonsWithoutAccessibleName} button(s) have no visible text or aria-label.`),
         d.accessibility.linksWithoutAccessibleName === 0
-          ? pass("Link names", "All links have accessible text.")
-          : warn("Link names", `${d.accessibility.linksWithoutAccessibleName} link(s) have no discernible text (empty or icon-only with no label).`),
+          ? pass("Link names", `All ${d.accessibility.totalLinks} link(s) have accessible text.`)
+          : warn("Link names", `${d.accessibility.linksWithoutAccessibleName} of ${d.accessibility.totalLinks} link(s) have no discernible text (empty or icon-only with no label).`),
+        d.accessibility.genericLinkTextCount === 0
+          ? pass("Descriptive link text", "No generic \"click here\"/\"read more\"-style link text found.")
+          : warn(
+              "Descriptive link text",
+              `${d.accessibility.genericLinkTextCount} link(s) use non-descriptive text like "click here" or "read more" — screen-reader users navigating a page's link list out of context get no clue where these go, and it's a missed SEO signal too.`,
+              undefined,
+              "low"
+            ),
+        d.accessibility.hasSkipLink
+          ? pass("Skip-to-content link", "A skip link was found — lets keyboard users jump past repeated navigation.")
+          : warn(
+              "Skip-to-content link",
+              "No skip-to-content link found — keyboard users have to tab through the full navigation on every single page before reaching the main content.",
+              undefined,
+              "low"
+            ),
         s.imgTotal === 0
           ? pass("Image alt text", "No images on this page.")
           : s.imgMissingAlt === 0
@@ -916,18 +957,22 @@ export function buildAuditModules(ctx: ModuleContext): AuditModule[] {
       "Document validity and semantic markup quality.",
       [
         s.security.hasDoctype ? pass("Doctype", "<!DOCTYPE html> present.") : fail("Doctype", "Missing — triggers quirks-mode rendering.", undefined, "low"),
-        d.htmlStructure.hasHeaderTag && d.htmlStructure.hasMainTag && d.htmlStructure.hasFooterTag
-          ? pass("Landmark structure", "header/main/footer all present.")
+        d.htmlStructure.hasHeaderTag && d.htmlStructure.hasMainTag && d.htmlStructure.hasFooterTag && d.htmlStructure.hasNavTag
+          ? pass("Landmark structure", "header/nav/main/footer all present.")
           : warn(
               "Landmark structure",
               `Missing: ${[
                 !d.htmlStructure.hasHeaderTag && "<header>",
+                !d.htmlStructure.hasNavTag && "<nav>",
                 !d.htmlStructure.hasMainTag && "<main>",
                 !d.htmlStructure.hasFooterTag && "<footer>",
               ]
                 .filter(Boolean)
                 .join(", ")}.`
             ),
+        d.htmlStructure.hasArticleOrSection
+          ? pass("Content sectioning", "Uses <article>/<section> instead of only generic <div>s.")
+          : warn("Content sectioning", "No <article> or <section> elements found — content is likely wrapped only in <div>s, which carries no semantic meaning to screen readers or search engines.", undefined, "low"),
         d.htmlStructure.duplicateIdCount === 0
           ? pass("Unique IDs", `All ${d.htmlStructure.totalIdCount} id attribute(s) are unique.`)
           : fail("Unique IDs", `${d.htmlStructure.duplicateIdCount} duplicate id value(s) found — invalid HTML.`),
@@ -936,6 +981,14 @@ export function buildAuditModules(ctx: ModuleContext): AuditModule[] {
           : fail("Deprecated tags", `Found: ${d.htmlStructure.deprecatedTagsUsed.join(", ")}.`),
         s.htmlLangSet ? pass("Language declaration", "Present.") : fail("Language declaration", "Missing lang attribute."),
         s.charsetSet ? pass("Charset declaration", "Present.") : fail("Charset declaration", "Missing <meta charset>."),
+        d.htmlStructure.commentCount <= 40
+          ? pass("HTML comment volume", `${d.htmlStructure.commentCount} HTML comment(s) — a normal amount.`)
+          : warn(
+              "HTML comment volume",
+              `${d.htmlStructure.commentCount} HTML comments found — often leftover CMS/debug cruft that adds page weight with no benefit to visitors.`,
+              undefined,
+              "low"
+            ),
       ]
     )
   );
@@ -1132,6 +1185,9 @@ export function buildAuditModules(ctx: ModuleContext): AuditModule[] {
         d.thirdPartyScripts.analyticsScripts.length > 0
           ? pass("Analytics", d.thirdPartyScripts.analyticsScripts.join(", "))
           : warn("Analytics", "None detected."),
+        d.thirdPartyScripts.adScripts.length > 0
+          ? pass("Ad networks", d.thirdPartyScripts.adScripts.join(", "))
+          : pass("Ad networks", "None detected."),
         d.thirdPartyScripts.tagManagerScripts.length > 0
           ? pass("Tag managers", d.thirdPartyScripts.tagManagerScripts.join(", "))
           : pass("Tag managers", "None detected."),
@@ -1173,6 +1229,11 @@ export function buildAuditModules(ctx: ModuleContext): AuditModule[] {
           ? pass("Twitter Card type", `"${d.socialMeta.twitterCard}".`)
           : warn("Twitter Card type", "Not set — Twitter/X falls back to a generic link preview."),
         d.socialMeta.twitterSite ? pass("twitter:site", `"${d.socialMeta.twitterSite}".`) : warn("twitter:site", "Not set."),
+        d.socialMeta.twitterCreator ? pass("twitter:creator", `"${d.socialMeta.twitterCreator}".`) : unknown("twitter:creator", "Not set — optional, attributes shared links to a specific X/Twitter account."),
+        d.socialMeta.facebookAppId ? pass("Facebook App ID", "fb:app_id is set — enables Facebook Insights for shares of this page.") : unknown("Facebook App ID", "Not set — optional, only needed for Facebook Insights analytics."),
+        d.socialMeta.twitterImageUrl
+          ? pass("twitter:image", "Explicitly set (falls back to og:image automatically when omitted, so this is optional).")
+          : unknown("twitter:image", "Not explicitly set — Twitter/X falls back to og:image automatically, so this is only worth setting if you want a different image specifically for Twitter shares."),
         !d.socialMeta.ogImageUrl
           ? fail("og:image", "Not set — shared links show no preview image.")
           : !ogImage.checked
@@ -1220,6 +1281,9 @@ export function buildAuditModules(ctx: ModuleContext): AuditModule[] {
         d.monetization.hasCartOrCheckoutSignals
           ? pass("E-commerce signals", "Cart/checkout patterns detected.")
           : pass("E-commerce signals", "None detected."),
+        d.monetization.hasPricingSignals
+          ? pass("Pricing signals", "Pricing information (currency amounts or a pricing-related keyword) found on the page.")
+          : pass("Pricing signals", "None detected."),
       ]
     )
   );
