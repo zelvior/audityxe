@@ -541,10 +541,40 @@ export default function SettingsPage() {
                   </button>
                 </form>
                 <p className="text-[11px] text-text-secondary mt-3">
-                  Get a free key with no billing required from Google Cloud Console (enable the
-                  "PageSpeed Insights API"). Your key is encrypted before storage and only used
+                  Get a free key with no billing required from{" "}
+                  <a
+                    href="https://developers.google.com/speed/docs/insights/v5/get-started"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline font-semibold"
+                  >
+                    Google's official PageSpeed Insights setup guide
+                  </a>{" "}
+                  — it walks through enabling the "PageSpeed Insights API" and creating a key in
+                  Google Cloud Console. Your key is encrypted before storage and only used
                   server-side for your own PSI requests.
                 </p>
+                <div className="flex items-start gap-2 text-[11px] text-amber bg-amber/10 border border-amber/20 rounded-input px-3 py-2.5 mt-2">
+                  <AlertCircle size={13} className="shrink-0 mt-0.5" />
+                  <p>
+                    When creating the key, under <strong>"Application restrictions"</strong> choose{" "}
+                    <strong>"None"</strong> or <strong>"IP addresses"</strong> — not{" "}
+                    <strong>"HTTP referrers"</strong>. Audityxe calls this API from our server, not
+                    your browser, and a referrer restriction only recognizes browser-originated
+                    requests, so a referrer-restricted key is rejected every time regardless of how
+                    the key itself is set up. This is a limit Google's API enforces on their end —
+                    there's no way around it from our side other than picking a different
+                    restriction type on the key.
+                  </p>
+                </div>
+                <a
+                  href="https://console.cloud.google.com/apis/credentials"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline mt-2"
+                >
+                  Open Google Cloud Console → Credentials
+                </a>
               </>
             )}
           </SectionCard>

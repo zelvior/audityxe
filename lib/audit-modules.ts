@@ -60,7 +60,7 @@ function unknown(label: string, detail: string, evidence?: string): AuditModuleF
 // finding is severe, which a flat pass/fail ratio could never surface.
 const SEVERITY_WEIGHT: Record<Severity, number> = { critical: 1, high: 0.65, medium: 0.35, low: 0.12 };
 
-function statusFromFindings(findings: AuditModuleFinding[]): { status: AuditModule["status"]; score: number } {
+function statusFromFindings(findings: AuditModuleFinding[]): { status: AuditModule["status"]; score: number | null } {
   const total = findings.length || 1;
   let lost = 0;
   let hasCritical = false;
@@ -73,6 +73,20 @@ function statusFromFindings(findings: AuditModuleFinding[]): { status: AuditModu
   // check this" shouldn't be scored the same as "we checked and it's
   // missing".
   const scored = findings.filter((f) => !f.unverifiable);
+
+  // Every single finding in this module is unverifiable — the module's
+  // checks didn't run at all (e.g. an upstream API call like PageSpeed
+  // Insights failed outright), rather than "we ran the checks and most
+  // things passed." There is no real data here to derive a 0-10 number
+  // from, so don't invent one: a fallback to "no findings lost points"
+  // previously produced a perfect 10/10, and a fallback that scored the
+  // unverifiable finding as if it were a real failure previously
+  // produced an arbitrary partial score (6.5/10) for a module that
+  // measured literally nothing. Both were actively misleading.
+  if (scored.length === 0 && findings.length > 0) {
+    return { status: "warning", score: null };
+  }
+
   const scoredTotal = scored.length || total;
 
   for (const f of scored) {
@@ -137,7 +151,7 @@ export function buildLighthouseModule(pageSpeed: PageSpeedSummary): AuditModule 
       "lighthouse",
       "Lighthouse Audit",
       "Real browser-rendered performance, accessibility, best-practices, and SEO scores from a live Google PageSpeed Insights run.",
-      [fail("PageSpeed Insights run failed", pageSpeed.errorMessage || "Unknown error — the request did not return usable data.", undefined, "medium")]
+      [unknown("PageSpeed Insights run failed", pageSpeed.errorMessage || "Unknown error — the request did not return usable data.")]
     );
   }
 

@@ -72,14 +72,34 @@ function extractFieldData(data: {
   };
 }
 
+/** Google's raw PSI error text is written for a browser-console
+ * developer debugging their OWN project — it includes a live Google
+ * Cloud Console URL with the project's internal numeric ID baked in
+ * (e.g. "...console.developers.google.com/apis/api/...?project=123").
+ * That's fine in a terminal, but showing a raw internal project number
+ * and a deep Google Console link to every visitor of a public audit
+ * report is neither useful to them nor something a site should be
+ * exposing. This strips that out and keeps only the actual sentence
+ * explaining what's wrong. */
+function sanitizePsiErrorMessage(raw: string): string {
+  return raw
+    .replace(/https?:\/\/\S+/g, "")
+    .replace(/\(\s*\)/g, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
 export async function fetchPageSpeedInsights(targetUrl: string, byokApiKey?: string | null): Promise<PageSpeedSummary> {
   const empty: PageSpeedSummary = { ...EMPTY_PAGESPEED_SUMMARY, attempted: true };
 
   const apiKey = byokApiKey || process.env.PAGESPEED_API_KEY;
+  const usingByok = !!byokApiKey;
   const params = new URLSearchParams();
   params.set("url", targetUrl);
   params.set("strategy", "mobile");
   ["performance", "accessibility", "best-practices", "seo"].forEach((c) => params.append("category", c));
+  // Per Google's own PSI documentation: "Use this key in your
+  // application by passing it with the key=API_KEY parameter."
   if (apiKey) params.set("key", apiKey);
 
   const controller = new AbortController();
@@ -93,20 +113,27 @@ export async function fetchPageSpeedInsights(targetUrl: string, byokApiKey?: str
       // PSI returns a real, specific JSON error body on failure (bad
       // key, key restricted to the wrong API/referrer, quota
       // exceeded, target URL unreachable by Google's crawler, etc.) —
-      // surface it instead of silently returning "no data" with zero
-      // explanation, which is what made a broken BYOK key look
-      // indistinguishable from Lighthouse simply not running.
+      // surface a cleaned-up version of it instead of silently
+      // returning "no data" with zero explanation, which is what made
+      // a broken key look indistinguishable from Lighthouse simply not
+      // running.
       let reason = `PageSpeed Insights returned HTTP ${res.status}.`;
       try {
         const errBody = await res.json();
         const msg = errBody?.error?.message;
-        if (typeof msg === "string" && msg.trim()) reason = msg.trim();
+        if (typeof msg === "string" && msg.trim()) reason = sanitizePsiErrorMessage(msg.trim());
       } catch {
         // body wasn't JSON — keep the generic status-based reason
       }
-      if (res.status === 400 && apiKey) reason = `Invalid PageSpeed Insights API key or malformed request. (${reason})`;
-      if (res.status === 403) reason = `PageSpeed Insights API key isn't authorized for this API, or is restricted to a different referrer/IP. (${reason})`;
-      if (res.status === 429) reason = `PageSpeed Insights quota exceeded for ${apiKey ? "this API key" : "the shared free tier"}. (${reason})`;
+      const keySource = usingByok ? "your configured API key" : "the site's configured API key";
+      if (res.status === 400 && apiKey) reason = `Invalid PageSpeed Insights API key, or a malformed request. (${reason})`;
+      if (res.status === 403) {
+        reason =
+          `${keySource[0].toUpperCase()}${keySource.slice(1)} isn't authorized to call the PageSpeed Insights API. ` +
+          `The single most common cause: the key has an "HTTP referrer" restriction in Google Cloud Console, which only works for calls made directly from a browser — a server-side request like this one has no referrer header, so a referrer-restricted key is rejected every time. ` +
+          `Fix: in Google Cloud Console, either remove the application restriction on the key, restrict it by IP address instead, and confirm the PageSpeed Insights API is enabled for that key's project. (${reason})`;
+      }
+      if (res.status === 429) reason = `PageSpeed Insights quota exceeded for ${usingByok ? "your API key" : "the site's shared free tier"}. (${reason})`;
       return { ...empty, errorMessage: reason };
     }
     const data = await res.json();
@@ -117,7 +144,7 @@ export async function fetchPageSpeedInsights(targetUrl: string, byokApiKey?: str
         ...empty,
         errorMessage:
           typeof psiError === "string" && psiError.trim()
-            ? psiError.trim()
+            ? sanitizePsiErrorMessage(psiError.trim())
             : "PageSpeed Insights responded but returned no Lighthouse result for this URL (it may be unreachable from Google's crawler, or blocked for automated tools).",
       };
     }

@@ -128,6 +128,10 @@ export async function PATCH(req: NextRequest) {
             } catch {
               // non-JSON error body — keep the generic reason
             }
+            if (testRes.status === 403) {
+              reason +=
+                " If this key has an \"HTTP referrer\" restriction in Google Cloud Console, that's almost certainly why: referrer restrictions only work for calls made from a browser, and this test (like every real audit) is a server-side request with no referrer header. Remove the restriction or switch it to an IP restriction instead.";
+            }
             return NextResponse.json({ error: reason }, { status: 400 });
           }
         } catch (err) {

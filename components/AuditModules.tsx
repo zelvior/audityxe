@@ -38,13 +38,15 @@ function ModuleCard({ module }: { module: AuditModule }) {
           <div className="flex items-center gap-2 mb-1 flex-wrap">
             <h3 className="font-display font-semibold text-sm sm:text-base">{module.label}</h3>
             <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${c.chip}`}>
-              {passCount}/{scoredFindings.length} passed
+              {scoredFindings.length === 0 ? "Couldn't run" : `${passCount}/${scoredFindings.length} passed`}
             </span>
           </div>
           <p className="text-xs sm:text-sm text-text-secondary truncate">{module.summary}</p>
         </div>
         <div className="flex items-center gap-3 shrink-0">
-          <span className={`font-display font-bold text-lg ${c.text}`}>{module.score.toFixed(1)}</span>
+          <span className={`font-display font-bold text-lg ${module.score == null ? "text-text-secondary" : c.text}`}>
+            {module.score == null ? "—" : module.score.toFixed(1)}
+          </span>
           <ChevronDown
             size={16}
             className={`text-text-secondary transition-transform ${open ? "rotate-180" : ""}`}
@@ -54,7 +56,7 @@ function ModuleCard({ module }: { module: AuditModule }) {
 
       <div className="px-4 sm:px-5 pb-1">
         <div className="h-1.5 rounded-full bg-surface2 overflow-hidden">
-          <div className={`h-full rounded-full ${c.bar}`} style={{ width: `${module.score * 10}%` }} />
+          <div className={`h-full rounded-full ${c.bar}`} style={{ width: `${(module.score ?? 0) * 10}%` }} />
         </div>
       </div>
 

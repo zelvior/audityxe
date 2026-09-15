@@ -63,7 +63,12 @@ export interface AuditModule {
   id: string;
   label: string;
   status: "good" | "warning" | "critical";
-  score: number;
+  /** Null specifically means "this module's checks couldn't run at
+   * all" (e.g. the PageSpeed Insights request itself failed) — a
+   * distinct state from a low-but-real score, so the UI/exports can
+   * show "not scored" instead of a misleadingly specific number
+   * computed from zero actual data. */
+  score: number | null;
   summary: string;
   findings: AuditModuleFinding[];
 }

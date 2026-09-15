@@ -11,6 +11,23 @@ export const metadata: Metadata = {
 
 const ENTRIES: { version: string; date: string; changes: string[] }[] = [
   {
+    version: "2.6.1",
+    date: "September 2026",
+    changes: [
+      "Added a direct link to Google's official PageSpeed Insights setup guide and a link straight to Google Cloud Console → Credentials in the Settings PSI key section, plus an explicit, highlighted warning to pick \"None\" or \"IP addresses\" (not \"HTTP referrers\") under Application restrictions when creating the key — with a plain explanation of why a referrer restriction can never work for a server-side call, since that's enforced by Google's API on their end and isn't something Audityxe's code can work around.",
+    ],
+  },
+  {
+    version: "2.6.0",
+    date: "September 2026",
+    changes: [
+      "Fixed a real scoring bug: when a PageSpeed Insights run failed outright, the Lighthouse module was still computing and showing a numeric score (e.g. 6.5/10) from a single failure finding, which is actively misleading — that number implied partial real measurement when there was none. A module whose checks couldn't run at all now shows \"not scored\" instead of a fabricated number, in the UI, PDF, and JSON export alike.",
+      "PageSpeed Insights error messages shown in the report no longer leak a raw Google Cloud Console URL with an internal project ID baked in — they're now cleaned up to keep just the actual explanation.",
+      "The 403 (\"not authorized\") case now names the single most common real cause directly: an API key with an \"HTTP referrer\" restriction in Google Cloud Console, which only works for browser-originated calls — a server-side audit request has no referrer header, so a referrer-restricted key is rejected every time. This applies to both the site's own configured key and a user's BYOK key.",
+      "The same referrer-restriction explanation now also appears immediately when saving a BYOK key in Settings, not just later during an audit.",
+    ],
+  },
+  {
     version: "2.5.0",
     date: "September 2026",
     changes: [

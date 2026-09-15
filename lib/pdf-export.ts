@@ -274,7 +274,7 @@ export function generateAuditPdf(result: AuditResult) {
     const [sr, sg, sb] = statusColor(m.status);
     autoTable(doc, {
       startY: drawY,
-      head: [[`${m.label}  \u2014  score ${m.score.toFixed(1)}/10  \u2014  ${m.status.toUpperCase()}`]],
+      head: [[`${m.label}  \u2014  ${m.score == null ? "not scored" : `score ${m.score.toFixed(1)}/10`}  \u2014  ${m.status.toUpperCase()}`]],
       body: [],
       theme: "plain",
       margin: { left: MARGIN, right: MARGIN },
