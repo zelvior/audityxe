@@ -54,21 +54,24 @@ export default function Home() {
   // below would silently never appear until after one audit had already
   // run without it.
   const [accountPlan, setAccountPlan] = useState<PlanId>("free");
+  const [hasPsiByokKey, setHasPsiByokKey] = useState(false);
   const [wantsPageSpeed, setWantsPageSpeed] = useState(false);
 
   useEffect(() => {
     if (!user) {
       setAccountPlan("free");
+      setHasPsiByokKey(false);
       return;
     }
     let cancelled = false;
     (async () => {
       const token = await getToken();
       if (!token) return;
-      const { ok, data } = await fetchJson<{ plan: PlanId }>("/api/settings", {
+      const { ok, data } = await fetchJson<{ plan: PlanId; psiByok?: { configured: boolean } }>("/api/settings", {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!cancelled && ok && data?.plan) setAccountPlan(data.plan);
+      if (!cancelled && ok) setHasPsiByokKey(!!data?.psiByok?.configured);
     })();
     return () => {
       cancelled = true;
@@ -157,6 +160,7 @@ export default function Home() {
         authLoading={authLoading}
         canCompare={canCompare}
         userPlan={userPlan}
+        hasPsiByokKey={hasPsiByokKey}
         wantsPageSpeed={wantsPageSpeed}
         onWantsPageSpeedChange={setWantsPageSpeed}
       />

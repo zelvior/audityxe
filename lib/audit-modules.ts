@@ -421,7 +421,7 @@ export function buildAuditModules(ctx: ModuleContext): AuditModule[] {
   if (!s.security.finalIsHttps) {
     tlsFindings.push(fail("HTTPS availability", "Site is not served over HTTPS — no TLS certificate to inspect.", undefined, "critical"));
   } else if (!tls.fetched) {
-    tlsFindings.push(warn("TLS handshake", tls.error || "Could not complete a direct TLS handshake to inspect the certificate."));
+    tlsFindings.push(unknown("TLS handshake", tls.error || "Could not complete a direct TLS handshake to inspect the certificate."));
   } else {
     tlsFindings.push(
       tls.isExpired
@@ -464,7 +464,7 @@ export function buildAuditModules(ctx: ModuleContext): AuditModule[] {
   const ea = ctx.emailAuth;
   const emailFindings: AuditModuleFinding[] = [];
   if (!ea.fetched) {
-    emailFindings.push(warn("DNS lookup", ea.error || "Could not complete DNS lookups for email authentication records."));
+    emailFindings.push(unknown("DNS lookup", ea.error || "Could not complete DNS lookups for email authentication records."));
   } else {
     emailFindings.push(
       ea.hasSpf
@@ -504,7 +504,7 @@ export function buildAuditModules(ctx: ModuleContext): AuditModule[] {
   const sh = ctx.serverHardening;
   const shFindings: AuditModuleFinding[] = [];
   if (!sh.checked) {
-    shFindings.push(warn("Server hardening probe", "Could not complete the server hardening probe for this site."));
+    shFindings.push(unknown("Server hardening probe", "Could not complete the server hardening probe for this site."));
   } else {
     shFindings.push(
       sh.exposesDangerousMethods
@@ -528,7 +528,7 @@ export function buildAuditModules(ctx: ModuleContext): AuditModule[] {
   const dnsSec = ctx.dnsSecurity;
   const dnsFindings: AuditModuleFinding[] = [];
   if (!dnsSec.fetched) {
-    dnsFindings.push(warn("DNS security lookup", dnsSec.error || "Could not complete DNS security lookups."));
+    dnsFindings.push(unknown("DNS security lookup", dnsSec.error || "Could not complete DNS security lookups."));
   } else {
     dnsFindings.push(
       dnsSec.hasCaaRecords
@@ -593,7 +593,7 @@ export function buildAuditModules(ctx: ModuleContext): AuditModule[] {
       ? pass("Stylesheet SRI", `All ${sri.crossOriginStylesheetCount} cross-origin stylesheet(s) have an integrity attribute.`)
       : warn("Stylesheet SRI", `${sri.crossOriginStylesheetsMissingIntegrity} of ${sri.crossOriginStylesheetCount} cross-origin stylesheet(s) are missing Subresource Integrity.`),
     !smExp.checked
-      ? warn("Source map exposure", "Could not complete the source map exposure probe.")
+      ? unknown("Source map exposure", "Could not complete the source map exposure probe.")
       : smExp.exposedSourceMaps.length === 0
       ? pass("Source map exposure", `No exposed .js.map files found (sampled ${smExp.scriptsSampled} script${smExp.scriptsSampled === 1 ? "" : "s"}).`)
       : warn("Source map exposure", `${smExp.exposedSourceMaps.length} publicly accessible .js.map file(s) found — can reveal original, unminified source code.`, undefined, "high"),
@@ -1251,7 +1251,7 @@ export function buildAuditModules(ctx: ModuleContext): AuditModule[] {
         !d.socialMeta.ogImageUrl
           ? fail("og:image", "Not set — shared links show no preview image.")
           : !ogImage.checked
-          ? warn("og:image", "Set, but couldn't be verified live.")
+          ? unknown("og:image", "Set, but couldn't be verified live.")
           : ogImage.exists && ogImage.isImage
           ? pass("og:image", `Live-checked — loads correctly${ogImage.sizeKb ? ` (${ogImage.sizeKb}KB)` : ""}.`)
           : warn(

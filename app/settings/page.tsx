@@ -17,6 +17,7 @@ import {
   Mail as MailIcon,
   Sparkles,
   Gauge,
+  ChevronDown,
 } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -197,6 +198,7 @@ export default function SettingsPage() {
   const [psiByokSaving, setPsiByokSaving] = useState(false);
   const [psiByokSaved, setPsiByokSaved] = useState(false);
   const [psiByokError, setPsiByokError] = useState("");
+  const [psiStepsOpen, setPsiStepsOpen] = useState(false);
 
   async function handleSavePsiByok(e: React.FormEvent) {
     e.preventDefault();
@@ -483,7 +485,7 @@ export default function SettingsPage() {
           <SectionCard
             icon={<Gauge size={15} className="text-primary" />}
             title="PageSpeed Insights API Key"
-            description="Add your own free Google Cloud PageSpeed Insights API key to raise your weekly PSI audit cap — Audityxe's shared key stays capped low to protect Google's free quota for everyone."
+            description="Add your own free Google Cloud PageSpeed Insights API key to remove your weekly PSI audit cap entirely — Audityxe's shared key stays capped to 1/week to protect Google's free quota for everyone, but your own key runs on your own Google Cloud quota instead."
           >
             {!byokLoading && plan !== "pro" ? (
               <div className="flex items-center justify-between gap-3 bg-surface2 border border-border rounded-input px-3.5 py-3">
@@ -541,30 +543,133 @@ export default function SettingsPage() {
                   </button>
                 </form>
                 <p className="text-[11px] text-text-secondary mt-3">
-                  Get a free key with no billing required from{" "}
+                  Get a free key with no billing required — it takes about 2 minutes. Full
+                  click-by-click steps below, or go straight to{" "}
                   <a
                     href="https://developers.google.com/speed/docs/insights/v5/get-started"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-primary hover:underline font-semibold"
                   >
-                    Google's official PageSpeed Insights setup guide
-                  </a>{" "}
-                  — it walks through enabling the "PageSpeed Insights API" and creating a key in
-                  Google Cloud Console. Your key is encrypted before storage and only used
-                  server-side for your own PSI requests.
+                    Google's official setup guide
+                  </a>
+                  . Your key is encrypted before storage and only ever used server-side for your
+                  own PSI requests.
                 </p>
+
+                <button
+                  type="button"
+                  onClick={() => setPsiStepsOpen((v) => !v)}
+                  className="flex items-center gap-1.5 text-[11px] font-semibold text-primary hover:underline mt-2"
+                  aria-expanded={psiStepsOpen}
+                >
+                  <ChevronDown size={13} className={`transition-transform ${psiStepsOpen ? "rotate-180" : ""}`} />
+                  {psiStepsOpen ? "Hide the exact steps" : "Show me the exact steps, click by click"}
+                </button>
+
+                {psiStepsOpen && (
+                  <ol className="mt-3 space-y-3 text-[11px] text-text-secondary bg-surface2 border border-border rounded-input px-4 py-3.5 list-decimal list-outside ml-4">
+                    <li>
+                      Go to{" "}
+                      <a
+                        href="https://console.cloud.google.com/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline font-semibold"
+                      >
+                        console.cloud.google.com
+                      </a>{" "}
+                      and sign in with any Google account (a personal Gmail account is fine — this
+                      does not require a paid Google Cloud plan; PSI has a free tier).
+                    </li>
+                    <li>
+                      At the very top of the page, next to the "Google Cloud" logo, there's a
+                      project-picker dropdown (it may say "Select a project" or show an existing
+                      project name). Click it.
+                    </li>
+                    <li>
+                      In the dialog that opens, click <strong>"New Project"</strong> in the
+                      top-right corner. Type any name (e.g. "PageSpeed Key"), leave the other
+                      fields as-is, and click <strong>"Create"</strong>. Wait a few seconds for it
+                      to finish, then make sure that new project is selected in the top dropdown
+                      (if not, click the dropdown again and select it).
+                    </li>
+                    <li>
+                      Click the <strong>hamburger menu</strong> (☰, top-left corner) to open the
+                      left sidebar. Hover over <strong>"APIs & Services"</strong>, then click{" "}
+                      <strong>"Library"</strong> in the submenu that appears. (Or just go directly
+                      to{" "}
+                      <a
+                        href="https://console.cloud.google.com/apis/library/pagespeedonline.googleapis.com"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline font-semibold"
+                      >
+                        this direct link
+                      </a>{" "}
+                      and skip to step 6.)
+                    </li>
+                    <li>
+                      On the API Library page, click the search box near the top and type{" "}
+                      <strong>PageSpeed Insights API</strong>. Click the one result that appears
+                      (it has a small colored icon and the exact name "PageSpeed Insights API").
+                    </li>
+                    <li>
+                      On the page that opens, click the blue <strong>"Enable"</strong> button.
+                      Wait a few seconds — it'll switch to showing "API enabled" once done.
+                    </li>
+                    <li>
+                      Click the hamburger menu (☰) again → <strong>"APIs & Services"</strong> →{" "}
+                      <strong>"Credentials"</strong> (or use{" "}
+                      <a
+                        href="https://console.cloud.google.com/apis/credentials"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline font-semibold"
+                      >
+                        this direct link
+                      </a>
+                      ).
+                    </li>
+                    <li>
+                      Click <strong>"+ Create Credentials"</strong> near the top of the page, then
+                      choose <strong>"API key"</strong> from the dropdown that appears.
+                    </li>
+                    <li>
+                      A box pops up showing your new key immediately, already active. Click the
+                      copy icon next to it to copy the key. You can close the box after copying —
+                      the key isn't lost, it's saved under Credentials.
+                    </li>
+                    <li>
+                      <strong>Before you leave:</strong> in that same popup (or by clicking the
+                      key's name under Credentials afterward), find{" "}
+                      <strong>"Application restrictions"</strong> and make sure{" "}
+                      <strong>"None"</strong> is selected — it's usually the default. Do{" "}
+                      <strong>not</strong> choose "HTTP referrers" (browser-only calls, won't work
+                      here) or "IP addresses" (Audityxe's server may run on rotating IPs
+                      depending on hosting, so an IP restriction can break unpredictably too — the
+                      key only reaching Google's PageSpeed Insights API is protection enough on
+                      its own). Click <strong>"Save"</strong> at the bottom if you changed
+                      anything.
+                    </li>
+                    <li>
+                      Paste the copied key into the "API key" field above on this page and click{" "}
+                      <strong>"Save key"</strong>. Audityxe tests it against the real API
+                      immediately and tells you right away if something's wrong.
+                    </li>
+                  </ol>
+                )}
+
                 <div className="flex items-start gap-2 text-[11px] text-amber bg-amber/10 border border-amber/20 rounded-input px-3 py-2.5 mt-2">
                   <AlertCircle size={13} className="shrink-0 mt-0.5" />
                   <p>
-                    When creating the key, under <strong>"Application restrictions"</strong> choose{" "}
-                    <strong>"None"</strong> or <strong>"IP addresses"</strong> — not{" "}
-                    <strong>"HTTP referrers"</strong>. Audityxe calls this API from our server, not
-                    your browser, and a referrer restriction only recognizes browser-originated
-                    requests, so a referrer-restricted key is rejected every time regardless of how
-                    the key itself is set up. This is a limit Google's API enforces on their end —
-                    there's no way around it from our side other than picking a different
-                    restriction type on the key.
+                    Under <strong>"Application restrictions"</strong> (step 9 above), choose{" "}
+                    <strong>"None"</strong> — not <strong>"HTTP referrers"</strong> and not{" "}
+                    <strong>"IP addresses"</strong>. Audityxe calls this API from our server, not
+                    your browser, so a referrer restriction is rejected every single time (that's
+                    enforced by Google, not something we can work around). An IP restriction can
+                    also fail unpredictably since server hosting commonly uses non-fixed outbound
+                    IPs.
                   </p>
                 </div>
                 <a

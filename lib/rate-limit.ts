@@ -263,6 +263,43 @@ export async function checkAndIncrementWeeklyFeatureUsage(
   });
 }
 
+/**
+ * Refunds one use from the weekly counter — specifically for the case
+ * where a request was allowed and counted, but then failed for a
+ * reason that has nothing to do with the person's own usage (e.g. the
+ * PageSpeed Insights call itself errored out). Without this, a single
+ * Google-side hiccup or transient timeout on someone's one weekly
+ * Lighthouse run would burn their entire week's quota for zero
+ * benefit — technically "fair" under a naive counter, but not what
+ * the limit is actually meant to protect against. Only refunds within
+ * the same week the use was recorded in; a week boundary crossing
+ * between the increment and this call (extremely unlikely given these
+ * happen moments apart) just means no-op rather than corrupting the
+ * new week's count.
+ */
+export async function refundWeeklyFeatureUsage(uid: string, feature: string): Promise<void> {
+  const db = adminDb();
+  const ref = db.collection("feature_usage_weekly").doc(`${uid}_${feature}`);
+  const week = weekKey();
+  try {
+    await db.runTransaction(async (tx) => {
+      const snap = await tx.get(ref);
+      if (!snap.exists) return;
+      const data = snap.data()!;
+      if (data.week !== week) return;
+      const current = (data.count as number) || 0;
+      if (current <= 0) return;
+      tx.set(ref, { week, count: current - 1, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+    });
+  } catch {
+    // Best-effort — if the refund fails, the person just keeps a used
+    // slot they didn't get value from, which is the pre-existing
+    // behavior this function is trying to improve on, not a new
+    // failure mode. Never let a refund error bubble up and fail the
+    // (already-completed) audit response.
+  }
+}
+
 export interface AnonUsageResult {
   allowed: boolean;
   used: number;

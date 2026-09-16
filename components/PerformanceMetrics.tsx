@@ -18,7 +18,7 @@ export default function PerformanceMetrics({ result }: { result: AuditResult }) 
 
   const reason =
     result.pageSpeedLockReason === "weekly_limit"
-      ? "This plan's weekly real-browser (Lighthouse) audit quota has already been used."
+      ? "This plan's weekly real-browser (Lighthouse) audit quota has already been used. Add your own free PageSpeed Insights API key in Settings for unlimited real-browser passes."
       : "A real-browser (Lighthouse) pass wasn't requested for this audit.";
 
   return (

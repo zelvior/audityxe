@@ -16,6 +16,7 @@ interface HeroProps {
   canCompare: boolean;
   prefillUrl?: string;
   userPlan: PlanId;
+  hasPsiByokKey: boolean;
   wantsPageSpeed: boolean;
   onWantsPageSpeedChange: (value: boolean) => void;
 }
@@ -29,6 +30,7 @@ export default function Hero({
   canCompare,
   prefillUrl,
   userPlan,
+  hasPsiByokKey,
   wantsPageSpeed,
   onWantsPageSpeedChange,
 }: HeroProps) {
@@ -176,7 +178,8 @@ export default function Hero({
               onChange={(e) => onWantsPageSpeedChange(e.target.checked)}
               className="accent-primary w-3.5 h-3.5"
             />
-            Run a real-browser PageSpeed Insights (Lighthouse) pass — limited to your weekly quota
+            Run a real-browser PageSpeed Insights (Lighthouse) pass
+            {hasPsiByokKey ? " — unlimited with your own API key" : " — limited to your weekly quota"}
           </label>
         )}
       </div>

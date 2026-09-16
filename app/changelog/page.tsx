@@ -11,6 +11,38 @@ export const metadata: Metadata = {
 
 const ENTRIES: { version: string; date: string; changes: string[] }[] = [
   {
+    version: "2.8.0",
+    date: "September 2026",
+    changes: [
+      "Systematically audited every \"couldn't check this\" gate across the entire module builder (every .fetched/.checked guard) for the same scoring bug fixed in the Lighthouse module last release, and found six more real instances: TLS handshake failure, email-authentication DNS lookup failure, DNS security lookup failure, the server-hardening probe, source-map-exposure probe, and og:image live-verification — all were scoring a failed/skipped probe as a real \"medium-severity warning\" (quietly dragging the module's score down, or in the sole-finding cases producing a misleadingly specific partial score) instead of correctly excluding it from scoring as unverifiable. All six now behave like every other unverifiable finding: shown for transparency, excluded from the score.",
+      "Verified, rather than assumed, that the `confidence` field on findings is genuinely wired end-to-end (UI badge, PDF suffix, JSON export) — it is, no gap found there.",
+    ],
+  },
+  {
+    version: "2.7.1",
+    date: "September 2026",
+    changes: [
+      "Fixed a real fairness/efficiency gap in the weekly PageSpeed Insights limit: the shared-key quota slot was consumed the moment a real-browser pass was requested, before the PSI call even ran — so a single transient failure (a Google-side hiccup, a timeout, an outage) burned someone's entire week's one Lighthouse run for zero benefit. The slot is now automatically refunded when the request was counted against the shared limit but the PSI call itself came back empty, so people only spend their weekly pass on runs that actually produced data.",
+    ],
+  },
+  {
+    version: "2.7.0",
+    date: "September 2026",
+    changes: [
+      "Changed PageSpeed Insights rate limiting: a person using their own PSI API key now gets a genuinely unlimited number of real-browser (Lighthouse) passes — no weekly counter is checked or incremented for them at all — instead of the previous raised-but-still-capped limit (10/week). Without a configured key, the existing shared-key limit (1/week on Pro) is unchanged.",
+      "The \"Run a real-browser PageSpeed Insights pass\" checkbox on the homepage now says \"unlimited with your own API key\" instead of the generic weekly-quota text when the signed-in user has one configured.",
+      "The locked-performance notice (shown when the weekly quota is used up) now points directly at adding a free PSI key in Settings as the fix, instead of just stating the quota was hit.",
+    ],
+  },
+  {
+    version: "2.6.2",
+    date: "September 2026",
+    changes: [
+      "Replaced the short PSI-key setup blurb in Settings with a full click-by-click walkthrough (expand \"Show me the exact steps\") — sign-in, project creation, enabling the API, creating the key, and setting restrictions, with direct links at each relevant step, written for someone who has never opened Google Cloud Console before.",
+      "Corrected the restriction guidance: previously suggested \"None or IP addresses\" as safe alternatives to an HTTP-referrer restriction. An IP-address restriction can also fail unpredictably on server hosting with non-fixed outbound IPs, so the guidance (in Settings, the save-time validation error, and the audit-time error message) now consistently recommends \"None\" only.",
+    ],
+  },
+  {
     version: "2.6.1",
     date: "September 2026",
     changes: [

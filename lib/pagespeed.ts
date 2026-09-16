@@ -131,7 +131,7 @@ export async function fetchPageSpeedInsights(targetUrl: string, byokApiKey?: str
         reason =
           `${keySource[0].toUpperCase()}${keySource.slice(1)} isn't authorized to call the PageSpeed Insights API. ` +
           `The single most common cause: the key has an "HTTP referrer" restriction in Google Cloud Console, which only works for calls made directly from a browser — a server-side request like this one has no referrer header, so a referrer-restricted key is rejected every time. ` +
-          `Fix: in Google Cloud Console, either remove the application restriction on the key, restrict it by IP address instead, and confirm the PageSpeed Insights API is enabled for that key's project. (${reason})`;
+          `Fix: in Google Cloud Console, under the key's "Application restrictions" choose "None" (an IP-address restriction can also fail unpredictably here, since server hosting commonly uses non-fixed outbound IPs), and confirm the PageSpeed Insights API is enabled for that key's project. (${reason})`;
       }
       if (res.status === 429) reason = `PageSpeed Insights quota exceeded for ${usingByok ? "your API key" : "the site's shared free tier"}. (${reason})`;
       return { ...empty, errorMessage: reason };

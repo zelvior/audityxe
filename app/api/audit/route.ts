@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { runAudit } from "@/lib/analyze";
 import { requireAuth, AuthError } from "@/lib/auth-server";
-import { ensureUserDoc, checkAndIncrementUsage, checkAndIncrementAnonymousUsage, checkAndIncrementWeeklyFeatureUsage } from "@/lib/rate-limit";
+import { ensureUserDoc, checkAndIncrementUsage, checkAndIncrementAnonymousUsage, checkAndIncrementWeeklyFeatureUsage, refundWeeklyFeatureUsage } from "@/lib/rate-limit";
 import { PLANS, ANON_DAILY_LIMIT } from "@/lib/plans";
 import { isTrustedOrigin, looksLikeBot } from "@/lib/security";
 import { getClientIp, hashIp } from "@/lib/ip";
@@ -152,25 +152,42 @@ export async function POST(req: NextRequest) {
   }
 
   // PageSpeed Insights runs a real Lighthouse pass and is comparatively
-  // expensive, so it's opt-in per request (client must explicitly confirm)
-  // and capped to 1/week for Pro users on the shared key. BYOK users pay
-  // for their own AI calls but PSI itself is still Google's shared quota,
-  // so BYOK just raises the cap instead of removing it.
+  // expensive, so it's opt-in per request (client must explicitly confirm).
+  // On the shared site key it's capped to 1/week per person, to protect
+  // Google's free quota for everyone. A person using their own PSI API key
+  // pays for (and is limited by) their own Google Cloud quota, not ours —
+  // so BYOK PSI has no weekly cap from Audityxe's side at all, rather than
+  // just a higher one.
   let includePageSpeed = false;
   let pageSpeedLockReason: "not_confirmed" | "weekly_limit" | undefined;
   let psiByokKey: string | null = null;
+  let consumedSharedPsiQuota = false;
   if (plan === "pro" && identity && body.confirmPageSpeed) {
     psiByokKey = await getPsiByokCredentials(identity.uid);
-    const psiLimit = psiByokKey ? 10 : byok ? 5 : 1;
-    const psiUsage = await checkAndIncrementWeeklyFeatureUsage(identity.uid, "pagespeed", psiLimit);
-    includePageSpeed = psiUsage.allowed;
-    if (!psiUsage.allowed) pageSpeedLockReason = "weekly_limit";
+    if (psiByokKey) {
+      includePageSpeed = true;
+    } else {
+      const psiUsage = await checkAndIncrementWeeklyFeatureUsage(identity.uid, "pagespeed", 1);
+      includePageSpeed = psiUsage.allowed;
+      consumedSharedPsiQuota = psiUsage.allowed;
+      if (!psiUsage.allowed) pageSpeedLockReason = "weekly_limit";
+    }
   } else if (plan === "pro" && !body.confirmPageSpeed) {
     pageSpeedLockReason = "not_confirmed";
   }
 
   try {
     const result = await runAudit(url, competitorUrl, { includePromo, promoLockReason, includePageSpeed, byok, psiByokKey });
+
+    // The weekly shared-key slot was reserved before the PSI call ran
+    // (has to be, to keep the check+increment atomic) — if that call
+    // then failed for a reason that isn't the person's fault (a
+    // transient PSI/network error, a Google-side outage), refund the
+    // slot instead of letting a single hiccup burn their entire week's
+    // one real-browser pass for zero benefit.
+    if (consumedSharedPsiQuota && identity && result.pageSpeed?.attempted && !result.pageSpeed?.fetched) {
+      await refundWeeklyFeatureUsage(identity.uid, "pagespeed");
+    }
 
     // Powers the embeddable badge only (domain + score + date). Must be
     // awaited — see the comment on saveLastAuditScore for why an
