@@ -13,6 +13,10 @@ import {
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+// The PSI-key validation call below waits up to 25s for a real test
+// request to Google — give the function enough room to actually finish
+// that wait instead of being killed by the platform default first.
+export const maxDuration = 30;
 
 export async function GET(req: NextRequest) {
   try {
@@ -118,7 +122,7 @@ export async function PATCH(req: NextRequest) {
             "https://example.com"
           )}&category=performance&key=${encodeURIComponent(trimmedKey)}`;
           const testController = new AbortController();
-          const testTimer = setTimeout(() => testController.abort(), 10000);
+          const testTimer = setTimeout(() => testController.abort(), 25000);
           const testRes = await fetch(testUrl, { signal: testController.signal }).finally(() => clearTimeout(testTimer));
           if (!testRes.ok) {
             let reason = `PageSpeed Insights rejected this key (HTTP ${testRes.status}).`;

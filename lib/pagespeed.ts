@@ -18,7 +18,14 @@ import { PageSpeedSummary } from "./types";
  * a hard dependency.
  */
 
-const PSI_TIMEOUT_MS = 12000;
+// A real Lighthouse run through PageSpeed Insights commonly takes
+// 15-40s, and can run considerably longer for a slow or heavy page —
+// the previous 12s timeout was aborting completely normal runs, not
+// just genuinely stuck ones. 75s leaves real headroom for Lighthouse
+// itself while still fitting inside the route's 90s function ceiling
+// (see maxDuration in app/api/audit/route.ts) alongside everything
+// else the audit does in parallel.
+const PSI_TIMEOUT_MS = 75000;
 
 export const EMPTY_PAGESPEED_SUMMARY: PageSpeedSummary = {
   fetched: false,

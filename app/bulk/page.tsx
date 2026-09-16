@@ -181,9 +181,10 @@ export default function BulkAuditPage() {
                   <FileDown size={13} /> Export CSV
                 </button>
               </div>
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border text-xs font-mono text-text-secondary">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border text-xs font-mono text-text-secondary">
                     <th className="text-left px-4 py-3">URL</th>
                     <th className="text-right px-4 py-3">Overall</th>
                   </tr>
@@ -204,7 +205,8 @@ export default function BulkAuditPage() {
                     </tr>
                   ))}
                 </tbody>
-              </table>
+                </table>
+              </div>
             </div>
           )}
         </div>

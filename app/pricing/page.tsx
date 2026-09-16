@@ -367,42 +367,44 @@ export default function PricingPage() {
           <div className="mt-14 sm:mt-16">
             <p className="text-center text-xs font-mono text-text-secondary mb-3">FEATURE COMPARISON</p>
             <div className="glass rounded-card overflow-hidden">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border text-xs font-mono text-text-secondary">
-                    <th className="text-left px-4 sm:px-5 py-3">Feature</th>
-                    <th className="text-center px-3 py-3">Free</th>
-                    <th className="text-center px-3 py-3">Standard</th>
-                    <th className="text-center px-3 py-3">Pro</th>
-                  </tr>
-                </thead>
-                <tbody className="text-text-secondary">
-                  {[
-                    ["All 6 score categories + multi-area deep audit", true, true, true],
-                    ["Written verdict + promo copy", true, true, true],
-                    ["Daily audits", String(PLANS.free.dailyAudits), String(PLANS.standard.dailyAudits), String(PLANS.pro.dailyAudits)],
-                    ["Competitor comparison", PLANS.free.competitorAudits, PLANS.standard.competitorAudits, PLANS.pro.competitorAudits],
-                    ["Bulk audit (up to 20 URLs)", false, false, true],
-                  ].map(([feature, free, standard, pro], i) => (
-                    <tr key={i} className="border-b border-border/50 last:border-0">
-                      <td className="px-4 sm:px-5 py-3">{feature as string}</td>
-                      {[free, standard, pro].map((val, j) => (
-                        <td key={j} className="text-center px-3 py-3">
-                          {typeof val === "boolean" ? (
-                            val ? (
-                              <Check size={15} className="text-emerald inline" />
-                            ) : (
-                              <span className="text-text-secondary/40 inline">—</span>
-                            )
-                          ) : (
-                            <span className="font-mono text-xs">{val}</span>
-                          )}
-                        </td>
-                      ))}
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border text-xs font-mono text-text-secondary">
+                      <th className="text-left px-4 sm:px-5 py-3">Feature</th>
+                      <th className="text-center px-3 py-3">Free</th>
+                      <th className="text-center px-3 py-3">Standard</th>
+                      <th className="text-center px-3 py-3">Pro</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="text-text-secondary">
+                    {[
+                      ["All 6 score categories + multi-area deep audit", true, true, true],
+                      ["Written verdict + promo copy", true, true, true],
+                      ["Daily audits", String(PLANS.free.dailyAudits), String(PLANS.standard.dailyAudits), String(PLANS.pro.dailyAudits)],
+                      ["Competitor comparison", PLANS.free.competitorAudits, PLANS.standard.competitorAudits, PLANS.pro.competitorAudits],
+                      ["Bulk audit (up to 20 URLs)", false, false, true],
+                    ].map(([feature, free, standard, pro], i) => (
+                      <tr key={i} className="border-b border-border/50 last:border-0">
+                        <td className="px-4 sm:px-5 py-3">{feature as string}</td>
+                        {[free, standard, pro].map((val, j) => (
+                          <td key={j} className="text-center px-3 py-3">
+                            {typeof val === "boolean" ? (
+                              val ? (
+                                <Check size={15} className="text-emerald inline" />
+                              ) : (
+                                <span className="text-text-secondary/40 inline">—</span>
+                              )
+                            ) : (
+                              <span className="font-mono text-xs">{val}</span>
+                            )}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>

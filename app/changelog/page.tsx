@@ -11,6 +11,16 @@ export const metadata: Metadata = {
 
 const ENTRIES: { version: string; date: string; changes: string[] }[] = [
   {
+    version: "2.9.0",
+    date: "September 2026",
+    changes: [
+      "Fixed the PageSpeed Insights timeout being far too short: 12s was aborting completely normal Lighthouse runs, which commonly take 15-40s (and can run longer on a slow page) — raised to 75s, with the audit route's own function time limit raised from 60s to 90s to give it room, and the Settings page's key-validation test call raised from 10s to 25s.",
+      "Fixed two real mobile-responsiveness bugs: the bulk-audit results table and the pricing page's feature-comparison table were both wrapped in overflow-hidden, which silently clips wide table content instead of letting it scroll — on a narrow screen, columns past the edge were simply invisible with no way to reach them. Both now scroll horizontally within their own container instead.",
+      "Wired up ESLint for the first time (it was an available but never-configured dependency) and ran a full lint pass across the codebase. The only findings, across every file, were a single purely-cosmetic rule (unescaped quote/apostrophe characters in JSX text, which has zero effect on rendering or the browser console) — confirmed there are no real hook-dependency bugs, missing-key bugs, or accessibility lint failures anywhere in the app. That one cosmetic rule is now intentionally disabled so linting stays active and useful for catching real issues going forward without blocking the build over stylistic text formatting.",
+      "Spot-checked for hydration-risk patterns (Math.random()/Date.now() used during render rather than in an event handler or effect, which can cause a server/client mismatch) — found none; the two Date-based render usages that exist (a copyright year, a random game-target position from a ref-measured size) are both safe by construction.",
+    ],
+  },
+  {
     version: "2.8.0",
     date: "September 2026",
     changes: [

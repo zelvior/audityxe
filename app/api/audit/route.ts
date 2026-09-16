@@ -11,7 +11,7 @@ import { logAuditRecord } from "@/lib/audit-log";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+export const maxDuration = 90;
 
 const MAX_BODY_BYTES = 10 * 1024; // this endpoint only ever needs two short URLs
 const MAX_URL_LENGTH = 2048;
