@@ -15,6 +15,7 @@ import PromoKit from "@/components/PromoKit";
 import CompetitorBattle from "@/components/CompetitorBattle";
 import AuditModules from "@/components/AuditModules";
 import PerformanceMetrics from "@/components/PerformanceMetrics";
+import RenderProof from "@/components/RenderProof";
 import VerifyEmailBanner from "@/components/VerifyEmailBanner";
 import Onboarding from "@/components/Onboarding";
 import { SCAN_STEPS } from "@/lib/constants";
@@ -84,6 +85,8 @@ export default function Home() {
   async function handleAnalyze(url: string, competitorUrl?: string) {
     if (needsEmailVerification) return;
 
+    const confirmPageSpeed = userPlan === "pro" ? wantsPageSpeed : false;
+
     setPhase("scanning");
     setActiveStep(0);
     setResult(null);
@@ -91,10 +94,19 @@ export default function Home() {
     setRateLimited(null);
 
     let step = 0;
+    // The step checklist is a client-side approximation, not real
+    // backend progress (the API is one opaque request/response, not a
+    // streaming one) — so its pace needs to roughly track how long the
+    // request will actually take, or it finishes and sits there
+    // looking "done" while the real audit keeps running underneath,
+    // which is exactly the confusing/misleading state this is meant to
+    // avoid. A real-browser (Lighthouse) pass alone can take up to 75s
+    // (see PSI_TIMEOUT_MS), so pace much slower when one was requested.
+    const stepIntervalMs = confirmPageSpeed ? 9000 : 900;
     stepTimerRef.current = setInterval(() => {
       step = Math.min(step + 1, SCAN_STEPS.length - 1);
       setActiveStep(step);
-    }, 900);
+    }, stepIntervalMs);
 
     try {
       // No token at all for a signed-out visitor — that's fine, the
@@ -106,8 +118,6 @@ export default function Home() {
         setPhase("error");
         return;
       }
-
-      const confirmPageSpeed = userPlan === "pro" ? wantsPageSpeed : false;
 
       const { ok, data, error } = await fetchJson<AuditResult & { code?: string; plan?: PlanId; limit?: number }>(
         "/api/audit",
@@ -171,7 +181,7 @@ export default function Home() {
       <AnimatePresence mode="wait">
         {phase === "scanning" && (
           <motion.div key="scan" exit={{ opacity: 0 }}>
-            <ScanProgress activeStep={activeStep} />
+            <ScanProgress activeStep={activeStep} isLongRun={wantsPageSpeed && userPlan === "pro"} />
           </motion.div>
         )}
 
@@ -220,6 +230,7 @@ export default function Home() {
             )}
             <ScoreCard result={result} />
             <PerformanceMetrics result={result} />
+            <RenderProof result={result} />
             <AuditModules modules={result.modules} />
             <DiffFixes result={result} />
             <PromoKit result={result} />

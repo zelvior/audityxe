@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, useCallback, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, LogOut, Loader2, Zap, Mail, ShieldCheck, RefreshCw, BadgeCheck, Settings as SettingsIcon, Tag, LayoutDashboard } from "lucide-react";
 import Header from "@/components/Header";
@@ -19,7 +19,13 @@ interface UsageData {
   planExpired: boolean;
 }
 
-export default function AccountPage() {
+function AccountPageInner() {
+  const searchParams = useSearchParams();
+  // Set by the NOWPayments success_url redirect. The plan itself is
+  // credited asynchronously by the IPN webhook (blockchain confirmation
+  // isn't instant), so landing here does NOT mean the plan is live yet
+  // — say so explicitly instead of letting it look broken.
+  const justPaid = searchParams.get("payment") === "success";
   const { user, loading, getToken, signOut } = useAuth();
   const router = useRouter();
   const [usage, setUsage] = useState<UsageData | null>(null);
@@ -118,6 +124,19 @@ export default function AccountPage() {
           <h1 className="font-display font-bold text-2xl sm:text-3xl tracking-tight mb-6">
             Your account
           </h1>
+
+          {justPaid && (
+            <div className="glass rounded-card p-4 mb-5 border border-emerald/30 bg-emerald/5">
+              <p className="text-sm font-semibold text-emerald mb-1">Payment received — thank you.</p>
+              <p className="text-xs text-text-secondary">
+                Crypto payments are credited once the network confirms them, which usually takes a
+                few minutes but can take longer when the network is busy. Your plan below will
+                update automatically — this page re-checks whenever you return to it, so you can
+                safely close it and come back.{" "}
+                {plan?.id === "free" && "Still showing Free after 30 minutes? Get in touch and we'll sort it out."}
+              </p>
+            </div>
+          )}
 
           <div className="glass rounded-card p-5 sm:p-6 mb-5 space-y-3">
             <div className="flex items-center gap-3">
@@ -312,5 +331,18 @@ export default function AccountPage() {
       </div>
       <Footer />
     </main>
+  );
+}
+
+/**
+ * useSearchParams() requires a Suspense boundary during prerendering in
+ * the App Router — without it the whole route silently opts out of
+ * static generation and Next emits a build-time warning.
+ */
+export default function AccountPage() {
+  return (
+    <Suspense fallback={null}>
+      <AccountPageInner />
+    </Suspense>
   );
 }

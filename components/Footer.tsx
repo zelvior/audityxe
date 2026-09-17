@@ -1,6 +1,14 @@
 import Link from "next/link";
 import Logo from "./Logo";
 import HoverRevealButton from "./HoverRevealButton";
+import { Heart } from "lucide-react";
+
+// Points at our own /donate page by default, which embeds the
+// NOWPayments donation widget and also offers non-financial ways to
+// help. NEXT_PUBLIC_DONATION_URL can override it with an external link
+// (a NOWPayments-hosted donation link, GitHub Sponsors, etc.).
+const DONATION_URL = process.env.NEXT_PUBLIC_DONATION_URL || "/donate";
+const DONATION_IS_EXTERNAL = DONATION_URL.startsWith("http");
 
 const COLUMNS: { title: string; links: { href: string; label: string }[] }[] = [
   {
@@ -21,6 +29,7 @@ const COLUMNS: { title: string; links: { href: string; label: string }[] }[] = [
       { href: "/faq", label: "FAQ" },
       { href: "/trust-center", label: "Trust Center" },
       { href: "/changelog", label: "Changelog" },
+      { href: "/status", label: "Service Status" },
     ],
   },
   {
@@ -34,6 +43,7 @@ const COLUMNS: { title: string; links: { href: string; label: string }[] }[] = [
       { href: "/acceptable-use", label: "Acceptable Use" },
       { href: "/third-party-services", label: "Third-Party Services" },
       { href: "/license", label: "License" },
+      { href: "/refund-policy", label: "Refund Policy" },
     ],
   },
   {
@@ -42,6 +52,7 @@ const COLUMNS: { title: string; links: { href: string; label: string }[] }[] = [
       { href: "/about", label: "About" },
       { href: "/contact", label: "Contact" },
       { href: "/credits", label: "Credits" },
+      { href: "/donate", label: "Sponsor" },
     ],
   },
 ];
@@ -60,11 +71,25 @@ export default function Footer() {
             <p className="text-xs text-text-secondary max-w-[220px] leading-relaxed mb-4">
               Instant, evidence-based website audits — every score backed by a real, live check.
             </p>
-            <HoverRevealButton
-              frontLabel="Star on GitHub"
-              backLabel="Thanks! ⭐"
-              href="https://github.com/zelvior/audityxe"
-            />
+            <div className="flex flex-wrap items-center gap-2">
+              <HoverRevealButton
+                frontLabel="Star on GitHub"
+                backLabel="Thanks! ⭐"
+                href="https://github.com/zelvior/audityxe"
+              />
+              {/* Sponsor button, styled after GitHub's own — outlined
+                  rather than filled so it reads as a genuine optional
+                  ask sitting next to the primary action, not a second
+                  competing CTA. */}
+              <a
+                href={DONATION_URL}
+                {...(DONATION_IS_EXTERNAL ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                className="inline-flex items-center gap-1.5 h-[44px] px-4 rounded-[10px] border border-border bg-surface text-xs font-semibold text-text-primary hover:border-rose/50 hover:text-rose transition group"
+              >
+                <Heart size={13} className="text-rose group-hover:fill-rose transition" />
+                Sponsor
+              </a>
+            </div>
           </div>
 
           {COLUMNS.map((col) => (

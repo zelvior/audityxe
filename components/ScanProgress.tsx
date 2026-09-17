@@ -5,7 +5,7 @@ import { Check, Loader2 } from "lucide-react";
 import { SCAN_STEPS } from "@/lib/constants";
 import IsometricLoader from "@/components/IsometricLoader";
 
-export default function ScanProgress({ activeStep }: { activeStep: number }) {
+export default function ScanProgress({ activeStep, isLongRun = false }: { activeStep: number; isLongRun?: boolean }) {
   return (
     <section className="px-4 sm:px-6 py-10 sm:py-16">
       <div className="max-w-xl mx-auto glass rounded-card p-5 sm:p-8 relative overflow-hidden">
@@ -52,6 +52,18 @@ export default function ScanProgress({ activeStep }: { activeStep: number }) {
             );
           })}
         </ul>
+
+        {isLongRun && activeStep >= SCAN_STEPS.length - 1 && (
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="text-xs text-text-secondary mt-4 pt-4 border-t border-border relative"
+          >
+            Still running — the real-browser (Lighthouse) pass you asked for can take up to a
+            minute on its own. This isn't stuck, Google's servers are still working on it.
+          </motion.p>
+        )}
       </div>
     </section>
   );

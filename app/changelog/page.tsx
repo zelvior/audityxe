@@ -11,6 +11,52 @@ export const metadata: Metadata = {
 
 const ENTRIES: { version: string; date: string; changes: string[] }[] = [
   {
+    version: "3.2.1",
+    date: "September 2026",
+    changes: [
+      "Cross-checked the entire NOWPayments integration against multiple independent official sources (their Postman API docs, their own nowpayments-sdk-nodejs GitHub repo, and their blog's subscriptions documentation) rather than relying on a single reference — confirmed the invoice, subscription-plan, and email-subscription request field names, and confirmed the IPN signature algorithm (JSON.stringify of a recursively key-sorted payload, HMAC-SHA512) matches NOWPayments' own official SDK implementation exactly.",
+      "Wired recurring subscriptions into the actual pricing page UI — the backend endpoint existed since the last release but nothing called it. Paid plans now show an \"auto-renew monthly by email\" option alongside the one-off crypto payment button.",
+      "Ran a full lint + typecheck + build pass with zero errors or warnings across the entire codebase.",
+    ],
+  },
+  {
+    version: "3.2.0",
+    date: "September 2026",
+    changes: [
+      "Added recurring crypto subscriptions (NOWPayments Subscriptions API), not just one-off invoices. NOWPayments emails the first payment link immediately and a fresh one a day before each renewal, and every resulting payment lands on the existing IPN webhook — which already credits idempotently and stacks paid time onto whatever remains, so renewals work with no extra bookkeeping.",
+      "Subscription endpoints need a Bearer JWT minted from the merchant dashboard login, and that JWT lives only about five minutes — meaning a token pasted into an env var is expired long before it's ever used. It's now minted on demand from credentials, cached by wall-clock time rather than by trusting the token's own exp claim (clock skew makes that unreliable), and retried once on a 401. The mint request also sends the merchant API key, which /v1/auth requires in addition to the credentials — omitting it fails in a way that looks like bad credentials when they're actually fine.",
+      "Added a /donate page embedding the real NOWPayments donation widget, alongside non-financial ways to help. The footer Sponsor button now points there instead of a placeholder. The donation widget key is deliberately a separate NEXT_PUBLIC_ variable from the private API key — it only identifies the destination account and can't move funds, whereas exposing the real API key to the browser would be a serious leak.",
+      "Recurring subscriptions refuse to start if the IPN secret is missing, for the same reason one-off checkout does: the webhook fails closed, so every renewal would be charged and never credited.",
+    ],
+  },
+  {
+    version: "3.1.0",
+    date: "September 2026",
+    changes: [
+      "Added a fully documented .env.example covering all 25+ environment variables the app actually reads, each with click-by-click instructions for where to obtain it — including how to generate the encryption/salt secrets, the exact Firebase private-key formatting that trips everyone up, and the specific Google Cloud \"Application restrictions\" setting that silently breaks a PageSpeed Insights key forever if set wrong.",
+      "Added a proper .gitignore. The repo previously had none at all, which meant nothing was protecting .env files, Firebase service-account JSON keys, or locally-generated audit exports from being committed.",
+      "Made the Firebase web config environment-driven instead of hardcoded. A fork previously had no way to point at its own Firebase project without editing source, so self-hosted sign-in attempts would silently hit the canonical project (which wouldn't have their domain authorized).",
+      "Hardened crypto checkout against its most dangerous half-configured state: having a NOWPayments API key but no IPN secret. That combination would create real invoices and take real money, while the webhook — which fails closed by design — could never credit anyone. Checkout now refuses to start at all in that state, with an explanation, rather than accepting payments it structurally cannot honour.",
+      "Added a payment-pending notice on the account page. Crypto is credited asynchronously once the network confirms, so landing back from checkout doesn't mean the plan is live yet — the page now says so explicitly instead of appearing to have lost the payment.",
+      "Removed a stray exported audit PDF that had been committed into the repo root.",
+    ],
+  },
+  {
+    version: "3.0.0",
+    date: "September 2026",
+    changes: [
+      "Added crypto checkout via NOWPayments, using their hosted-invoice flow so no wallet address ever touches this codebase. Plans are priced entirely server-side (a tampered client can't request a cheaper price), and the IPN webhook verifies every callback with HMAC-SHA512 over the recursively key-sorted payload against the raw request body, using a constant-time comparison — a missing IPN secret is treated as a hard failure rather than a skipped check, since without verification the endpoint would let anyone grant themselves a paid plan. Crediting is idempotent and transactional (NOWPayments retries callbacks), and paid time stacks onto any remaining time instead of overwriting it.",
+      "Added a Refund Policy page, wired into the footer and linked from the pricing page — including a section specifically on what crypto's irreversibility means in practice: refunds are sent as new transactions, calculated on the original USD value rather than coin quantity, with network fees deducted.",
+      "Added a Sponsor button to the footer, styled after GitHub's, pointing at a configurable donation URL.",
+      "Added a /status page — previously this route didn't exist at all, so anything linking to it hit the generic error page. It now shows live uptime badges plus the upstream services an audit depends on, so a degraded dependency is diagnosable rather than looking like an Audityxe bug.",
+      "Fixed two broken third-party badges on the trust pages: the Qualys SSL Labs badge used an invalid shields.io color (\"emerald\") so it silently failed to render, and the Mozilla Observatory badge pointed at a shields.io endpoint that no longer exists since Observatory moved to MDN. Both now render, with the Observatory link updated to its new MDN home.",
+      "Added Render Proof: the final-render screenshot Lighthouse already captures during a normal PageSpeed Insights run is now extracted and shown in the report, and embedded into the PDF. It costs nothing extra — PSI already returns it inline — and it's the only part of the whole report that shows what the page actually looked like to a real Chrome instance rather than describing it in text.",
+      "Fixed the scan progress checklist finishing long before the audit actually did when a real-browser pass was requested — it now paces itself against the real expected duration and explicitly says it's still working rather than sitting there looking done or stuck.",
+      "Rewrote the README as a proper open-source project README: full check-by-check engine documentation, scoring model, environment variables, PageSpeed Insights and NOWPayments setup guides, project structure, contributing guide, and security disclosure.",
+      "Expanded the Credits page with every remaining third-party service and library actually in use (Cloudflare DoH, NOWPayments, UptimeRobot, Shields.io, MDN HTTP Observatory, Qualys SSL Labs, jsPDF).",
+    ],
+  },
+  {
     version: "2.9.0",
     date: "September 2026",
     changes: [

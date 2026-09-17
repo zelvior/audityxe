@@ -1,0 +1,71 @@
+# ── Dependencies ──────────────────────────────────────────────
+node_modules/
+.pnp
+.pnp.js
+.yarn/install-state.gz
+
+# ── Next.js build output ──────────────────────────────────────
+.next/
+out/
+build/
+dist/
+next-env.d.ts
+
+# ── Environment / secrets ─────────────────────────────────────
+# NEVER commit these. .env.example is the only env file that is
+# safe to track — it contains placeholders, not real values.
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+!.env.example
+
+# Firebase Admin service-account keys — a leaked one grants full
+# read/write on your database and auth.
+serviceAccount*.json
+firebase-adminsdk*.json
+*-firebase-adminsdk-*.json
+.firebase/
+.firebaserc
+
+# ── Vercel ────────────────────────────────────────────────────
+.vercel/
+
+# ── Testing / coverage ────────────────────────────────────────
+coverage/
+*.lcov
+.nyc_output/
+
+# ── Logs ──────────────────────────────────────────────────────
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+logs/
+*.log
+
+# ── Caches ────────────────────────────────────────────────────
+.eslintcache
+.cache/
+.turbo/
+*.tsbuildinfo
+
+# ── Generated audit artifacts ─────────────────────────────────
+# Exported reports written during local testing — these contain
+# real audited URLs and shouldn't end up in the repo.
+audit-*.pdf
+audit-*.json
+audit-*.md
+
+# ── OS / editor cruft ─────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+*.swo
+*~

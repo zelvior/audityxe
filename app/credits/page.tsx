@@ -58,6 +58,7 @@ export default function CreditsPage() {
       <h2>Core stack</h2>
       <div className="grid sm:grid-cols-2 gap-3 not-prose">
         <CreditCard icon={Code2} name="Next.js" role="React framework — App Router, edge/serverless functions" href="https://nextjs.org" />
+        <CreditCard icon={Code2} name="jsPDF + jspdf-autotable" role="Generates the downloadable PDF audit report" href="https://github.com/parallax/jsPDF" />
         <CreditCard icon={Code2} name="TypeScript" role="Static typing across the whole codebase" href="https://www.typescriptlang.org" />
         <CreditCard icon={Palette} name="Tailwind CSS" role="Utility-first styling and the design-token system" href="https://tailwindcss.com" />
         <CreditCard icon={Sparkles} name="Framer Motion" role="Animation — entrance transitions, the audit puzzle, scan effects" href="https://www.framer.com/motion/" />
@@ -110,6 +111,12 @@ export default function CreditsPage() {
       <div className="grid sm:grid-cols-2 gap-3 not-prose">
         <CreditCard icon={Compass} name="Vercel / Netlify" role="Deployment target (project-configurable)" href="https://vercel.com" />
         <CreditCard icon={Compass} name="Google PageSpeed Insights API" role="Real-browser Lighthouse pass for the Performance module" href="https://developers.google.com/speed/docs/insights/v5/get-started" />
+        <CreditCard icon={Compass} name="Cloudflare DNS over HTTPS" role="DNSSEC, CAA, and email-authentication record lookups" href="https://developers.cloudflare.com/1.1.1.1/encryption/dns-over-https/" />
+        <CreditCard icon={Compass} name="NOWPayments" role="Hosted crypto checkout and payment notifications" href="https://nowpayments.io" />
+        <CreditCard icon={Compass} name="UptimeRobot" role="Public uptime monitoring badge on the status page" href="https://uptimerobot.com" />
+        <CreditCard icon={Compass} name="Shields.io" role="Status and grade badges used across the trust pages" href="https://shields.io" />
+        <CreditCard icon={Compass} name="MDN HTTP Observatory" role="Independent third-party security header grading" href="https://developer.mozilla.org/en-US/observatory" />
+        <CreditCard icon={Compass} name="Qualys SSL Labs" role="Independent third-party TLS configuration grading" href="https://www.ssllabs.com/ssltest/" />
       </div>
 
       <p className="text-xs text-text-secondary/80 mt-8">

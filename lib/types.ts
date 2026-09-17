@@ -112,6 +112,11 @@ export interface PageSpeedSummary {
     inpMs: number | null;
     overallCategory: "FAST" | "AVERAGE" | "SLOW" | null;
   };
+  /** The final-render screenshot Lighthouse already captures during a
+   * normal PSI run (base64 data URL) — visual proof of how Chrome
+   * actually rendered the page, at zero extra cost since PSI already
+   * returns it. Null when not fetched or not present in the response. */
+  finalScreenshotDataUrl: string | null;
 }
 
 export interface AuditResult {

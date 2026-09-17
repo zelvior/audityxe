@@ -73,6 +73,10 @@ export function buildAuditExportPayload(result: AuditResult) {
       coreWebVitals: result.pageSpeed?.fetched ? result.pageSpeed.coreWebVitals : null,
       fieldData: result.pageSpeed?.fieldData ?? null,
       topIssues: result.pageSpeed?.fetched ? result.pageSpeed.topIssues : [],
+      // Base64 data URL, so it's intentionally omitted from the JSON
+      // export by default (it can be hundreds of KB and would dominate
+      // the file) — exposed as a boolean so consumers know it exists.
+      finalScreenshotAvailable: !!result.pageSpeed?.finalScreenshotDataUrl,
     },
     promo: {
       locked: result.promoLocked ?? false,

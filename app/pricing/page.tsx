@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Check, Mail, Globe, Loader2, ShieldCheck } from "lucide-react";
+import { Check, Mail, Globe, Loader2, ShieldCheck, Bitcoin, RefreshCw } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useAuth } from "@/context/AuthContext";
@@ -65,6 +65,10 @@ export default function PricingPage() {
   const [promo, setPromo] = useState<{ code: string; plan: PlanId; percentOff: number } | null>(null);
   const [promoError, setPromoError] = useState("");
   const [checkingPromo, setCheckingPromo] = useState(false);
+  const [cryptoBusy, setCryptoBusy] = useState<"standard" | "pro" | null>(null);
+  const [cryptoError, setCryptoError] = useState("");
+  const [subBusy, setSubBusy] = useState<"standard" | "pro" | null>(null);
+  const [subMessage, setSubMessage] = useState("");
 
   const refreshStatus = useCallback(async () => {
     if (!user) {
@@ -98,6 +102,74 @@ export default function PricingPage() {
     window.addEventListener("focus", onFocus);
     return () => window.removeEventListener("focus", onFocus);
   }, [refreshStatus]);
+
+  async function handleCryptoBuy(planId: "standard" | "pro") {
+    if (!user) {
+      router.push(`/register?redirect=/pricing`);
+      return;
+    }
+    setCryptoBusy(planId);
+    setCryptoError("");
+    try {
+      const token = await getToken();
+      const { ok, data, error } = await fetchJson<{ invoiceUrl: string }>(
+        "/api/payments/nowpayments/create",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+          body: JSON.stringify({ plan: planId }),
+        }
+      );
+      if (ok && data?.invoiceUrl) {
+        // NOWPayments hosts the whole checkout (currency choice, address,
+        // QR, confirmation states) — hand off to it rather than
+        // reimplementing any of that here.
+        window.location.href = data.invoiceUrl;
+        return;
+      }
+      setCryptoError(error || "Couldn't start crypto checkout. Please try again or use the email option.");
+    } catch {
+      setCryptoError("Couldn't start crypto checkout. Please try again or use the email option.");
+    } finally {
+      setCryptoBusy(null);
+    }
+  }
+
+  /**
+   * Starts an auto-renewing crypto subscription instead of a one-off
+   * payment. NOWPayments emails the first payment link and a new one
+   * before each renewal — there's no invoice URL to redirect to here,
+   * so success means "check your email," not a navigation.
+   */
+  async function handleSubscribe(planId: "standard" | "pro") {
+    if (!user) {
+      router.push(`/register?redirect=/pricing`);
+      return;
+    }
+    setSubBusy(planId);
+    setSubMessage("");
+    setCryptoError("");
+    try {
+      const token = await getToken();
+      const { ok, data, error } = await fetchJson<{ message: string }>(
+        "/api/payments/nowpayments/subscribe",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+          body: JSON.stringify({ plan: planId }),
+        }
+      );
+      if (ok && data?.message) {
+        setSubMessage(data.message);
+        return;
+      }
+      setCryptoError(error || "Couldn't start the subscription. Please try again or pay once instead.");
+    } catch {
+      setCryptoError("Couldn't start the subscription. Please try again or pay once instead.");
+    } finally {
+      setSubBusy(null);
+    }
+  }
 
   function handleBuy(planId: "standard" | "pro") {
     if (!user) {
@@ -318,18 +390,58 @@ export default function PricingPage() {
                       Manage in account
                     </Link>
                   ) : (
-                    <button
-                      onClick={() => handleBuy(plan.id as "standard" | "pro")}
-                      className="w-full flex items-center justify-center gap-2 py-3 rounded-card bg-secondary font-semibold text-sm hover:brightness-110 transition"
-                    >
-                      <Mail size={15} />
-                      {user ? `Get ${plan.name}` : "Sign in to buy"}
-                    </button>
+                    <div className="space-y-2">
+                      <button
+                        onClick={() => handleCryptoBuy(plan.id as "standard" | "pro")}
+                        disabled={cryptoBusy !== null || subBusy !== null}
+                        className="w-full flex items-center justify-center gap-2 py-3 rounded-card bg-primary text-white font-semibold text-sm hover:brightness-110 transition disabled:opacity-60"
+                      >
+                        {cryptoBusy === plan.id ? (
+                          <Loader2 size={15} className="animate-spin" />
+                        ) : (
+                          <Bitcoin size={15} />
+                        )}
+                        {user ? `Pay with crypto` : "Sign in to buy"}
+                      </button>
+                      {user && (plan.id === "standard" || plan.id === "pro") && (
+                        <button
+                          onClick={() => handleSubscribe(plan.id as "standard" | "pro")}
+                          disabled={cryptoBusy !== null || subBusy !== null}
+                          className="w-full flex items-center justify-center gap-2 py-2 rounded-card border border-primary/30 text-primary font-semibold text-xs hover:bg-primary/5 transition disabled:opacity-60"
+                        >
+                          {subBusy === plan.id ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
+                          Or auto-renew monthly by email
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleBuy(plan.id as "standard" | "pro")}
+                        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-card glass font-semibold text-xs hover:border-[rgb(var(--color-text-primary)/0.2)] transition"
+                      >
+                        <Mail size={13} />
+                        Or pay another way
+                      </button>
+                    </div>
                   )}
                 </div>
               );
             })}
           </div>
+
+          {cryptoError && (
+            <p className="max-w-2xl mx-auto mt-6 text-xs text-rose text-center">{cryptoError}</p>
+          )}
+          {subMessage && (
+            <p className="max-w-2xl mx-auto mt-6 text-xs text-emerald text-center">{subMessage}</p>
+          )}
+
+          <p className="max-w-2xl mx-auto mt-6 text-xs text-text-secondary text-center">
+            Crypto payments are processed by NOWPayments. Plans are paid per period and don&apos;t
+            auto-renew. See the{" "}
+            <Link href="/refund-policy" className="text-primary hover:underline">
+              Refund Policy
+            </Link>{" "}
+            before paying.
+          </p>
 
           <div className="max-w-2xl mx-auto mt-10 sm:mt-12 glass rounded-card p-5 sm:p-6">
             <h3 className="font-display font-semibold text-sm mb-3">How upgrading works</h3>

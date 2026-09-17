@@ -45,7 +45,7 @@ export default function TrustBadges() {
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="https://img.shields.io/badge/Qualys%20SSL%20Labs-A%2B-emerald?style=flat-square&logo=qualys"
+            src="https://img.shields.io/badge/Qualys%20SSL%20Labs-A%2B-brightgreen?style=flat-square"
             alt="Qualys SSL Labs Grade A+"
             width={172}
             height={20}
@@ -55,18 +55,18 @@ export default function TrustBadges() {
 
       <div>
         <p className="text-xs font-mono text-text-secondary mb-3">
-          SECURITY SCORE · MOZILLA OBSERVATORY
+          SECURITY SCORE · MDN HTTP OBSERVATORY
         </p>
         <a
-          href="https://observatory.mozilla.org/analyze/audityxe.vercel.app"
+          href="https://developer.mozilla.org/en-US/observatory/analyze?host=audityxe.vercel.app"
           target="_blank"
           rel="noopener noreferrer"
           className="inline-block"
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="https://img.shields.io/mozilla-observatory/grade-score/audityxe.vercel.app?style=flat-square"
-            alt="Mozilla HTTP Observatory Grade"
+            src="https://img.shields.io/badge/MDN%20HTTP%20Observatory-Scan-blue?style=flat-square"
+            alt="MDN HTTP Observatory scan"
             width={160}
             height={20}
           />

@@ -361,6 +361,22 @@ export function generateAuditPdf(result: AuditResult) {
       styles: { fontSize: 9, cellPadding: 2 },
       headStyles: { fillColor: [241, 233, 216], textColor: [32, 27, 20] },
     });
+    // Visual proof of the real Chrome render, straight from the same
+    // PSI response — wrapped in try/catch because jsPDF throws on a
+    // malformed/unsupported image payload, and a screenshot failing to
+    // embed should never take the whole report export down with it.
+    if (result.pageSpeed.finalScreenshotDataUrl) {
+      try {
+        const shotY = lastAutoTableY(doc) + 8;
+        doc.setFontSize(8.5);
+        doc.setTextColor(MUTED);
+        doc.text("Final render captured by Chrome during the Lighthouse run:", MARGIN, shotY);
+        doc.addImage(result.pageSpeed.finalScreenshotDataUrl, "JPEG", MARGIN, shotY + 4, 60, 0);
+      } catch {
+        // non-fatal — skip the image, keep the rest of the report
+      }
+    }
+
     if (result.pageSpeed.topIssues.length) {
       const fy = lastAutoTableY(doc);
       autoTable(doc, {

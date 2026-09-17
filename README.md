@@ -1,482 +1,405 @@
+<div align="center">
+
 # Audityxe
 
-**This is the original work of Zelvior, open-sourced at
-[github.com/zelvior/audityxe](https://github.com/zelvior/audityxe).**
-Licensed under the custom [Audityxe Custom Open-Source License](./LICENSE.md) —
-free to use, modify, and redistribute, provided Zelvior is always credited as
-the original author with a link back to the canonical repository above. The
-Software is provided **as-is**, with no warranty, and Zelvior is **not
-responsible for anything** arising from its use. See `LICENSE.md` for the
-full, binding terms before forking, deploying, or redistributing this
-project.
+**Instant, evidence-based website audits — every score backed by a real, live check.**
 
-Instant site audit & Pro promo kit — with a live, deterministic
-scoring engine, a real browser-rendered performance/accessibility pass,
-evidence attached to every finding, full public methodology, and a
-privacy-first design that stores nothing about your audit beyond the
-minimal score+date record used to power the embeddable badge.
+[Live app](https://audityxe.vercel.app) · [Methodology](https://audityxe.vercel.app/methodology) · [Sample report](https://audityxe.vercel.app/sample-report) · [Changelog](https://audityxe.vercel.app/changelog)
 
-## Setup
+</div>
+
+---
+
+> **This is the original work of [Zelvior](mailto:zelvior@proton.me), open-sourced at
+> [github.com/zelvior/audityxe](https://github.com/zelvior/audityxe).**
+> Licensed under the custom [Audityxe Custom Open-Source License](./LICENSE.md) — free to use,
+> modify, and redistribute, provided Zelvior is always credited as the original author with a link
+> back to the canonical repository. The software is provided **as-is**, with no warranty, and
+> Zelvior is **not responsible for anything** arising from its use. Read `LICENSE.md` in full
+> before forking, deploying, or redistributing.
+
+---
+
+## Table of contents
+
+- [What Audityxe is](#what-audityxe-is)
+- [What makes it different](#what-makes-it-different)
+- [Audit engine: what actually gets checked](#audit-engine-what-actually-gets-checked)
+- [Scoring model](#scoring-model)
+- [Exports](#exports)
+- [Tech stack](#tech-stack)
+- [Getting started](#getting-started)
+- [Environment variables](#environment-variables)
+- [PageSpeed Insights (Lighthouse) setup](#pagespeed-insights-lighthouse-setup)
+- [Payments (NOWPayments)](#payments-nowpayments)
+- [Project structure](#project-structure)
+- [Plans and limits](#plans-and-limits)
+- [Design system](#design-system)
+- [Scripts](#scripts)
+- [Deploying](#deploying)
+- [Contributing](#contributing)
+- [Security](#security)
+- [Credits](#credits)
+- [License](#license)
+
+---
+
+## What Audityxe is
+
+Paste in a URL. Audityxe fetches the live page, scores it across six categories plus a large
+multi-area deep audit, attaches **real evidence** to every finding, hands back exact code fixes for
+the weakest spots, and packages the result into shareable social copy, a downloadable banner, an
+embeddable badge, and PDF/JSON/Markdown exports.
+
+No crawl queue, no "results in 24 hours", no account required for your first audit.
+
+## What makes it different
+
+| | Typical audit tool | Audityxe |
+|---|---|---|
+| **Data source** | Cached scans, screenshots, or an LLM guessing from a page description | Real HTTP requests made the moment you click Analyze |
+| **Reproducibility** | Score drifts between runs | Deterministic — same page, same score |
+| **Evidence** | "Improve your SEO" | The exact header, tag, DNS record, or selector that triggered the finding |
+| **Limits** | Silently omits what it can't measure | States explicitly what it couldn't check, and excludes it from scoring |
+| **Storage** | Full reports retained server-side | Nothing stored beyond a domain + score + date for the badge |
+
+## Audit engine: what actually gets checked
+
+Every check below runs for free, with no paid third-party API, on every audit.
+
+<details>
+<summary><strong>SEO &amp; crawlability</strong></summary>
+
+- Title tag presence, length, and **duplicate `<title>` detection**
+- Meta description presence and truncation risk
+- Canonical tag presence and **duplicate/conflicting canonical detection**
+- Heading hierarchy (single H1, logical H2/H3 order, duplicate heading text)
+- `robots.txt` — fetched live: existence, rules, blanket-disallow detection, sitemap cross-reference
+- `sitemap.xml` — validity, URL count, freshness
+- Open Graph + Twitter Card completeness (`og:image` verified live, `twitter:creator`, `twitter:image`, `fb:app_id`)
+- JSON-LD structured data — parsed, validated, and typed (Organization, Product, Article, FAQPage, BreadcrumbList, LocalBusiness, WebSite)
+- Broken internal links (live-sampled, not assumed)
+</details>
+
+<details>
+<summary><strong>AI Crawler Readiness (GEO)</strong></summary>
+
+Generative Engine Optimization — whether AI answer engines can read and cite the site, which is a
+*different question* from classic SEO:
+
+- Named AI crawler blocking in `robots.txt` (GPTBot, ChatGPT-User, ClaudeBot, Claude-Web, anthropic-ai, PerplexityBot, Google-Extended, CCBot, Bytespider, Applebot-Extended)
+- `llms.txt` presence and whether it has real content
+- **`X-Robots-Tag` HTTP header** indexing blocks — invisible to any checker that only reads HTML
+- Conflicts between the header-level and meta-tag-level robots directives
+- `noai` / `noimageai` AI-training opt-out signals
+</details>
+
+<details>
+<summary><strong>Security &amp; headers</strong></summary>
+
+- Full security header audit: CSP (including `unsafe-inline`/`unsafe-eval`/wildcard strength analysis), HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy, COOP/COEP/CORP, Clear-Site-Data
+- Per-cookie `Secure` / `HttpOnly` / `SameSite` flags, session vs persistent, tracking-cookie heuristics
+- CORS misconfiguration (wildcard origin, wildcard + credentials)
+- Mixed content detection
+- Server/`X-Powered-By` version disclosure
+- Dangerous HTTP methods (safe, read-only probing)
+- Exposed `.env`, `.git`, and config-file scanning
+- Directory listing detection
+- Subresource Integrity coverage on cross-origin scripts and stylesheets
+- Publicly exposed JavaScript source maps
+- `target="_blank"` tabnabbing risk (missing `rel="noopener"`)
+- Forms posting to insecure (`http://`) endpoints
+</details>
+
+<details>
+<summary><strong>TLS &amp; DNS</strong></summary>
+
+- Live TLS handshake: protocol version, cipher, issuer, validity window, days-to-expiry, self-signed detection, hostname match, SAN count, key type/size, weak-protocol flagging
+- **SPF, DKIM, DMARC** email authentication records
+- **DNSSEC** validation
+- **CAA** certificate-issuance restriction records
+- **Subdomain takeover** detection against 20+ known vulnerable service fingerprints
+- Nameserver redundancy / zone health
+- `security.txt` vulnerability disclosure policy
+</details>
+
+<details>
+<summary><strong>Accessibility</strong></summary>
+
+- Image `alt` coverage, plus generic/placeholder alt-text detection
+- Form input label association
+- Button and link accessible names
+- **Generic link text** detection ("click here", "read more")
+- **Keyboard focus visibility** — flags CSS suppressing the focus outline with no visible replacement
+- Skip-to-content link presence
+- `<html lang>` declaration
+- Landmark regions (`header` / `nav` / `main` / `footer`) and content sectioning
+- Positive `tabindex` misuse, `aria-hidden` on root elements
+- `<iframe>` titles
+- Color-contrast heuristics
+</details>
+
+<details>
+<summary><strong>Performance &amp; mobile</strong></summary>
+
+- Real browser-rendered Lighthouse pass via Google PageSpeed Insights (Core Web Vitals: LCP, CLS, TBT, FCP, Speed Index)
+- **Real-world CrUX field data** when Google has enough traffic on the origin — distinguished from lab data
+- **Render Proof** — the actual Chrome screenshot Lighthouse captures, embedded in the report
+- Compression, cache headers, image format/sizing/lazy-loading, inline-base64 bloat
+- Render-blocking resources, web-font weight
+- Viewport configuration, tap-target sizing, responsive-class signals
+- Apple touch icons, web app manifest, Safari mask-icon
+</details>
+
+<details>
+<summary><strong>Content, UX &amp; intelligence</strong></summary>
+
+- Flesch-Kincaid readability grade, reading time, duplicate heading detection
+- Legal &amp; trust page detection (privacy, terms, contact, refund, etc.) scored against detected site type
+- Monetization signals (ad networks, affiliate links, payment processors, donation platforms, cart/checkout, pricing)
+- Technical stack fingerprinting (framework, CMS, hosting, analytics, tag managers, chat widgets)
+- **AI-generated / "vibe-coded" pattern detection** — emoji-heavy headings, buzzword density, em-dash frequency, stock gradient/blur/grain patterns, default font pairings, lorem ipsum
+- Multi-page same-origin crawl: internal link graph, orphan pages, extended broken-link coverage
+- HTML validity: doctype, duplicate IDs, deprecated tags, div-ratio, comment volume
+</details>
+
+## Scoring model
+
+Scores are **deterministic**, not model-generated.
+
+- Each finding is `pass` / `warn` / `fail`, with a severity (`critical` / `high` / `medium` / `low`).
+- A module's 0–10 score is `10 − (weighted severity loss / scored findings) × 10`.
+- **Unverifiable findings never affect the score.** If a DNS lookup times out or PageSpeed Insights
+  fails, that's recorded as "we couldn't check this" and excluded from the math — it is *not*
+  scored as a failure.
+- If **every** finding in a module is unverifiable, the module reports **`—` (not scored)** rather
+  than inventing a number from zero data.
+- `critical` findings force a module to `critical` status regardless of the arithmetic.
+
+## Exports
+
+| Format | Contents |
+|---|---|
+| **PDF** | Full branded report — score donut, category breakdown, every module and finding with evidence, Lighthouse lab + field data, embedded render screenshot |
+| **JSON** | Complete machine-readable payload — every module, finding, severity, confidence, and evidence string |
+| **Markdown** | Copy-to-clipboard / download, for pasting into GitHub Issues, Notion, or a PR |
+| **Badge** | Embeddable "Audited by Audityxe" SVG badge with live verification |
+| **Social** | Auto-generated X/LinkedIn post copy and a downloadable share banner |
+
+## Tech stack
+
+- **[Next.js 14](https://nextjs.org)** (App Router) · **[React 18](https://react.dev)** · **[TypeScript](https://www.typescriptlang.org)**
+- **[Tailwind CSS](https://tailwindcss.com)** with a fully CSS-variable-driven token system
+- **[Framer Motion](https://www.framer.com/motion/)** for animation
+- **[Firebase](https://firebase.google.com)** — Auth + Firestore (accounts, plans, badge records, admin config)
+- **[lucide-react](https://lucide.dev)** icons · **[jsPDF](https://github.com/parallax/jsPDF)** exports
+- **[Google PageSpeed Insights API](https://developers.google.com/speed/docs/insights/v5/get-started)** for the real-browser pass
+- **[NOWPayments](https://nowpayments.io)** for crypto checkout
+
+## Getting started
 
 ```bash
+git clone https://github.com/zelvior/audityxe.git
+cd audityxe
 npm install
-cp .env.example .env.local   # fill in Firebase Admin creds, GitHub OAuth app, etc.
+cp .env.example .env.local   # fill in the values below
 npm run dev
 ```
 
-Auditing requires a signed-in, **email-verified** account. See
-**Authentication & accounts** below before running locally, or
-`/api/audit` will reject every request with a 401/403.
+Open [http://localhost:3000](http://localhost:3000).
 
-## 🛡️ System Trust & Verification Signals
-
-This section contains live status indicators, security scores, and architectural specifications for the standalone audit engine.
-
----
-
-### Infrastructure & Security Verification
-
-| Metric | Provider | Live Status Badge |
-| :--- | :--- | :--- |
-| **Uptime Status** | UptimeRobot | [![Audityxe Status](https://badge.uptimerobot.com/psp/f6267da51916d8f2a4d06001bac44cba.svg?style=logo&theme=dark)](https://stats.uptimerobot.com/PHQOGeVpYz) |
-| **SSL/TLS Security** | Qualys SSL Labs | [![Qualys SSL Labs Grade A+](https://img.shields.io/badge/Qualys%20SSL%20Labs-A%2B-emerald?style=flat-square&logo=qualys)](https://www.ssllabs.com/ssltest/analyze.html?d=audityxe.vercel.app) |
-| **Security Score** | Mozilla Observatory | [![Mozilla HTTP Observatory Grade](https://img.shields.io/mozilla-observatory/grade-score/audityxe.vercel.app?style=flat-square)](https://observatory.mozilla.org/analyze/audityxe.vercel.app) |
-| **Domain Risk Audit** | OMNIntel | [![OMNIntel security verdict for audityxe.vercel.app](https://omnintel.net/api/badge/audityxe.vercel.app.svg)](https://omnintel.net/scan/audityxe.vercel.app) |
-| **Domain Security Grade** | Webscan Radar | [![Webscan Radar Security Grade](https://webscan-radar.com/badge/audityxe.vercel.app)](https://webscan-radar.com) |
-
----
-
-### ⚡ Engine Performance & Architecture
-
-<img src="https://img.shields.io/badge/Audit%20Speed-%3C60s-gold?style=flat-square&logo=lightning" alt="Audit Speed" /> <img src="https://img.shields.io/badge/Engine-Deterministic%20Parsing-blue?style=flat-square" alt="Engine Type" /> <img src="https://img.shields.io/badge/Runtime-Zelvior%20Runtime%20%28Custom%29-C5A059?style=flat-square&logo=javascript" alt="Zelvior Runtime (Custom)" /> <img src="https://img.shields.io/badge/Framework-Next.js-black?style=flat-square&logo=nextdotjs" alt="Next.js" />
-
----
-
-### 🔒 Privacy & Infrastructure Guarantees
-
-<img src="https://img.shields.io/badge/Privacy-Minimal%20Data%20Retention-emerald?style=flat-square" alt="Privacy Promise" /> <img src="https://img.shields.io/badge/Analytics-Zero%20Third--Party%20Trackers-blue?style=flat-square" alt="Zero Trackers" /> <img src="https://img.shields.io/badge/Deployed%20on-Vercel-black?style=flat-square&logo=vercel" alt="Deployed on Vercel" />
-
-> See [Privacy — audits aren't stored (with one narrow exception)](#privacy--audits-arent-stored-with-one-narrow-exception) below for exactly what "minimal retention" means.
-
----
-
-### 🔗 Public Transparency Reports
-
-* **Live SSL Security Audit:** [Qualys SSL Labs Report (A+)](https://www.ssllabs.com/ssltest/analyze.html?d=audityxe.vercel.app)
-* **Live Domain Risk Scan:** [OMNIntel Report](https://omnintel.net/scan/audityxe.vercel.app)
-* **Live Security Grade:** [Webscan Radar Report](https://webscan-radar.com/badge/audityxe.vercel.app)
-* **Live Methodology & Limits:** [View Audit Methodology](https://audityxe.vercel.app/methodology)
-* **Sample Output Inspection:** [View Live Sample Report](https://audityxe.vercel.app/sample-report)
-* **Official Status Page:** [System Health Portal](https://stats.uptimerobot.com/PHQOGeVpYz)
-* **Get your own badge:** [Generate an Audityxe badge for your site](https://audityxe.vercel.app/badge)
-
-> **Security Note:** All scans run statelessly against public HTTP response headers and site manifests. No server access or internal code execution is permitted during testing.
-
----
-
-### Embed the OMNIntel badge
-
-```html
-<a href="https://omnintel.net/scan/audityxe.vercel.app" target="_blank" rel="noopener">
-  <img src="https://omnintel.net/api/badge/audityxe.vercel.app.svg" alt="OMNIntel security verdict for audityxe.vercel.app" width="320" height="84" />
-</a>
-```
-
-### Embed the Webscan Radar badge
-
-```html
-<a href="https://webscan-radar.com">
-  <img src="https://webscan-radar.com/badge/audityxe.vercel.app"
-       alt="Webscan Radar Security Grade">
-</a>
-```
-
-### Embed the UptimeRobot status badge
-
-```html
-<a href="https://stats.uptimerobot.com/PHQOGeVpYz?utm_source=status_badge&utm_medium=referral" target="_blank" rel="noopener"><picture><source media="(prefers-color-scheme: dark)" srcset="https://badge.uptimerobot.com/psp/f6267da51916d8f2a4d06001bac44cba.svg?style=logo&theme=dark"><img src="https://badge.uptimerobot.com/psp/f6267da51916d8f2a4d06001bac44cba.svg?style=logo&theme=light" alt="Audityxe"></picture></a>
-```
-
-**"Audited by Audityxe" badge for your own site:** generate one at
-[`/badge`](https://audityxe.vercel.app/badge) — it links back to our live re-audit flow rather
-than making a static, unverifiable claim.
-
-## Pages
-
-| Route | Purpose |
-|---|---|
-| `/` | Landing + audit tool (gated behind sign-in + verification) + trust/differentiation section |
-| `/login`, `/register` | Auth (email/password, Google, GitHub) |
-| `/verify-email` | Dedicated email-verification flow, with spam-folder guidance |
-| `/forgot-password` | Real password reset via Firebase, enumeration-safe (never reveals whether an email is registered) |
-| `/account` | Plan, usage, expiry |
-| `/settings` | Profile, password, linked providers, data export, account deletion |
-| `/pricing` | Plans, dynamic local-currency pricing, manual upgrade flow |
-| `/bulk` | Pro-only bulk audit (up to 20 URLs) with CSV export |
-| `/methodology` | Full transparency on what's measured, how, and its limits |
-| `/faq` | Common questions, answered honestly |
-| `/sample-report` | A real, live, unedited audit — regenerated hourly |
-| `/about`, `/contact`, `/privacy`, `/terms`, `/cookies`, `/disclaimer` | Standard/legal pages |
-
-## Authentication & accounts
-
-Audityxe requires sign-in to use the audit tool at all — there is no
-anonymous/guest path. Three sign-in methods, each on their own page:
-`/register` and `/login` (email/password, Google, or GitHub).
-
-Firebase Auth (client SDK) handles identity. Every authenticated request
-to `/api/audit`, `/api/account`, `/api/settings`, and `/api/audit/bulk`
-sends the user's Firebase ID token as `Authorization: Bearer <token>`;
-the server verifies it with the Firebase Admin SDK
-(`lib/auth-server.ts`) before doing any work.
-
-### Email verification required before running audits
-
-New email/password accounts get a verification email on sign-up
-(`sendEmailVerification`). Until it's clicked, `/verify-email` blocks the
-audit form and offers "Resend email" / "I've verified — check again"
-(the latter calls Firebase's `reload()` so the app notices without a
-logout/login), and explicitly tells the user to check their spam/junk
-folder. This is enforced **server-side**, not just in the UI:
-`/api/audit` and `/api/audit/bulk` call `requireAuth(req, {
-requireEmailVerified: true })`, which checks the `email_verified` claim
-on the decoded ID token and rejects with a 403 (`code:
-"EMAIL_NOT_VERIFIED"`) if it's false. Google and GitHub sign-ins are
-effectively pre-verified by their provider in almost all cases.
-
-### Retention — keeping Firebase free of abandoned signups
-
-Two mechanisms, both free:
-
-1. **No Firestore record until verified.** `ensureUserDoc()`
-   (`lib/rate-limit.ts`) deliberately does nothing for an unverified
-   account — the `users/{uid}` document (plan, usage counters) is only
-   created the first time a request comes in from a verified account.
-   An account that never verifies never accumulates any Firestore
-   footprint at all.
-2. **Scheduled cleanup of stale unverified Firebase Auth accounts.**
-   `/api/cron/cleanup-unverified`, wired to run daily via Vercel Cron
-   (`vercel.json`, free on Hobby), deletes any email/password account
-   that was created more than 7 days ago and still hasn't verified.
-   Federated (Google/GitHub) accounts are never targeted. Protected by
-   `CRON_SECRET` — see `.env.example`.
-
-We can't prevent the Firebase Auth record from being created at
-sign-up time (that's how Firebase's client SDK works — building a fully
-custom pre-verification flow would require running our own transactional
-email infrastructure, which isn't free), but between these two
-mechanisms, an abandoned signup leaves no lasting trace after a week.
-
-### OAuth reliability (Google & GitHub)
-
-Google/GitHub sign-in tries a popup first, and **automatically falls
-back to a full-page redirect** if the popup is blocked, closed, or fails
-for reasons unrelated to your Firebase config — this covers browsers/
-webviews that block third-party popups even when everything is
-configured correctly on the console side.
-
-### Required setup in the Firebase Console
-
-1. **Authentication → Sign-in method** → enable Email/Password, Google, and GitHub.
-2. For GitHub: create a GitHub OAuth App (see `.env.example` for the exact callback URL) and paste its Client ID/Secret into the GitHub provider config in the Firebase Console.
-3. **Authentication → Settings → Authorized domains** → add every domain you'll sign in from.
-4. **Project settings → Service accounts** → generate a private key and fill `FIREBASE_PROJECT_ID` / `FIREBASE_CLIENT_EMAIL` / `FIREBASE_PRIVATE_KEY` in `.env.local`.
-5. **Firestore Database** → create a database, then deploy `firestore.rules` (denies all direct client access — every read/write goes through the Admin SDK server-side).
-
-## Settings
-
-`/settings` (`app/settings/page.tsx`) — every control is fully wired to
-a real backend:
-
-- **Profile** — display name, updated via the Firebase client SDK and mirrored server-side.
-- **Security** — shows linked sign-in methods; password change re-authenticates with the current password before calling `updatePassword` (federated-only accounts see an explanatory message instead).
-- **Plan & billing** — links to `/account` and `/pricing`.
-- **Data & privacy** — "Export my data" downloads your profile + usage snapshot as JSON. "Delete my account" removes the Firestore `users/{uid}` and `usage/{uid}` docs server-side first, then deletes the Firebase Auth account client-side — ordered so a failure never strands an account that can't reach its own data to retry.
-
-There is no tone/personality selector — a single, direct verdict is
-generated for every audit; a constructive/roast toggle was tested and
-added nothing useful, so it was removed.
-
-## Plans, pricing & rate limiting
-
-Every account is created on the **Free** plan by default (`lib/plans.ts`).
-Limits are enforced server-side, per account, atomically, via a Firestore
-transaction (`lib/rate-limit.ts`) — never trust-the-client:
-
-| Plan     | Daily audits | Competitor comparison | 30-day price | 365-day price |
-|----------|--------------|------------------------|---------------|----------------|
-| Free     | 3            | No                     | $0            | $0             |
-| Standard | 20           | Yes                    | $5            | $39            |
-| Pro      | 50           | Yes                    | $12           | $99            |
-
-Prices are defined in USD in `lib/plans.ts` and converted to the
-visitor's local currency client-side on `/pricing` using two free,
-keyless public APIs — `ipapi.co` for geolocation and
-`exchangerate-api.com`'s open endpoint for the live conversion rate.
-
-### Manual upgrade flow (no payment gateway wired up)
-
-There's no Stripe/PayPal integration — upgrades are approved manually:
-a signed-in user picks a plan/duration on `/pricing`, which opens a
-pre-filled `mailto:` with their account details; they attach a payment
-screenshot and send it. To approve, open Firebase Console → Firestore →
-`users/{uid}` and set `plan` and `planExpiresAt` (an ISO date 30 or 365
-days out). Access reverts to Free automatically the moment
-`planExpiresAt` passes — checked live on every request, no cron needed
-for this part.
-
-Firestore layout: `users/{uid}` (`plan`, `planExpiresAt`, `displayName`,
-`createdAt` — created only once verified, see Retention above) and
-`usage/{uid}` (`date`, `count`).
+> Running an audit requires a signed-in, **email-verified** account, or `/api/audit` will reject
+> every request with a 401/403. Create an account locally and verify it before testing.
 
 ## Environment variables
 
-See `.env.example` for the full commented list. Highlights:
-
-| Variable | Purpose |
-|---|---|
-| `FIREBASE_PROJECT_ID` / `FIREBASE_CLIENT_EMAIL` / `FIREBASE_PRIVATE_KEY` | Required. Admin SDK service account. |
-| `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | GitHub OAuth App (configured in Firebase Console). |
-| `CRON_SECRET` | Protects the retention cleanup cron job. Free — generate any random string. |
-| `IP_HASH_SALT` | Optional. Salts the anonymous per-IP daily-quota hash (see `lib/ip.ts`). Falls back to a fixed built-in string if unset. |
-| `GOOGLE_SITE_VERIFICATION` | Optional. Emits the `google-site-verification` meta tag for Search Console. The HTML-file verification method is also supported via `public/google*.html`. |
-| `PAGESPEED_API_KEY` | Optional. Free (no billing) key for a higher quota on the real browser-rendered audit. Works keyless at a lower rate limit. Pro users can also set their own key in Settings (BYOK) for an even higher personal weekly cap — see below. |
-| `GEMINI_API_KEY` (+ per-task variants) | Optional. Powers the written verdict/promo/banner copy. Falls back to a rule-based generator if unset or unavailable — the app always returns a complete result either way. |
-
-### Failover behavior
-
-Any `GEMINI_API_KEY*` variable accepts a comma-separated list of keys,
-tried in order on failure, with a model-fallback chain per key. If every
-key for a task fails or none is configured, that task falls back to the
-deterministic generator in `lib/analyze.ts`.
-
-### BYOK (bring your own key) — Settings page
-
-Pro users can add two independent keys in **Settings**, each encrypted
-(AES-256-GCM) before being stored in Firestore and only decrypted
-server-side at request time:
-
-| Key | Unlocks | Weekly PSI cap without it → with it |
+| Variable | Required | Purpose |
 |---|---|---|
-| AI key (`aiApiKey` / `aiBaseUrl` / `aiModel`) | Promo copy + banner generation (Pro-only; runs on the user's own AI spend, not Audityxe's). | 1 → 5 |
-| PageSpeed Insights key (`psiApiKey`) | Raises the user's own weekly PSI (Lighthouse) audit cap on top of the shared `PAGESPEED_API_KEY`. | 1 → 10 (5 if only the AI key is set) |
+**[`.env.example`](./.env.example) is the single source of truth** — it documents every variable
+with click-by-click instructions for where to obtain each key, including the exact Google Cloud
+setting that breaks PageSpeed Insights if you get it wrong. Start there:
 
-Both are managed via `GET`/`PATCH /api/settings` and never returned to
-the client in full — only a masked last-4 preview.
+```bash
+cp .env.example .env.local
+```
 
-## What gets analyzed
+Summary:
 
-Every score, fix, and finding is computed live — nothing requires any
-paid API, and nothing is mocked or random.
+| Variable | Required | Purpose |
+|---|---|---|
+| `NEXT_PUBLIC_FIREBASE_*` (6 vars) | ✅ | Firebase web config — public by design |
+| `FIREBASE_PROJECT_ID` / `FIREBASE_CLIENT_EMAIL` / `FIREBASE_PRIVATE_KEY` | ✅ | Firebase Admin service account (**secret**) |
+| `BYOK_ENCRYPTION_KEY` | ✅ | Encrypts user-supplied API keys at rest |
+| `IP_HASH_SALT` | ✅ | Salts IP hashes for anonymous rate limiting (no raw IPs stored) |
+| `PAGESPEED_API_KEY` | ➖ | Lighthouse module. Without it PSI uses a shared quota that rate-limits hard |
+| `AI_API_KEY` / `AI_BASE_URL` / `AI_MODEL` | ➖ | Written verdict + promo copy. Scores never depend on this |
+| `GEMINI_API_KEY` / `GEMINI_MODEL` | ➖ | Alternative AI provider |
+| `NOWPAYMENTS_API_KEY` | ➖ | Enables crypto checkout |
+| `NOWPAYMENTS_IPN_SECRET` | ⚠️ | **Mandatory if the API key is set** — checkout refuses to start without it |
+| `NEXT_PUBLIC_DONATION_URL` | ➖ | Footer Sponsor button target |
+| `ADMIN_EMAILS` / `ADMIN_PASSWORD` | ➖ | Enables `/admin`. Unset = admin panel disabled |
+| `CRON_SECRET` | ➖ | Protects `/api/cron/*` endpoints |
+| `GOOGLE_SITE_VERIFICATION` | ➖ | Search Console verification |
+| `AUDITYXE_KILL_SWITCH` / `*_MESSAGE` | ➖ | Emergency maintenance mode without redeploying code |
 
-### 6 top-level score categories (`result.categories`)
+## PageSpeed Insights (Lighthouse) setup
 
-Messaging & Copy Clarity, UI/UX & Visual Hierarchy, Conversion Rate
-Optimization, Technical & Metadata Health, Brand Distinctiveness,
-Security & Performance.
+The Lighthouse module needs a Google API key. It's free, no billing required.
 
-### 23-area deep audit breakdown (`result.modules`)
+1. Go to [console.cloud.google.com](https://console.cloud.google.com) and sign in.
+2. Create a new project via the project picker at the top.
+3. Enable the [PageSpeed Insights API](https://console.cloud.google.com/apis/library/pagespeedonline.googleapis.com).
+4. Go to [APIs &amp; Services → Credentials](https://console.cloud.google.com/apis/credentials) → **+ Create Credentials** → **API key**.
+5. ⚠️ **Set "Application restrictions" to `None`.**
 
-SEO, Performance, Security Headers, **SSL/TLS Certificate** (live TLS
-handshake), **Email Authentication** (live DNS SPF/DKIM/DMARC, including
-SPF DNS-lookup-limit counting against RFC 7208's hard cap of 10),
-**Server Hardening** (dangerous HTTP methods, exposed config files,
-directory listing), **DNS Security & Zone Health** (CAA records,
-DNSSEC, dangling CNAME/subdomain takeover detection, MX records,
-nameserver provider-diversity, SOA presence), **Subresource Integrity &
-Source Maps** (cross-origin asset integrity, exposed .js.map files),
-Accessibility, Mobile Responsiveness, UX/UI, **AI-Generated /
-Vibe-Coded Pattern Detection** (judged on combined signal severity, not
-any single occurrence), **Technical Stack** (CMS + version, JS
-framework, CSS framework, e-commerce platform, page builder, A/B
-testing tool, cookie-consent tool, hosting provider, and a confidence
-rating based on how many independent signals agree), HTML Structure,
-Meta Tags, Sitemap & Robots.txt, Structured Data, Broken Links, Image
-Optimization, Third-Party Scripts, Social Metadata, Basic Monetization
-Setup, and **Browser-Rendered Audit** (real Chrome, via PageSpeed
-Insights — see below).
+> **Why `None` matters:** an **HTTP referrer** restriction only validates requests that carry a
+> browser `Referer` header. Audityxe calls PSI **server-side**, which sends no referrer — so a
+> referrer-restricted key is rejected with a 403 on *every single request*, permanently. An **IP
+> address** restriction is also unsafe here, because serverless hosting uses non-fixed outbound
+> IPs. This is enforced by Google's API gateway and cannot be worked around in application code.
 
-Every finding also carries its own `severity` (`critical` / `high` /
-`medium` / `low`), independent of the module's aggregate `score` — a
-module's numeric score is a weighted deduction based on those
-severities, while its `status` ("good" / "warning" / "critical") is
-driven by the worst severity present, not by the score. A module can
-score a 7 and still be flagged critical because one finding (an exposed
-`.env` file, an expired certificate, HTTPS entirely absent) is severe
-enough on its own to warrant it.
+Users can also add their own key in **Settings**, which is validated against the live API at save
+time and grants **unlimited** Lighthouse passes (their own Google quota) instead of the shared
+1/week cap.
 
-Generated fixes are stack-aware, not generic: the same "X-Powered-By is
-exposed" finding produces a different, correct fix depending on what
-the Technical Stack module actually detected (`php.ini`/`.htaccess` for
-WordPress/PHP, `next.config.js` for Next.js, `app.disable()` for
-Express, `web.config` for ASP.NET, a proxy-level strip as the honest
-fallback when the framework can't be conclusively identified). The
-Content-Security-Policy fix is generated the same way: it's built from
-the actual third-party script/style/image/frame/font origins found in
-the page's HTML, not a fixed boilerplate policy.
+## Payments (NOWPayments)
 
-Objective checks (WCAG-adjacent structure, security headers, TLS
-correctness, font-family limits) score every site the same way.
-Contextual/heuristic checks (the vibe-coded signals) are judged by
-combined severity, never a single occurrence. Personal design
-preferences — specific colors, spacing scale, layout taste — are never
-imposed as universal scoring rules.
+Crypto checkout uses the NOWPayments **hosted invoice** flow — NOWPayments hosts the currency
+picker, wallet address, QR code, and confirmation states, so no wallet address ever touches this
+codebase.
 
-### Real evidence on every finding
+**Flow:**
 
-Every fix (`result.fixes`) and every module finding
-(`result.modules[].findings[].evidence`) carries concrete, checkable
-proof — the exact URL fetched, the HTTP status returned, or a literal
-count of elements found — not just an assertion. If a fix says your
-sitemap is missing, the evidence field states exactly which URL was
-requested and what (if anything) came back.
+1. `POST /api/payments/nowpayments/create` — authenticated; prices the plan **server-side** (never trusts a client-sent amount) and creates an invoice.
+2. User is redirected to the NOWPayments hosted checkout.
+3. NOWPayments `POST`s status updates to `/api/payments/nowpayments/ipn`.
+4. The webhook verifies the callback, then credits the plan.
 
-## Real browser-level auditing (free)
+**Setup:**
 
-Rather than bundling a headless Chromium binary into a serverless
-function (fragile, slow cold starts, a real risk of silently failing in
-production), `lib/pagespeed.ts` calls Google's **PageSpeed Insights**
-API. This is not a simulation: PSI actually launches real Chrome,
-renders the page, and runs a full Lighthouse audit — the same engine
-behind Chrome DevTools — on Google's infrastructure. Free with no key at
-a modest rate limit, or with a free (no billing required) API key for a
-much higher quota. If PSI is slow or unavailable for a given request,
-the rest of the audit still completes normally using Audityxe's own
-signal-based checks.
+1. Create a NOWPayments account and add a payout wallet.
+2. Copy your API key → `NOWPAYMENTS_API_KEY`.
+3. In **Store Settings → Instant Payment Notifications**, generate an IPN secret → `NOWPAYMENTS_IPN_SECRET`.
+4. Set the IPN callback URL to `https://your-domain.com/api/payments/nowpayments/ipn`.
 
-## Privacy — audits aren't stored (with one narrow exception)
+**Also supported (see `.env.example` for full setup steps):**
 
-Full audit results are computed fresh for every request and returned
-directly to the browser. There is no server-side database of full
-results, no public report page, and no cross-account history — once a
-result reaches your browser, it's yours; use the copy/export/share/email
-buttons on any result to keep your own copy.
+- **Recurring subscriptions** — auto-renewing plans via NOWPayments' email-subscription flow (`/api/payments/nowpayments/subscribe`, wired into the pricing page as "auto-renew monthly by email"). Requires `NOWPAYMENTS_EMAIL` / `NOWPAYMENTS_PASSWORD` (subscription endpoints use a short-lived Bearer JWT minted on demand, not the API key directly) plus a `NOWPAYMENTS_PLAN_STANDARD` / `NOWPAYMENTS_PLAN_PRO` plan id from the dashboard.
+- **Donations** — `/donate` embeds the real NOWPayments donation widget via `NEXT_PUBLIC_NOWPAYMENTS_DONATION_KEY` (a public, funds-safe key — not the same as `NOWPAYMENTS_API_KEY`). The footer's Sponsor button links there.
 
-The one exception: `lib/badge-store.ts` persists a minimal
-`domain → last overall score → audit date` record per domain, solely to
-power the embeddable badge at `/badge`. Nothing else about the audit is
-stored — no categories, no fixes, no HTML, no requester identity. The
-domain key is normalized (protocol/`www.`/trailing-path stripped)
-identically on write and read, so re-running an audit for the same
-domain correctly overwrites its existing badge record instead of
-silently writing under a different key. See `/privacy`,
-`/trust-center`, and `/methodology` for the full statement.
+**Verified against multiple independent sources before shipping** — the official NOWPayments Postman docs, their own `nowpayments-sdk-nodejs` GitHub repo, and their blog's subscriptions documentation all agree on the request field names and the IPN signing algorithm used here (`JSON.stringify` of a recursively key-sorted payload, HMAC-SHA512). This is as far as the integration can be verified without live credentials — see the warning below.
 
-## Copy, export, share & email
+**Security properties of the IPN handler:**
 
-Every audit view includes an icon-only action bar
-(`components/AuditActionBar.tsx`):
+- Signature is **HMAC-SHA512** over the *recursively key-sorted* JSON payload, compared against the
+  `x-nowpayments-sig` header using a **constant-time** comparison.
+- Verified against the **raw request body** — re-serializing a parsed object first can reorder keys
+  and silently break verification.
+- A missing IPN secret is a **hard failure**, never a skipped check. Without this, the endpoint
+  would let anyone POST "payment finished" and grant themselves a paid plan.
+- Crediting is **idempotent** and transactional — NOWPayments retries callbacks, so the payment ID
+  is recorded and reprocessing is a no-op rather than stacking extra paid days.
+- Paid time **stacks onto remaining time** rather than overwriting it.
+- Transient Firestore failures return `500` so NOWPayments retries, rather than silently swallowing
+  a real payment.
 
-- **Copy** copies a plain-text summary (with a `document.execCommand`
-  fallback for browsers/contexts where the async Clipboard API is
-  unavailable — this was a real bug in an earlier version that made the
-  button silently do nothing in some environments).
-- **Export** downloads a complete JSON snapshot (scores, all 23 modules
-  with evidence and per-finding severity, fixes).
-- **PDF** generates a full, styled multi-page PDF report client-side
-  (`lib/pdf-export.ts`, via `jspdf`/`jspdf-autotable` — no server round
-  trip) covering everything the JSON export has: cover page with score
-  ring and category bars, executive summary, per-module findings tables
-  color-coded by status/severity, PageSpeed lab metrics (explicitly
-  labeled as lab data, not real-user field data), fix snippets rendered
-  as syntax-colored diffs, promo copy, and competitor comparison.
-- **Share** uses the native Web Share API where supported, falling back
-  to a clipboard copy.
-- **Email** opens a pre-filled `mailto:` with the summary.
+> ⚠️ **Verify before going live.** Payment integrations must be tested against your own account.
+> Run a small real payment end-to-end and confirm the plan is credited before accepting real money.
 
-None of these depend on a hosted URL — consistent with the no-storage
-privacy design above.
+See the [Refund Policy](https://audityxe.vercel.app/refund-policy) for refund handling, including
+why crypto refunds are sent as new transactions.
 
-## SSRF hardening & abuse prevention
+## Project structure
 
-Every outbound fetch to a user- or site-supplied URL — the audited page
-itself, each redirect hop, robots.txt/sitemap.xml, sampled links/images,
-and `og:image` — is validated by `lib/url-safety.ts` before the request
-is made: only `http:`/`https:` schemes, known-internal hostnames
-blocked outright, and every resolved DNS address checked against the
-full private/loopback/link-local/reserved IP ranges (including the
-cloud metadata endpoint `169.254.169.254`). This check runs again on
-**every redirect hop**, not just the initial URL.
+```
+app/
+  api/
+    audit/            # the main audit endpoint
+    payments/
+      nowpayments/    # create invoice + IPN webhook
+    settings/         # account settings, BYOK key validation
+    admin/            # admin-only endpoints
+  (legal pages)/      # privacy, terms, license, refund-policy, credits, …
+  status/             # live service status
+components/           # UI — all Tailwind token-driven, light/dark aware
+lib/
+  analyze.ts          # orchestrates a full audit
+  audit-modules.ts    # turns signals into scored modules + findings
+  deep-signals.ts     # HTML/DOM signal extraction
+  pagespeed.ts        # PSI client, error translation, screenshot extraction
+  dns-security.ts     # DNSSEC, CAA, subdomain takeover
+  dns-email-auth.ts   # SPF, DKIM, DMARC
+  tls-check.ts        # live TLS handshake inspection
+  nowpayments.ts      # invoice creation + IPN HMAC verification
+  pdf-export.ts       # PDF report builder
+  export-payload.ts   # JSON report builder
+```
 
-Additional protections: an 8MB streamed response cap, a 45-second
-overall audit-pipeline timeout, URL/body length limits, and
-`/api/banner-bg` requiring authentication (it has a real per-call cost
-and would otherwise be an open, unmetered proxy).
+## Plans and limits
 
-**Known limitation:** IP validation happens at check time, not at
-socket-connect time — a malicious DNS server could in theory change its
-answer in between (DNS rebinding). Full protection requires IP-pinning
-at the socket level, which isn't exposed by native `fetch`.
-Re-validating on every redirect hop closes the most common practical
-exploitation path.
+| | Free | Standard | Pro |
+|---|---|---|---|
+| All 6 categories + full deep audit | ✅ | ✅ | ✅ |
+| Daily audits | 2 | more | most |
+| Competitor comparison | — | ✅ | ✅ |
+| Bulk audit (up to 20 URLs) | — | — | ✅ |
+| Real-browser Lighthouse pass | — | — | 1/week shared · **unlimited with your own key** |
 
-## Bulk audit (Pro plan)
+Every plan runs the **identical engine** — nothing is dumbed down on Free.
 
-`/bulk` accepts up to 20 URLs and audits them in one request
-(`/api/audit/bulk`, 4 concurrent fetches), gated to the Pro plan and
-checked server-side against the account's real, non-expired plan. Each
-URL consumes one slot from the same daily quota as single audits,
-reserved transactionally before any network work starts. Results
-include a **CSV export** button with per-category score columns.
+## Design system
 
-## Security headers on Audityxe itself
+- **Palette:** warm editorial — paper/rust, fully token-driven via CSS custom properties
+- **Light/dark:** automatic, follows `prefers-color-scheme`. No toggle, no flash, no JS
+- **Type:** [Fraunces](https://fonts.google.com/specimen/Fraunces) (display) + [Public Sans](https://fonts.google.com/specimen/Public+Sans) (body)
+- **Motif:** hand-drawn SVG underlines, highlights, and circles on key headings
+- **No shadows or glows** — flat borders and background tints only
+- Respects `prefers-reduced-motion` throughout
 
-`next.config.js` sets a scoped Content-Security-Policy, HSTS,
-X-Frame-Options, X-Content-Type-Options, Referrer-Policy, and
-Permissions-Policy, plus `poweredByHeader: false`.
+## Scripts
 
-## Brand assets
+```bash
+npm run dev     # development server
+npm run build   # production build
+npm run start   # serve the production build
+npx tsc --noEmit  # type check
+npx next lint     # lint
+```
 
-The logo (favicon, Apple touch icon, in-app mark, banner watermark, and
-Open Graph image) is a real PNG, not a generated placeholder —
-`public/logo-mark-trimmed.png` is the source of truth, auto-trimmed of
-padding, reused via `components/Logo.tsx`. `app/icon.png` and
-`app/apple-icon.png` are pre-sized static exports of the same source
-image, picked up automatically by Next.js's file-based icon convention.
+## Contributing
 
-## AI-generated banner backgrounds
+Issues and pull requests are welcome. Before opening a PR:
 
-The shareable banner's background art is generated on demand via
-[Pollinations.ai](https://pollinations.ai) (free, keyless) using a
-prompt derived from the audit's score. Proxied server-side through
-`/api/banner-bg` (auth required) to avoid canvas CORS-tainting. Falls
-back to a designed gradient if generation is slow/unavailable — the
-download button always produces a complete image either way.
+```bash
+npx tsc --noEmit && npx next lint && npm run build
+```
 
-## Code quality & dependency security
+All three must pass. Please keep new audit checks **deterministic** and **evidence-backed** — if a
+check can't state *why* it failed with a real artifact from the page, it doesn't belong in the
+engine.
 
-- **ESLint is configured and enforced** (`next/core-web-vitals`,
-  `.eslintrc.json`) — previously this project had no lint config at all,
-  so real issues (unused variables, missing hook dependencies) could go
-  undetected. `npx next lint` currently reports zero warnings or errors,
-  and `next build` runs linting as part of the build, so a regression
-  fails the build rather than shipping silently. The one rule
-  deliberately disabled is `react/no-unescaped-entities` — it flags
-  plain apostrophes in JSX text (e.g. "don't"), which render perfectly
-  correctly; converting every contraction to `&apos;` would only hurt
-  readability for zero functional benefit.
-- **`npm audit`**: all vulnerabilities in the Firebase dependency chain
-  are resolved — `firebase`/`firebase-admin` were bumped to their latest
-  major versions, and the remaining transitive `uuid`/`teeny-request`/
-  `retry-request` advisories (pulled in by `firebase-admin`'s bundled,
-  unused Google Cloud Storage client) are pinned to patched versions via
-  `overrides` in `package.json`.
-- **Next.js**: pinned to `14.2.35`, the latest patch on the 14.x line,
-  which resolves the disclosed CVEs that 14.x *does* receive backports
-  for. A handful of newer (July 2026) CVEs are only patched in the 15.x/
-  16.x lines and won't be backported to 14.x — however, all of them are
-  scoped to features this app doesn't use: Server Actions (`"use
-  server"`), a custom Node HTTP server, and Turbopack middleware. This
-  app uses none of the three (API routes only, no `middleware.ts`,
-  standard Vercel deployment), so it isn't exposed to those specific
-  vectors on 14.x. A move to Next 15 is a reasonable follow-up, but is
-  deliberately not bundled into this change set as a forced,
-  unverified major-version jump — App Router behavior changes enough
-  between majors that it deserves its own dedicated test pass.
+## Security
 
-## Zelvior Runtime
+Found a vulnerability? Please **don't** open a public issue. Email
+[zelvior@proton.me](mailto:zelvior@proton.me) directly.
 
-Loaded via `next/script` in the root layout for lightweight client-side
-performance instrumentation. Remove the two `<Script>` tags in
-`app/layout.tsx` (and drop `cdn.jsdelivr.net` from the CSP) if you fork
-this without needing it.
+Never commit `.env.local`, Firebase service-account keys, `ENCRYPTION_KEY`, or NOWPayments
+credentials.
+
+## Credits
+
+Audityxe is built on the work of many others — see the full
+[Credits page](https://audityxe.vercel.app/credits) for every tool, framework, font, and
+interactive-component source used, with attribution.
+
+## License
+
+[Audityxe Custom Open-Source License](./LICENSE.md) — use it, modify it, ship it, build a business
+on it. Just credit **Zelvior** as the original author, clearly and visibly, with a link back to
+[github.com/zelvior/audityxe](https://github.com/zelvior/audityxe).
+
+---
+
+<div align="center">
+<sub>Audityxe — original work of <a href="mailto:zelvior@proton.me">Zelvior</a> · <a href="https://zsupport.netlify.app">Support</a></sub>
+</div>

@@ -38,6 +38,7 @@ export const EMPTY_PAGESPEED_SUMMARY: PageSpeedSummary = {
   coreWebVitals: { lcpMs: null, clsScore: null, tbtMs: null, fcpMs: null, speedIndexMs: null },
   topIssues: [],
   fieldData: { available: false, scope: null, lcpMs: null, clsScore: null, fcpMs: null, inpMs: null, overallCategory: null },
+  finalScreenshotDataUrl: null,
 };
 
 /** Pulls real-world Chrome User Experience Report (CrUX) data out of a
@@ -179,6 +180,18 @@ export async function fetchPageSpeedInsights(targetUrl: string, byokApiKey?: str
         description: (a.description as string).replace(/\[.*?\]\(.*?\)/g, "").trim(),
       }));
 
+    // The base64 final-render screenshot Lighthouse already captures as
+    // part of a normal run — free visual proof of how Chrome actually
+    // rendered the page, with zero extra requests or headless-browser
+    // cost of our own.
+    const screenshotAudit = audits["final-screenshot"] as
+      | { details?: { data?: string } }
+      | undefined;
+    const finalScreenshotDataUrl =
+      typeof screenshotAudit?.details?.data === "string" && screenshotAudit.details.data.startsWith("data:image")
+        ? screenshotAudit.details.data
+        : null;
+
     return {
       fetched: true,
       attempted: true,
@@ -196,6 +209,7 @@ export async function fetchPageSpeedInsights(targetUrl: string, byokApiKey?: str
       },
       topIssues: failingAudits,
       fieldData: extractFieldData(data),
+      finalScreenshotDataUrl,
     };
   } catch (err) {
     const isAbort = err instanceof Error && err.name === "AbortError";
