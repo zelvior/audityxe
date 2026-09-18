@@ -365,13 +365,17 @@ export function generateAuditPdf(result: AuditResult) {
     // PSI response — wrapped in try/catch because jsPDF throws on a
     // malformed/unsupported image payload, and a screenshot failing to
     // embed should never take the whole report export down with it.
-    if (result.pageSpeed.finalScreenshotDataUrl) {
+    // Prefers the desktop capture (meaningfully higher resolution, and
+    // this is a document meant to be read on a screen or printed, not
+    // a phone) and falls back to the mobile one if desktop failed.
+    const bestScreenshot = result.pageSpeed.finalScreenshotDesktopDataUrl || result.pageSpeed.finalScreenshotDataUrl;
+    if (bestScreenshot) {
       try {
         const shotY = lastAutoTableY(doc) + 8;
         doc.setFontSize(8.5);
         doc.setTextColor(MUTED);
         doc.text("Final render captured by Chrome during the Lighthouse run:", MARGIN, shotY);
-        doc.addImage(result.pageSpeed.finalScreenshotDataUrl, "JPEG", MARGIN, shotY + 4, 60, 0);
+        doc.addImage(bestScreenshot, "JPEG", MARGIN, shotY + 4, 90, 0);
       } catch {
         // non-fatal — skip the image, keep the rest of the report
       }

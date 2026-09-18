@@ -13,7 +13,7 @@ const nextConfig = {
       "font-src 'self' https://fonts.gstatic.com data:",
       "img-src 'self' data: blob: https:",
       "connect-src 'self' https://generativelanguage.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com https://ipapi.co https://api.exchangerate-api.com https://image.pollinations.ai https:",
-      "frame-src 'self' https://audityxe.firebaseapp.com https://accounts.google.com https://github.com",
+      "frame-src 'self' https://audityxe.firebaseapp.com https://accounts.google.com https://github.com https://nowpayments.io https://*.nowpayments.io",
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",

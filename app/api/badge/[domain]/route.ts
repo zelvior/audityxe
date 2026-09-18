@@ -82,7 +82,7 @@ function scoredBadgeSvg(domain: string, overall: number, auditedAt: string): str
 </svg>`;
 }
 
-export async function GET(req: NextRequest, { params }: { params: { domain: string } }) {
+export async function GET(_req: NextRequest, { params }: { params: { domain: string } }) {
   const raw = decodeURIComponent(params.domain || "").trim().toLowerCase();
   const domain = raw.replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/.*$/, "");
 

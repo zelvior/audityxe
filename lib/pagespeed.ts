@@ -39,6 +39,7 @@ export const EMPTY_PAGESPEED_SUMMARY: PageSpeedSummary = {
   topIssues: [],
   fieldData: { available: false, scope: null, lcpMs: null, clsScore: null, fcpMs: null, inpMs: null, overallCategory: null },
   finalScreenshotDataUrl: null,
+  finalScreenshotDesktopDataUrl: null,
 };
 
 /** Pulls real-world Chrome User Experience Report (CrUX) data out of a
@@ -97,7 +98,7 @@ function sanitizePsiErrorMessage(raw: string): string {
     .trim();
 }
 
-export async function fetchPageSpeedInsights(targetUrl: string, byokApiKey?: string | null): Promise<PageSpeedSummary> {
+async function fetchPageSpeedInsightsPrimary(targetUrl: string, byokApiKey?: string | null): Promise<PageSpeedSummary> {
   const empty: PageSpeedSummary = { ...EMPTY_PAGESPEED_SUMMARY, attempted: true };
 
   const apiKey = byokApiKey || process.env.PAGESPEED_API_KEY;
@@ -210,6 +211,7 @@ export async function fetchPageSpeedInsights(targetUrl: string, byokApiKey?: str
       topIssues: failingAudits,
       fieldData: extractFieldData(data),
       finalScreenshotDataUrl,
+      finalScreenshotDesktopDataUrl: null, // filled in by the fetchPageSpeedInsights wrapper
     };
   } catch (err) {
     const isAbort = err instanceof Error && err.name === "AbortError";
@@ -222,4 +224,58 @@ export async function fetchPageSpeedInsights(targetUrl: string, byokApiKey?: str
   } finally {
     clearTimeout(timer);
   }
+}
+
+const DESKTOP_SCREENSHOT_TIMEOUT_MS = 40000;
+
+/**
+ * A small, independent, best-effort PSI call whose only real purpose is
+ * the desktop-viewport screenshot — performance category only (the
+ * fastest single category to compute), a shorter timeout, and every
+ * failure mode swallowed to `null` rather than thrown. This must never
+ * be able to affect the primary mobile Lighthouse result: it runs in
+ * parallel with it and is merged in afterward, so a slow, rate-limited,
+ * or failed desktop capture simply means Render Proof falls back to
+ * the mobile screenshot instead of blocking or breaking the audit.
+ */
+async function fetchDesktopScreenshot(targetUrl: string, apiKey: string | undefined): Promise<string | null> {
+  const params = new URLSearchParams();
+  params.set("url", targetUrl);
+  params.set("strategy", "desktop");
+  params.set("category", "performance");
+  if (apiKey) params.set("key", apiKey);
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), DESKTOP_SCREENSHOT_TIMEOUT_MS);
+  try {
+    const res = await fetch(`https://www.googleapis.com/pagespeedonline/v5/runPagespeed?${params.toString()}`, {
+      signal: controller.signal,
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const shot = data?.lighthouseResult?.audits?.["final-screenshot"]?.details?.data;
+    return typeof shot === "string" && shot.startsWith("data:image") ? shot : null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
+ * Public entry point: runs the primary mobile Lighthouse pass (the one
+ * that actually determines Core Web Vitals / pass-fail scoring) and the
+ * secondary desktop-only screenshot capture in parallel, then merges
+ * the desktop screenshot into whatever the primary pass returned —
+ * success or failure. A failed primary pass can still end up with a
+ * usable desktop screenshot to show, and a failed desktop capture never
+ * affects the primary result either way.
+ */
+export async function fetchPageSpeedInsights(targetUrl: string, byokApiKey?: string | null): Promise<PageSpeedSummary> {
+  const apiKey = byokApiKey || process.env.PAGESPEED_API_KEY;
+  const [primary, desktopShot] = await Promise.all([
+    fetchPageSpeedInsightsPrimary(targetUrl, byokApiKey),
+    fetchDesktopScreenshot(targetUrl, apiKey),
+  ]);
+  return { ...primary, finalScreenshotDesktopDataUrl: desktopShot };
 }

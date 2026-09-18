@@ -115,8 +115,18 @@ export interface PageSpeedSummary {
   /** The final-render screenshot Lighthouse already captures during a
    * normal PSI run (base64 data URL) — visual proof of how Chrome
    * actually rendered the page, at zero extra cost since PSI already
-   * returns it. Null when not fetched or not present in the response. */
+   * returns it. Null when not fetched or not present in the response.
+   * This is captured under the MOBILE viewport, since the primary
+   * Lighthouse pass runs with strategy=mobile (mobile-first CWV). */
   finalScreenshotDataUrl: string | null;
+  /** A second, independently-fetched screenshot captured under a
+   * DESKTOP viewport — higher resolution, sharper, and what a visitor
+   * on a larger screen actually sees when viewing the Render Proof
+   * section. Fetched via a small best-effort secondary PSI call
+   * (performance category only, run in parallel with the main pass) so
+   * a slow or failed desktop capture never holds up or breaks the
+   * primary audit. Null when unavailable. */
+  finalScreenshotDesktopDataUrl: string | null;
 }
 
 export interface AuditResult {

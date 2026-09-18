@@ -42,13 +42,37 @@ export async function POST(req: NextRequest) {
   // not something to act on.
   if (!isPaidStatus(status)) return NextResponse.json({ ok: true, ignored: status });
 
-  const order = parseOrderId(payload.order_id);
+  const db = adminDb();
+
+  // One-off invoices always carry our own "uid:plan:timestamp" order_id
+  // (see createInvoice), which parses directly. Subscription-driven
+  // renewals are billed automatically by NOWPayments itself rather than
+  // created fresh by this app each time, and are not guaranteed to carry
+  // that same order_id shape — so when direct parsing fails, fall back to
+  // the subscription_id (recorded against the account at subscribe time
+  // in the subscribe route) before giving up. Without this fallback, a
+  // real, successfully paid subscription renewal would be silently
+  // rejected as an "unrecognized order" and never credited.
+  let order = parseOrderId(payload.order_id);
+  let subscriptionId: string | null = null;
+  if (!order) {
+    subscriptionId =
+      (typeof payload.subscription_id === "string" && payload.subscription_id) ||
+      (typeof payload.parent_payment_id === "string" && payload.parent_payment_id) ||
+      null;
+    if (subscriptionId) {
+      const ownerSnap = await db.collection("subscription_owners").doc(subscriptionId).get();
+      const owner = ownerSnap.data();
+      if (owner?.uid && (owner.plan === "standard" || owner.plan === "pro")) {
+        order = { uid: owner.uid, plan: owner.plan };
+      }
+    }
+  }
   if (!order) return NextResponse.json({ error: "Unrecognized order." }, { status: 400 });
 
   const paymentId = String(payload.payment_id ?? payload.invoice_id ?? "");
   if (!paymentId) return NextResponse.json({ error: "Missing payment id." }, { status: 400 });
 
-  const db = adminDb();
   const paymentRef = db.collection("crypto_payments").doc(paymentId);
   const userRef = db.collection("users").doc(order.uid);
   const grant = PAID_PLANS[order.plan];
@@ -75,6 +99,7 @@ export async function POST(req: NextRequest) {
         status,
         amountUsd: grant.usd,
         orderId: String(payload.order_id ?? ""),
+        subscriptionId,
         creditedAt: now.toISOString(),
       });
     });

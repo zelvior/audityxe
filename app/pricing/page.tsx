@@ -7,7 +7,7 @@ import { Check, Mail, Globe, Loader2, ShieldCheck, Bitcoin, RefreshCw } from "lu
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useAuth } from "@/context/AuthContext";
-import { PLANS, PlanDuration, PlanId, priceForDuration } from "@/lib/plans";
+import { PLANS, PlanId } from "@/lib/plans";
 import { useCurrency, formatPrice } from "@/lib/currency";
 import { fetchJson } from "@/lib/fetch-json";
 import { breadcrumbJsonLd } from "@/lib/breadcrumb";
@@ -22,13 +22,12 @@ interface AccountStatus {
 
 function buildBuyMailto(params: {
   planName: string;
-  duration: PlanDuration;
   priceLabel: string;
   userEmail: string;
   uid: string;
   displayName: string;
 }) {
-  const subject = `Audityxe plan request: ${params.planName} (${params.duration} days)`;
+  const subject = `Audityxe plan request: ${params.planName} (30 days)`;
   const body = [
     `Hi, I'd like to upgrade my Audityxe account.`,
     ``,
@@ -36,7 +35,7 @@ function buildBuyMailto(params: {
     `Account UID: ${params.uid}`,
     `Name: ${params.displayName || "(not set)"}`,
     `Plan requested: ${params.planName}`,
-    `Duration: ${params.duration} days`,
+    `Duration: 30 days`,
     `Price shown: ${params.priceLabel}`,
     ``,
     `I've attached a screenshot of my payment to this email.`,
@@ -50,15 +49,15 @@ export default function PricingPage() {
   const { user, getToken } = useAuth();
   const router = useRouter();
   const currency = useCurrency();
-  const [duration, setDuration] = useState<PlanDuration>(30);
-
-  const maxAnnualSavingsPct = Math.round(
-    Math.max(
-      ...Object.values(PLANS)
-        .filter((p) => p.priceUsd30 > 0)
-        .map((p) => (1 - p.priceUsd365 / (p.priceUsd30 * 12)) * 100)
-    )
-  );
+  const [wasCancelled, setWasCancelled] = useState(false);
+  useEffect(() => {
+    // Plain window.location read rather than useSearchParams() — this
+    // avoids the Suspense-boundary requirement that hook needs in the
+    // App Router, for what's a purely cosmetic one-time banner check.
+    if (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("payment") === "cancelled") {
+      setWasCancelled(true);
+    }
+  }, []);
   const [status, setStatus] = useState<AccountStatus | null>(null);
   const [statusLoading, setStatusLoading] = useState(false);
   const [promoInput, setPromoInput] = useState("");
@@ -177,7 +176,7 @@ export default function PricingPage() {
       return;
     }
     const plan = PLANS[planId];
-    const usdPrice = priceForDuration(plan, duration);
+    const usdPrice = plan.priceUsd;
     const promoApplies = promo && promo.plan === planId;
     const finalUsdPrice = promoApplies ? usdPrice * (1 - promo!.percentOff / 100) : usdPrice;
     const priceLabel = formatPrice(finalUsdPrice, currency) + (promoApplies ? ` (${promo!.percentOff}% off with ${promo!.code})` : "");
@@ -188,18 +187,26 @@ export default function PricingPage() {
       // the mailto navigation happens regardless of this call's outcome,
       // and a failed consume just means the code doesn't get marked
       // used (safer direction to fail in than double-charging usage).
-      getToken().then((token) =>
-        fetchJson("/api/discount/consume", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-          body: JSON.stringify({ code: promo!.code }),
-        })
-      );
+      getToken()
+        .then((token) =>
+          fetchJson("/api/discount/consume", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+            body: JSON.stringify({ code: promo!.code }),
+          })
+        )
+        .catch(() => {
+          // Fire-and-forget by design (see above) — but fetchJson can still
+          // reject on a genuine network failure (offline/DNS/CORS), and
+          // with nothing awaiting this promise, an uncaught rejection here
+          // would surface as an unhandled-rejection console error with no
+          // user-facing benefit. Swallow it; the code just doesn't get
+          // marked used, same as any other failure path here.
+        });
     }
 
     const href = buildBuyMailto({
       planName: plan.name,
-      duration,
       priceLabel,
       userEmail: user.email || "(no email on file)",
       uid: user.uid,
@@ -241,6 +248,11 @@ export default function PricingPage() {
       <Header />
       <div className="flex-1 px-4 sm:px-8 py-16 sm:py-24">
         <div className="max-w-5xl mx-auto">
+          {wasCancelled && (
+            <div className="max-w-md mx-auto mb-6 text-center text-xs text-text-secondary glass rounded-card px-4 py-2.5">
+              Checkout was cancelled — nothing was charged. Pick a plan below whenever you&apos;re ready.
+            </div>
+          )}
           <div className="text-center mb-8 sm:mb-10">
             <p className="text-xs font-mono text-text-secondary mb-3">PRICING</p>
             <h1 className="font-display font-bold text-3xl sm:text-4xl md:text-5xl tracking-tight text-gradient mb-4">
@@ -268,21 +280,6 @@ export default function PricingPage() {
                 {statusLoading ? "…" : ""}
               </p>
             )}
-          </div>
-
-          <div className="flex items-center justify-center gap-1 p-1 rounded-full glass w-fit mx-auto mb-6 text-xs font-mono">
-            <button
-              onClick={() => setDuration(30)}
-              className={`px-4 py-1.5 rounded-full transition ${duration === 30 ? "bg-primary/20 text-primary" : "text-text-secondary"}`}
-            >
-              30 days
-            </button>
-            <button
-              onClick={() => setDuration(365)}
-              className={`px-4 py-1.5 rounded-full transition ${duration === 365 ? "bg-primary/20 text-primary" : "text-text-secondary"}`}
-            >
-              365 days <span className="text-emerald">· save up to {maxAnnualSavingsPct}%</span>
-            </button>
           </div>
 
           <div className="max-w-xs mx-auto mb-8 sm:mb-10">
@@ -326,7 +323,7 @@ export default function PricingPage() {
 
           <div className="grid md:grid-cols-3 gap-5 sm:gap-6">
             {Object.values(PLANS).map((plan) => {
-              const usdPrice = priceForDuration(plan, duration);
+              const usdPrice = plan.priceUsd;
               const promoApplies = promo && promo.plan === plan.id;
               const discountedUsdPrice = promoApplies ? usdPrice * (1 - promo!.percentOff / 100) : usdPrice;
               const isFree = plan.id === "free";
@@ -362,7 +359,7 @@ export default function PricingPage() {
                     ) : (
                       formatPrice(usdPrice, currency)
                     )}
-                    {!isFree && <span className="text-sm font-normal text-text-secondary">/ {duration}d</span>}
+                    {!isFree && <span className="text-sm font-normal text-text-secondary">/mo</span>}
                   </p>
                   <p className="text-xs text-text-secondary mb-6">{plan.tagline}</p>
 
@@ -456,9 +453,8 @@ export default function PricingPage() {
                 .
               </li>
               <li>
-                Access is granted manually within 24 hours for the duration you selected. Once
-                granted, this page updates automatically the next time you load it or switch back
-                to this tab.
+                Access is granted manually within 24 hours, for 30 days. Once granted, this page
+                updates automatically the next time you load it or switch back to this tab.
               </li>
             </ol>
           </div>

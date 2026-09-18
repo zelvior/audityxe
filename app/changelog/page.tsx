@@ -11,6 +11,20 @@ export const metadata: Metadata = {
 
 const ENTRIES: { version: string; date: string; changes: string[] }[] = [
   {
+    version: "3.3.0",
+    date: "September 2026",
+    changes: [
+      "Fixed the donation widget rendering as \"This content is blocked\" — the site's own Content-Security-Policy didn't allow nowpayments.io in frame-src, so the browser blocked the iframe outright before it ever had a chance to load or fail. Also fixed the widget's sizing so it stays a fixed, centered width instead of stretching to fill its container while blocked.",
+      "Fixed a real pricing bug: the crypto checkout integration had its own separate $9 Standard / $29 Pro price table that had silently drifted from the actual advertised prices ($3 / $6) shown everywhere else on the site. All pricing — the pricing page, the manual email checkout, and crypto checkout — now reads from one single source of truth (lib/plans.ts), which cannot drift again because there's only one table left.",
+      "Removed the 365-day annual pricing tier entirely, per direct request — plans are 30-day/monthly only now, for both one-off crypto payments and recurring subscriptions.",
+      "Added detailed, checklist-form diagnosis for NOWPayments' \"INVALID_API_KEY\" (HTTP 403) error in both the code (a specific translated error message) and .env.example, after confirming this exact message covers three unrelated real causes — API access needs a separate dashboard toggle, a payout wallet must be configured, and a sandbox-environment key is rejected by the production endpoint this app calls — rather than always meaning the key itself was mistyped. Also defensively trims the key value, since a trailing newline pasted into an env var is invisible in a dashboard UI but makes a correct key fail.",
+      "Fixed a real bug that would have silently broken recurring subscriptions: the IPN webhook only recognized order_id in this app's own \"uid:plan:timestamp\" format, which one-off invoices always have — but NOWPayments bills subscription renewals automatically and isn't guaranteed to carry that same order_id shape, so a real, successfully paid renewal would have been rejected as an \"unrecognized order\" and never credited. The subscribe endpoint now records which account owns each subscription id up front, and the webhook falls back to that mapping when order_id doesn't parse in the usual format.",
+      "Made Render Proof genuinely higher quality instead of just larger: it now fetches both a mobile-viewport and a desktop-viewport screenshot in parallel (the desktop capture is a small, independent, best-effort call that can never delay or break the primary audit), and picks which one to show based on the *viewer's own device* via CSS — the actual source of the \"low quality\" complaint was a single low-resolution capture being stretched to fill a wide desktop card, not insufficient compression.",
+      "Added a live payment status / thank-you page (/payment/status) that polls the app's own backend every few seconds after checkout — never NOWPayments directly from the browser — showing \"waiting for confirmation\" until the webhook actually credits the plan, then a clear confirmation with a link to the account page. This is now the success_url for both one-off invoices and subscriptions, replacing a redirect straight back to /account that gave no indication a payment was still processing.",
+      "Added a cancelled-checkout notice on the pricing page for the existing cancel_url redirect, which previously landed back on pricing with a payment=cancelled query parameter nothing ever read.",
+    ],
+  },
+  {
     version: "3.2.1",
     date: "September 2026",
     changes: [

@@ -5,6 +5,7 @@ import {
   createEmailSubscription,
   subscriptionPlanId,
 } from "@/lib/nowpayments";
+import { adminDb } from "@/lib/firebase/admin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -58,6 +59,22 @@ export async function POST(req: NextRequest) {
     }
 
     const sub = await createEmailSubscription({ plan, email: identity.email });
+
+    // NOWPayments' recurring-payment IPN callbacks are not guaranteed to
+    // carry an order_id in the "uid:plan:timestamp" shape one-off
+    // invoices use (subscriptions are billed automatically by NOWPayments
+    // itself, not created fresh by this app each time) — so the IPN
+    // handler cannot always recover which account to credit from
+    // order_id alone for a renewal. Recording this mapping up front means
+    // the webhook can fall back to looking up the subscription id instead,
+    // rather than silently failing to credit real, paid renewals.
+    if (sub.subscriptionId) {
+      await adminDb()
+        .collection("subscription_owners")
+        .doc(sub.subscriptionId)
+        .set({ uid: identity.uid, plan, email: identity.email, createdAt: new Date().toISOString() });
+    }
+
     return NextResponse.json({
       ok: true,
       subscriptionId: sub.subscriptionId,

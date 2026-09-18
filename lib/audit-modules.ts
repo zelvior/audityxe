@@ -221,7 +221,7 @@ export function buildLighthouseModule(pageSpeed: PageSpeedSummary): AuditModule 
 }
 
 export function buildAuditModules(ctx: ModuleContext): AuditModule[] {
-  const { signals: s, deep: d, brokenLinks, imageSample, adsTxt, ogImage, pageSpeed, cookieFlags, redirectChain } = ctx;
+  const { signals: s, deep: d, brokenLinks, imageSample, adsTxt, ogImage, cookieFlags, redirectChain } = ctx;
   const modules: AuditModule[] = [];
 
   /* 1. SEO ────────────────────────────────────────────────────────── */

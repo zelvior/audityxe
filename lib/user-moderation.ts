@@ -231,7 +231,7 @@ export async function getAdminStats(): Promise<AdminStats> {
   const standardCount = standardSnap.data().count;
   const proCount = proSnap.data().count;
   const estimatedMrrCents = Math.round(
-    (standardCount * PLANS.standard.priceUsd30 + proCount * PLANS.pro.priceUsd30) * 100
+    (standardCount * PLANS.standard.priceUsd + proCount * PLANS.pro.priceUsd) * 100
   );
 
   return {

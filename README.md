@@ -144,7 +144,7 @@ Generative Engine Optimization — whether AI answer engines can read and cite t
 
 - Real browser-rendered Lighthouse pass via Google PageSpeed Insights (Core Web Vitals: LCP, CLS, TBT, FCP, Speed Index)
 - **Real-world CrUX field data** when Google has enough traffic on the origin — distinguished from lab data
-- **Render Proof** — the actual Chrome screenshot Lighthouse captures, embedded in the report
+- **Render Proof** — the actual Chrome screenshot(s) Lighthouse captures, embedded in the report. Two independent captures (mobile viewport from the primary pass, desktop viewport from a small parallel best-effort call) are fetched, and the viewer's own device picks which renders via CSS — a phone gets the sharp native mobile capture, a desktop visitor gets the larger, higher-resolution desktop one, instead of one fixed low-res image stretched to fit everyone
 - Compression, cache headers, image format/sizing/lazy-loading, inline-base64 bloat
 - Render-blocking resources, web-font weight
 - Viewport configuration, tap-target sizing, responsive-class signals
@@ -284,8 +284,12 @@ codebase.
 
 **Also supported (see `.env.example` for full setup steps):**
 
-- **Recurring subscriptions** — auto-renewing plans via NOWPayments' email-subscription flow (`/api/payments/nowpayments/subscribe`, wired into the pricing page as "auto-renew monthly by email"). Requires `NOWPAYMENTS_EMAIL` / `NOWPAYMENTS_PASSWORD` (subscription endpoints use a short-lived Bearer JWT minted on demand, not the API key directly) plus a `NOWPAYMENTS_PLAN_STANDARD` / `NOWPAYMENTS_PLAN_PRO` plan id from the dashboard.
-- **Donations** — `/donate` embeds the real NOWPayments donation widget via `NEXT_PUBLIC_NOWPAYMENTS_DONATION_KEY` (a public, funds-safe key — not the same as `NOWPAYMENTS_API_KEY`). The footer's Sponsor button links there.
+- **Recurring subscriptions** — monthly-only auto-renewal via NOWPayments' email-subscription flow (`/api/payments/nowpayments/subscribe`, wired into the pricing page as "auto-renew monthly by email"). There is no annual tier — one recurring period, 30 days, matching the one-off price exactly. Requires `NOWPAYMENTS_EMAIL` / `NOWPAYMENTS_PASSWORD` (subscription endpoints use a short-lived Bearer JWT minted on demand, not the API key directly) plus a `NOWPAYMENTS_PLAN_STANDARD` / `NOWPAYMENTS_PLAN_PRO` plan id from the dashboard.
+- **Donations** — `/donate` embeds the real NOWPayments donation widget via `NEXT_PUBLIC_NOWPAYMENTS_DONATION_KEY` (a public, funds-safe key — not the same as `NOWPAYMENTS_API_KEY`). The footer's Sponsor button links there. The donation `<iframe>` requires `nowpayments.io` to be allowed in this app's `frame-src` Content-Security-Policy (`next.config.js`) — without it the browser blocks the widget outright with "This content is blocked."
+- **Live payment status page** — `/payment/status` polls the app's own backend (never NOWPayments directly from the browser) every few seconds after checkout, showing "waiting for confirmation" until the IPN webhook actually credits the plan, then a clear confirmation. This is the `success_url` for both one-off invoices and subscriptions.
+- **Single price source of truth** — all pricing (the pricing page, the manual "pay another way" email flow, and crypto checkout) reads from `PLANS` in `lib/plans.ts`. There used to be a second, separate price table hardcoded in the NOWPayments integration that had silently drifted from the real advertised prices — fixed, and structurally can't drift again since there's only one table now.
+
+**Getting "INVALID_API_KEY" (HTTP 403) with a key that looks completely correct?** This exact NOWPayments error message covers three different causes — see the full checklist in `.env.example` (API access must be separately enabled in dashboard Settings, a payout wallet must be configured, and sandbox keys are rejected by the production endpoint this app calls). The app also defensively trims the key value in case a stray newline was pasted into an env var.
 
 **Verified against multiple independent sources before shipping** — the official NOWPayments Postman docs, their own `nowpayments-sdk-nodejs` GitHub repo, and their blog's subscriptions documentation all agree on the request field names and the IPN signing algorithm used here (`JSON.stringify` of a recursively key-sorted payload, HMAC-SHA512). This is as far as the integration can be verified without live credentials — see the warning below.
 

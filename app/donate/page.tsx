@@ -40,18 +40,20 @@ export default function DonatePage() {
           </p>
 
           {DONATION_WIDGET_KEY ? (
-            <div className="glass rounded-card p-3 sm:p-4 mb-6">
-              <iframe
-                src={`https://nowpayments.io/embeds/donation-widget?api_key=${DONATION_WIDGET_KEY}`}
-                width="346"
-                height="623"
-                style={{ overflowY: "hidden", border: "none", maxWidth: "100%" }}
-                scrolling="no"
-                title="Donate with cryptocurrency via NOWPayments"
-                className="mx-auto block rounded-input"
-              >
-                Can&apos;t load widget
-              </iframe>
+            <div className="glass rounded-card p-3 sm:p-4 mb-6 flex justify-center">
+              <div className="w-full max-w-[346px]">
+                <iframe
+                  src={`https://nowpayments.io/embeds/donation-widget?api_key=${DONATION_WIDGET_KEY}`}
+                  width="346"
+                  height="623"
+                  style={{ overflowY: "hidden", border: "none", width: "100%", maxWidth: "346px", aspectRatio: "346 / 623" }}
+                  scrolling="no"
+                  title="Donate with cryptocurrency via NOWPayments"
+                  className="block rounded-input mx-auto"
+                >
+                  Can&apos;t load widget
+                </iframe>
+              </div>
             </div>
           ) : (
             <div className="glass rounded-card p-5 mb-6">

@@ -36,7 +36,6 @@ export default function AdminDashboardPage() {
   const [denyReason, setDenyReason] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
   const [adminPassword, setAdminPassword] = useState("");
-  const [passwordEntered, setPasswordEntered] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [checkingPassword, setCheckingPassword] = useState(false);
   const [stats, setStats] = useState<AdminStats | null>(null);
@@ -98,7 +97,6 @@ export default function AdminDashboardPage() {
     if (!adminPassword.trim() || checkingPassword) return;
     setCheckingPassword(true);
     setPasswordError("");
-    setPasswordEntered(adminPassword);
     fetchStats(adminPassword);
   }, [adminPassword, checkingPassword, fetchStats]);
 

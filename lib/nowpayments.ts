@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import { PlanId } from "./plans";
+import { PlanId, PLANS } from "./plans";
 
 const API_BASE = "https://api.nowpayments.io/v1";
 
@@ -28,17 +28,21 @@ export function nowPaymentsConfigError(): string | null {
   return null;
 }
 
-/** Plans that can actually be purchased, with their USD price and how
- * many days of access a single payment grants. Kept server-side so a
- * tampered client can't ask for a cheaper price than the plan costs. */
+/** Plans that can actually be purchased. Priced and durationed from a
+ * single source of truth (lib/plans.ts) — this used to keep its own
+ * separate $9/$29 price table here, which had silently drifted from
+ * the real advertised prices ($3/$6) shown on the pricing page. Crypto
+ * checkout now always charges exactly what's advertised. Monthly only
+ * — there is no separate annual tier. */
 export const PAID_PLANS: Record<Exclude<PlanId, "free">, { usd: number; days: number; label: string }> = {
-  standard: { usd: 9, days: 30, label: "Audityxe Standard — 30 days" },
-  pro: { usd: 29, days: 30, label: "Audityxe Pro — 30 days" },
+  standard: { usd: PLANS.standard.priceUsd, days: 30, label: `Audityxe ${PLANS.standard.name} — 30 days` },
+  pro: { usd: PLANS.pro.priceUsd, days: 30, label: `Audityxe ${PLANS.pro.name} — 30 days` },
 };
 
 export interface CreatedInvoice {
   invoiceUrl: string;
   invoiceId: string;
+  orderId: string;
 }
 
 /**
@@ -54,7 +58,11 @@ export async function createInvoice(params: {
   uid: string;
   siteUrl: string;
 }): Promise<CreatedInvoice> {
-  const apiKey = process.env.NOWPAYMENTS_API_KEY;
+  // .trim() matters more than it looks like it should: a trailing
+  // newline or space pasted into a Vercel env var value is invisible in
+  // the dashboard UI, but turns a genuinely correct key into one
+  // NOWPayments rejects as invalid.
+  const apiKey = process.env.NOWPAYMENTS_API_KEY?.trim();
   if (!apiKey) throw new Error("NOWPAYMENTS_API_KEY is not configured.");
 
   const plan = PAID_PLANS[params.plan];
@@ -74,19 +82,62 @@ export async function createInvoice(params: {
       order_id: orderId,
       order_description: plan.label,
       ipn_callback_url: `${params.siteUrl}/api/payments/nowpayments/ipn`,
-      success_url: `${params.siteUrl}/account?payment=success`,
+      success_url: `${params.siteUrl}/payment/status?order_id=${encodeURIComponent(orderId)}`,
       cancel_url: `${params.siteUrl}/pricing?payment=cancelled`,
     }),
   });
 
   if (!res.ok) {
     const body = await res.text().catch(() => "");
-    throw new Error(`NOWPayments invoice creation failed (HTTP ${res.status}). ${body.slice(0, 300)}`);
+    throw new Error(`NOWPayments invoice creation failed (HTTP ${res.status}). ${describeNowPaymentsError(res.status, body)}`);
   }
 
   const data = await res.json();
   if (!data?.invoice_url) throw new Error("NOWPayments did not return an invoice URL.");
-  return { invoiceUrl: data.invoice_url, invoiceId: String(data.id ?? "") };
+  return { invoiceUrl: data.invoice_url, invoiceId: String(data.id ?? ""), orderId };
+}
+
+/**
+ * Turns NOWPayments' raw error JSON into an actual diagnosis instead of
+ * dumping `{"status":false,"code":"INVALID_API_KEY","message":"..."}` at
+ * whoever's debugging. "Invalid api key" from NOWPayments does NOT
+ * necessarily mean the key was mistyped — it's the same message for
+ * three completely different, genuinely common misconfigurations, and
+ * guessing wrong wastes real time:
+ *
+ *   1. API access is a SEPARATE toggle from having a key at all —
+ *      Dashboard → Settings → API → "Enable API access" has to be on.
+ *   2. No payout wallet configured yet — invoice creation is blocked
+ *      until Dashboard → Payment settings has an outcome wallet set.
+ *   3. A sandbox key used against the production API (or vice versa) —
+ *      this code always calls the production endpoint; a key copied
+ *      from a sandbox account will look "correct" and still be
+ *      rejected, because it's valid for a different environment.
+ */
+function describeNowPaymentsError(status: number, rawBody: string): string {
+  let code = "";
+  let message = "";
+  try {
+    const parsed = JSON.parse(rawBody);
+    code = String(parsed?.code || "");
+    message = String(parsed?.message || "");
+  } catch {
+    return rawBody.slice(0, 300);
+  }
+
+  if (status === 403 && code === "INVALID_API_KEY") {
+    return (
+      `NOWPayments says "${message}". This message covers three different real causes, not just a ` +
+      `mistyped key — check all three: (1) Dashboard → Settings → API → "Enable API access" must be ` +
+      `turned on, separately from just having a key; (2) a payout wallet must be configured under ` +
+      `Payment settings before invoices can be created; (3) make sure the key is from your PRODUCTION ` +
+      `account, not a sandbox account — this integration only calls the production API.`
+    );
+  }
+  if (status === 403) {
+    return `NOWPayments says "${message}" (code: ${code || "unknown"}).`;
+  }
+  return message ? `NOWPayments says "${message}".` : rawBody.slice(0, 300);
 }
 
 /** Recursively sorts object keys — NOWPayments signs the payload after
@@ -185,8 +236,8 @@ async function getMerchantJwt(forceRefresh = false): Promise<string> {
     return cachedJwt.token;
   }
 
-  const apiKey = process.env.NOWPAYMENTS_API_KEY;
-  const email = process.env.NOWPAYMENTS_EMAIL;
+  const apiKey = process.env.NOWPAYMENTS_API_KEY?.trim();
+  const email = process.env.NOWPAYMENTS_EMAIL?.trim();
   const password = process.env.NOWPAYMENTS_PASSWORD;
   if (!apiKey || !email || !password) {
     throw new Error("NOWPayments subscription credentials are not configured.");
@@ -239,16 +290,15 @@ async function subscriptionFetch(path: string, init: RequestInit, retry = true):
 export interface SubscriptionPlan {
   id: string;
   title: string;
-  intervalDay: number;
   amount: number;
   currency: string;
 }
 
 /** Creates a recurring-payment plan. Run once per plan (or via the
- * NOWPayments dashboard) — the returned id goes in NOWPAYMENTS_PLAN_*. */
+ * NOWPayments dashboard) — the returned id goes in NOWPAYMENTS_PLAN_*.
+ * Monthly only, on purpose — there is no separate annual tier. */
 export async function createSubscriptionPlan(params: {
   title: string;
-  intervalDay: number;
   amount: number;
   siteUrl: string;
 }): Promise<SubscriptionPlan> {
@@ -256,13 +306,13 @@ export async function createSubscriptionPlan(params: {
     method: "POST",
     body: JSON.stringify({
       title: params.title,
-      interval_day: params.intervalDay,
+      interval_day: 30,
       amount: params.amount,
       currency: "usd",
       ipn_callback_url: `${params.siteUrl}/api/payments/nowpayments/ipn`,
-      success_url: `${params.siteUrl}/account?payment=success`,
+      success_url: `${params.siteUrl}/payment/status`,
       cancel_url: `${params.siteUrl}/pricing?payment=cancelled`,
-      partially_paid_url: `${params.siteUrl}/account?payment=partial`,
+      partially_paid_url: `${params.siteUrl}/payment/status`,
     }),
   });
 
@@ -275,7 +325,6 @@ export async function createSubscriptionPlan(params: {
   return {
     id: String(plan.id),
     title: plan.title,
-    intervalDay: Number(plan.interval_day),
     amount: Number(plan.amount),
     currency: plan.currency,
   };

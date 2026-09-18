@@ -76,7 +76,8 @@ export function buildAuditExportPayload(result: AuditResult) {
       // Base64 data URL, so it's intentionally omitted from the JSON
       // export by default (it can be hundreds of KB and would dominate
       // the file) — exposed as a boolean so consumers know it exists.
-      finalScreenshotAvailable: !!result.pageSpeed?.finalScreenshotDataUrl,
+      finalScreenshotAvailable: !!(result.pageSpeed?.finalScreenshotDataUrl || result.pageSpeed?.finalScreenshotDesktopDataUrl),
+      finalScreenshotDesktopAvailable: !!result.pageSpeed?.finalScreenshotDesktopDataUrl,
     },
     promo: {
       locked: result.promoLocked ?? false,

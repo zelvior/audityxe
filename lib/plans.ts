@@ -1,15 +1,13 @@
 export type PlanId = "free" | "standard" | "pro";
-export type PlanDuration = 30 | 365;
 
 export interface Plan {
   id: PlanId;
   name: string;
   dailyAudits: number;
   competitorAudits: boolean;
-  /** USD price for a 30-day grant. 0 for the free plan. */
-  priceUsd30: number;
-  /** USD price for a 365-day grant (discounted vs. 30-day * 12). 0 for the free plan. */
-  priceUsd365: number;
+  /** USD price for a 30-day grant. 0 for the free plan. Single
+   * monthly tier only — no separate annual pricing. */
+  priceUsd: number;
   tagline: string;
   features: string[];
 }
@@ -20,8 +18,7 @@ export const PLANS: Record<PlanId, Plan> = {
     name: "Free",
     dailyAudits: 2,
     competitorAudits: false,
-    priceUsd30: 0,
-    priceUsd365: 0,
+    priceUsd: 0,
     tagline: "Try the full audit engine, no card required.",
     features: [
       "2 audits per day",
@@ -35,15 +32,14 @@ export const PLANS: Record<PlanId, Plan> = {
     name: "Standard",
     dailyAudits: 5,
     competitorAudits: true,
-    priceUsd30: 3,
-    priceUsd365: 25,
+    priceUsd: 3,
     tagline: "For builders shipping and promoting regularly.",
     features: [
       "5 audits per day",
       "Everything in Free",
       "Competitor head-to-head battles",
       "Priority queue for report generation",
-      "30 or 365-day access grants",
+      "30-day access per payment",
     ],
   },
   pro: {
@@ -51,8 +47,7 @@ export const PLANS: Record<PlanId, Plan> = {
     name: "Pro",
     dailyAudits: 8,
     competitorAudits: true,
-    priceUsd30: 6,
-    priceUsd365: 49,
+    priceUsd: 6,
     tagline: "Built for agencies auditing client sites and portfolios at scale.",
     features: [
       "8 audits per day",
@@ -75,8 +70,4 @@ export const DEFAULT_PLAN: PlanId = "free";
 
 export function planLimit(plan: PlanId): number {
   return PLANS[plan]?.dailyAudits ?? PLANS.free.dailyAudits;
-}
-
-export function priceForDuration(plan: Plan, duration: PlanDuration): number {
-  return duration === 30 ? plan.priceUsd30 : plan.priceUsd365;
 }
