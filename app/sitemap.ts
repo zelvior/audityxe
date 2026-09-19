@@ -35,6 +35,10 @@ const ROUTES: RouteEntry[] = [
   { path: "/third-party-services", priority: 0.3, changeFrequency: "yearly" },
   { path: "/audit-verification", priority: 0.4, changeFrequency: "monthly" },
   { path: "/badge", priority: 0.4, changeFrequency: "monthly" },
+  { path: "/workflow", priority: 0.5, changeFrequency: "monthly" },
+  { path: "/crash-reports", priority: 0.3, changeFrequency: "weekly" },
+  { path: "/license", priority: 0.3, changeFrequency: "yearly" },
+  { path: "/refund-policy", priority: 0.3, changeFrequency: "yearly" },
 ];
 
 export default function sitemap(): MetadataRoute.Sitemap {

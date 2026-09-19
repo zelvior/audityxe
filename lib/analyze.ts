@@ -1645,6 +1645,11 @@ async function auditOne(rawUrl: string) {
 
 const MAX_URL_LENGTH = 2048;
 const OVERALL_AUDIT_TIMEOUT_MS = 30000;
+// Deep crawl mode runs a real multi-hop request queue (site-crawl-deep.ts),
+// which needs more wall-clock room than the shared 30s budget every other
+// module races against — bumped for deep-mode requests only, and still
+// comfortably under the route's own maxDuration=90 (see app/api/audit/route.ts).
+const DEEP_OVERALL_AUDIT_TIMEOUT_MS = 60000;
 
 function withOverallTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
   let timer: ReturnType<typeof setTimeout>;
@@ -1669,6 +1674,12 @@ export interface AuditOptions {
   /** User's own PageSpeed Insights (Google Cloud) API key — raises PSI's
    * own quota; independent of the AI byok above. */
   psiByokKey?: string | null;
+  /** "fast" (default) crawls a bounded sample from the homepage's own
+   * links + sitemap seeds. "deep" runs a real multi-hop request queue
+   * (site-crawl-deep.ts) — slower, but reaches pages fast mode can't.
+   * Lazy-imported only when requested, so its dependency (cheerio)
+   * never loads on the default fast path. */
+  crawlMode?: "fast" | "deep";
 }
 
 export async function runAudit(
@@ -1688,7 +1699,7 @@ export async function runAudit(
 
   return withOverallTimeout(
     runAuditInner(rawUrl, competitorRawUrl, options),
-    OVERALL_AUDIT_TIMEOUT_MS,
+    options.crawlMode === "deep" ? DEEP_OVERALL_AUDIT_TIMEOUT_MS : OVERALL_AUDIT_TIMEOUT_MS,
     "This audit took too long overall and was stopped. Please try again — some sites are slower to fully analyze than others."
   );
 }
@@ -1735,7 +1746,9 @@ async function runAuditInner(
     checkFaviconManifest(primary.origin, primary.html, primary.finalUrl),
     checkAssetWeights(primary.html, primary.finalUrl),
     checkLegalPages(primary.html, primary.origin, primary.finalUrl, siteContext),
-    crawlSite(primary.html, primary.finalUrl),
+    options.crawlMode === "deep"
+      ? import("./site-crawl-deep").then((m) => m.crawlSiteDeep(primary.html, primary.finalUrl))
+      : crawlSite(primary.html, primary.finalUrl),
     checkCookieFlags(primary.origin),
     checkRedirectChain(rawUrl),
   ]);

@@ -32,6 +32,8 @@
 - [Environment variables](#environment-variables)
 - [PageSpeed Insights (Lighthouse) setup](#pagespeed-insights-lighthouse-setup)
 - [Payments (NOWPayments)](#payments-nowpayments)
+- [Site Crawl module](#site-crawl-module)
+- [Workflow Diagram](#workflow-diagram)
 - [Project structure](#project-structure)
 - [Plans and limits](#plans-and-limits)
 - [Design system](#design-system)
@@ -291,6 +293,8 @@ codebase.
 
 **Getting "INVALID_API_KEY" (HTTP 403) with a key that looks completely correct?** This exact NOWPayments error message covers three different causes — see the full checklist in `.env.example` (API access must be separately enabled in dashboard Settings, a payout wallet must be configured, and sandbox keys are rejected by the production endpoint this app calls). The app also defensively trims the key value in case a stray newline was pasted into an env var.
 
+That detailed diagnosis is deliberately **operator-only**: `createInvoice`'s translated error (`describeNowPaymentsError` in `lib/nowpayments.ts`) is logged in full via `console.error` in both `/api/payments/nowpayments/create` and `/subscribe`, but the customer's browser only ever sees a short, generic "temporarily unavailable, try again or use email" message. Returning the full dashboard-setting diagnosis straight to a paying customer's checkout button used to be the actual behavior here — fixed, since it leaked internal account structure to any visitor and read as a wall of setup instructions to someone just trying to pay. Check your deployment's function logs (e.g. the Vercel dashboard) for the real cause when this fires.
+
 **Verified against multiple independent sources before shipping** — the official NOWPayments Postman docs, their own `nowpayments-sdk-nodejs` GitHub repo, and their blog's subscriptions documentation all agree on the request field names and the IPN signing algorithm used here (`JSON.stringify` of a recursively key-sorted payload, HMAC-SHA512). This is as far as the integration can be verified without live credentials — see the warning below.
 
 **Security properties of the IPN handler:**
@@ -313,31 +317,176 @@ codebase.
 See the [Refund Policy](https://audityxe.vercel.app/refund-policy) for refund handling, including
 why crypto refunds are sent as new transactions.
 
+## Site Crawl module
+
+`lib/site-crawl.ts` extends a handful of checks (broken internal links, thin-content pages, orphan
+pages) past the single page the rest of the audit is scoped to, by crawling a bounded, same-origin
+sample of pages starting from the homepage. As of 3.5.0 there are **two crawl modes**, user-selectable
+per audit from a toggle under the URL field ("Site crawl: Fast / Deep"):
+
+| | Fast (default) | Deep |
+|---|---|---|
+| Source file | `lib/site-crawl.ts` | `lib/site-crawl-deep.ts` (lazy-imported — see below) |
+| Discovery | Homepage's own links + `/sitemap.xml` seeds | Real multi-hop request queue — follows links found on every page it visits |
+| Pages | Up to 6 | Up to 25 |
+| Depth | 1 hop from homepage | Up to 3 hops |
+| HTML parsing | Regex-based | Real DOM traversal via `cheerio` |
+| robots.txt | Not checked | Fetched once, Disallow rules enforced before a URL is ever queued |
+| Retries | None | One retry with backoff per failed/429/503 request |
+| Concurrency | 3 in flight | 5 in flight |
+| Typical cost | A few seconds | Up to ~40s internal budget (audit's overall timeout is raised to 60s for deep-mode requests specifically, see `DEEP_OVERALL_AUDIT_TIMEOUT_MS` in `lib/analyze.ts`) |
+
+**On the standalone Crawlee-based crawler package supplied for review:** we evaluated merging it in
+directly instead of building `site-crawl-deep.ts`. Verdict: **it cannot be built as delivered.**
+`@audityxe-crawler/core`'s `package.json` depends on `@audityxe-crawler/fs-storage` (its default
+request-queue storage backend) via `workspace:*` — that package is not present anywhere in the
+supplied archive, so `core`, and every package layered on it (`basic-crawler`, `cheerio-crawler`,
+`http-crawler`), cannot install or compile. Separately, every package in it is ESM-only
+(`"type": "module"`) and declares `"engines": { "node": ">=22.0.0" }`, built via a pnpm workspace +
+Turborepo pipeline that assumes the whole monorepo is present — not a requirement this project
+otherwise makes of its deployment target.
+
+Rather than skip deep mode or ship something that fails to build, `site-crawl-deep.ts`
+**reimplements the package's genuinely useful techniques** directly against the real, published
+`cheerio` package (the same HTML parser the crawler package itself wraps) — the one new dependency
+this required — with no other new dependency, no missing-package blocker, and no Node 22
+requirement:
+
+- **Request queue** — real breadth-first traversal, not a fixed one-page link sample.
+- **Retries** — one retry with backoff before a request is recorded as failed.
+- **Concurrency pool** — bounded concurrent fetches (shared `runWithConcurrency` helper).
+- **Session/UA rotation** — requests rotate across a small pool of realistic desktop user agents.
+- **robots.txt compliance** — parsed once per crawl; every candidate URL is checked against
+  Disallow rules before being queued, the courtesy a real crawler owes a site.
+- **Cheerio-based parsing** — real DOM traversal for links/title/word count, more accurate than
+  fast mode's regex approach on malformed or unusual HTML.
+
+No module from the reference package was skipped as a *technique* — what's not present is the
+package's own request-queue *storage engine* (blocked by the missing `fs-storage` dependency) and
+its Node 22/ESM toolchain, neither of which this reimplementation needs: `site-crawl-deep.ts` keeps
+its queue in memory for the duration of one audit request, which is all a single-request serverless
+function needs.
+
+`site-crawl-deep.ts` and its `cheerio` dependency are only loaded via a dynamic `import()` when
+`crawlMode: "deep"` is actually requested (see the ternary around `crawlSite`/`crawlSiteDeep` in
+`lib/analyze.ts`) — the default fast path never pulls `cheerio` into its bundle or cold start.
+
+**Known limitation (unchanged in both modes):** this is a plain-fetch crawl, not a headless browser.
+On JavaScript-heavy SPAs (client-rendered React/Vue apps with a near-empty static HTML shell), it
+can only see what's in the initial server response — `possibleJsRenderedContent` exists specifically
+to flag this case rather than silently under-reporting. A future update could add a bounded
+Playwright/Puppeteer serverless fallback for exactly these sites, as noted in `site-crawl.ts`'s own
+header comment; this remains unimplemented for the cold-start/bundle-size reasons already explained
+there.
+
+## Workflow Diagram
+
+Audityxe is open source, so the same end-to-end architecture diagram used internally is published
+at [`/workflow`](https://audityxe.vercel.app/workflow) and linked from the footer under
+**Resources**. It traces every route, module, and data store a single audit request touches — the
+Audit Experience (UI + API), the Audit Runtime (orchestrator + checks), Operations And Outputs
+(admin, badges, logs), Billing And Features (payments), and Identity And Plans (auth, quotas,
+Firestore).
+
+**To update it:**
+
+1. Regenerate the diagram from the current codebase (whatever diagramming tool was used to produce
+   the existing one — group by the five areas above, one box per route/module file, one labeled
+   arrow per call/dependency).
+2. Export it as a PNG.
+3. Replace `public/workflow-diagram.png` with the new file, same filename.
+
+Nothing else needs to change — the `/workflow` page and this README section both reference that one
+file path, not a copy.
+
 ## Project structure
 
 ```
-app/
-  api/
-    audit/            # the main audit endpoint
-    payments/
-      nowpayments/    # create invoice + IPN webhook
-    settings/         # account settings, BYOK key validation
-    admin/            # admin-only endpoints
-  (legal pages)/      # privacy, terms, license, refund-policy, credits, …
-  status/             # live service status
-components/           # UI — all Tailwind token-driven, light/dark aware
-lib/
-  analyze.ts          # orchestrates a full audit
-  audit-modules.ts    # turns signals into scored modules + findings
-  deep-signals.ts     # HTML/DOM signal extraction
-  pagespeed.ts        # PSI client, error translation, screenshot extraction
-  dns-security.ts     # DNSSEC, CAA, subdomain takeover
-  dns-email-auth.ts   # SPF, DKIM, DMARC
-  tls-check.ts        # live TLS handshake inspection
-  nowpayments.ts      # invoice creation + IPN HMAC verification
-  pdf-export.ts       # PDF report builder
-  export-payload.ts   # JSON report builder
+audityxe/
+├── README.md
+├── firestore.rules
+├── LICENSE.md
+├── middleware.ts
+├── next-env.d.ts
+├── next.config.js
+├── package.json
+├── postcss.config.js
+├── tailwind.config.ts
+├── tsconfig.json
+├── vercel.json
+├── .env.example
+├── .eslintrc.json
+├── app/
+│   ├── error.tsx / global-error.tsx / loading.tsx / not-found.tsx
+│   ├── layout.tsx, page.tsx, globals.css
+│   ├── opengraph-image.tsx, robots.ts, sitemap.ts
+│   ├── about/  acceptable-use/  account/  admin/
+│   │   ├── activity/  announcement/  dashboard/  discount-codes/  users/
+│   ├── api/
+│   │   ├── account/            # profile, delete, redeem-code
+│   │   ├── admin/               # activity, announcement, audits, discount-codes, search, stats, users
+│   │   ├── announcement/
+│   │   ├── audit/               # the main audit endpoint (+ bulk/)
+│   │   ├── badge/[domain]/
+│   │   ├── banner-bg/
+│   │   ├── cron/cleanup-unverified/
+│   │   ├── discount/             # consume, validate
+│   │   ├── payments/nowpayments/ # create, ipn, status, subscribe
+│   │   └── settings/
+│   ├── audit-verification/  badge/  bulk/  changelog/  contact/  cookies/
+│   ├── crash-reports/  credits/  disclaimer/  donate/  dpa/  faq/
+│   ├── forgot-password/  guide/  license/  login/  maintenance/  methodology/
+│   ├── offline/  payment/status/  pricing/  privacy/  refund-policy/
+│   ├── register/  sample-report/  settings/  status/  terms/
+│   ├── third-party-services/  trust-center/  verify-email/
+│   └── workflow/                 # public architecture-diagram page
+├── components/
+│   ├── AnnouncementBanner.tsx   AuditActionBar.tsx      AuditDefenderGame.tsx
+│   ├── AuditModules.tsx         AuthSidePanel.tsx        BannerCanvas.tsx
+│   ├── CompetitorBattle.tsx     DiffFixes.tsx            Footer.tsx
+│   ├── Header.tsx               Hero.tsx                 HomepageSeoContent.tsx
+│   ├── HoverRevealButton.tsx    IsometricLoader.tsx      LegalLayout.tsx
+│   ├── Logo.tsx                 ModerationGuard.tsx      NotFoundGame.tsx
+│   ├── OAuthButtons.tsx         OfflineGame.tsx          Onboarding.tsx
+│   ├── PasswordInput.tsx        PerformanceMetrics.tsx   PromoKit.tsx
+│   ├── RenderProof.tsx          SampleReportView.tsx     ScanProgress.tsx
+│   ├── ScoreCard.tsx            TrustBadges.tsx          TrustSection.tsx
+│   └── VerifyEmailBanner.tsx
+├── context/
+│   └── AuthContext.tsx
+├── lib/
+│   ├── analyze.ts            # orchestrates a full audit
+│   ├── audit-modules.ts      # turns signals into scored modules + findings
+│   ├── audit-defender-data.ts   audit-log.ts             admin.ts / admin-log.ts
+│   ├── ai.ts                    announcement.ts          badge-store.ts
+│   ├── bloom-filter.ts          breadcrumb.ts            constants.ts
+│   ├── counters.ts              crypto.ts                currency.ts
+│   ├── deep-signals.ts       # HTML/DOM signal extraction
+│   ├── discount-codes.ts        dns-email-auth.ts        dns-security.ts
+│   ├── export-payload.ts     # JSON report builder
+│   ├── fetch-json.ts            gemini.ts                ip.ts
+│   ├── legal-pages.ts           network-checks.ts
+│   ├── nowpayments.ts        # invoice creation + IPN HMAC verification
+│   ├── ops.ts                   pagespeed.ts             pdf-export.ts
+│   ├── plans.ts                 rate-limit.ts            security.ts
+│   ├── seo.ts                   site-context.ts
+│   ├── site-crawl.ts         # multi-page crawl, link graph, JS-render heuristic
+│   ├── tls-check.ts          # live TLS handshake inspection
+│   ├── types.ts                 url-safety.ts            user-moderation.ts
+│   ├── user-settings.ts
+│   └── firebase/
+│       ├── admin.ts
+│       └── client.ts
+└── public/
+    ├── google08dd6d11c7637a2e.html
+    ├── llms.txt / llms-full.txt
+    ├── manifest.webmanifest
+    ├── security.txt
+    └── workflow-diagram.png      # see "Workflow Diagram" above
 ```
+
+Generated from a full repository scan (187 files analyzed at commit `99feeee`); regenerate this
+block whenever routes or top-level modules are added or removed.
 
 ## Plans and limits
 

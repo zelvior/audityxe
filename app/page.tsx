@@ -57,6 +57,7 @@ export default function Home() {
   const [accountPlan, setAccountPlan] = useState<PlanId>("free");
   const [hasPsiByokKey, setHasPsiByokKey] = useState(false);
   const [wantsPageSpeed, setWantsPageSpeed] = useState(false);
+  const [crawlMode, setCrawlMode] = useState<"fast" | "deep">("fast");
 
   useEffect(() => {
     if (!user) {
@@ -102,7 +103,7 @@ export default function Home() {
     // which is exactly the confusing/misleading state this is meant to
     // avoid. A real-browser (Lighthouse) pass alone can take up to 75s
     // (see PSI_TIMEOUT_MS), so pace much slower when one was requested.
-    const stepIntervalMs = confirmPageSpeed ? 9000 : 900;
+    const stepIntervalMs = confirmPageSpeed ? 9000 : crawlMode === "deep" ? 2200 : 900;
     stepTimerRef.current = setInterval(() => {
       step = Math.min(step + 1, SCAN_STEPS.length - 1);
       setActiveStep(step);
@@ -127,7 +128,7 @@ export default function Home() {
             "Content-Type": "application/json",
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
-          body: JSON.stringify({ url, competitorUrl, confirmPageSpeed }),
+          body: JSON.stringify({ url, competitorUrl, confirmPageSpeed, crawlMode }),
         }
       );
       if (stepTimerRef.current) clearInterval(stepTimerRef.current);
@@ -173,6 +174,8 @@ export default function Home() {
         hasPsiByokKey={hasPsiByokKey}
         wantsPageSpeed={wantsPageSpeed}
         onWantsPageSpeedChange={setWantsPageSpeed}
+        crawlMode={crawlMode}
+        onCrawlModeChange={setCrawlMode}
       />
 
       {user && needsEmailVerification && <VerifyEmailBanner />}
@@ -181,7 +184,7 @@ export default function Home() {
       <AnimatePresence mode="wait">
         {phase === "scanning" && (
           <motion.div key="scan" exit={{ opacity: 0 }}>
-            <ScanProgress activeStep={activeStep} isLongRun={wantsPageSpeed && userPlan === "pro"} />
+            <ScanProgress activeStep={activeStep} isLongRun={(wantsPageSpeed && userPlan === "pro") || crawlMode === "deep"} />
           </motion.div>
         )}
 

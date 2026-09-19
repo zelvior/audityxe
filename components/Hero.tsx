@@ -19,6 +19,8 @@ interface HeroProps {
   hasPsiByokKey: boolean;
   wantsPageSpeed: boolean;
   onWantsPageSpeedChange: (value: boolean) => void;
+  crawlMode: "fast" | "deep";
+  onCrawlModeChange: (value: "fast" | "deep") => void;
 }
 
 export default function Hero({
@@ -33,6 +35,8 @@ export default function Hero({
   hasPsiByokKey,
   wantsPageSpeed,
   onWantsPageSpeedChange,
+  crawlMode,
+  onCrawlModeChange,
 }: HeroProps) {
   const router = useRouter();
   const [url, setUrl] = useState(prefillUrl || "");
@@ -182,6 +186,41 @@ export default function Hero({
             {hasPsiByokKey ? " — unlimited with your own API key" : " — limited to your weekly quota"}
           </label>
         )}
+
+        <div className="mt-3 ml-1 flex items-center gap-1.5 text-xs text-text-secondary w-fit" role="radiogroup" aria-label="Site crawl depth">
+          <span className="mr-1">Site crawl:</span>
+          <button
+            type="button"
+            role="radio"
+            aria-checked={crawlMode === "fast"}
+            onClick={() => onCrawlModeChange("fast")}
+            className={`px-2.5 py-1 rounded-full border transition ${
+              crawlMode === "fast"
+                ? "bg-primary/10 border-primary/40 text-primary font-semibold"
+                : "border-border glass hover:text-text-primary"
+            }`}
+          >
+            Fast
+          </button>
+          <button
+            type="button"
+            role="radio"
+            aria-checked={crawlMode === "deep"}
+            onClick={() => onCrawlModeChange("deep")}
+            className={`px-2.5 py-1 rounded-full border transition ${
+              crawlMode === "deep"
+                ? "bg-primary/10 border-primary/40 text-primary font-semibold"
+                : "border-border glass hover:text-text-primary"
+            }`}
+          >
+            Deep
+          </button>
+          <span className="text-text-secondary/70 ml-0.5">
+            {crawlMode === "deep"
+              ? "— up to 25 pages, 3 hops, slower"
+              : "— homepage sample, fastest"}
+          </span>
+        </div>
       </div>
 
       <div className="hidden lg:block">

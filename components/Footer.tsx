@@ -30,6 +30,8 @@ const COLUMNS: { title: string; links: { href: string; label: string }[] }[] = [
       { href: "/trust-center", label: "Trust Center" },
       { href: "/changelog", label: "Changelog" },
       { href: "/status", label: "Service Status" },
+      { href: "/crash-reports", label: "Crash Reports" },
+      { href: "/workflow", label: "Workflow Diagram" },
     ],
   },
   {
@@ -39,10 +41,15 @@ const COLUMNS: { title: string; links: { href: string; label: string }[] }[] = [
       { href: "/terms", label: "Terms of Service" },
       { href: "/cookies", label: "Cookie Policy" },
       { href: "/disclaimer", label: "Disclaimer" },
+      { href: "/license", label: "License" },
+    ],
+  },
+  {
+    title: "Compliance",
+    links: [
       { href: "/dpa", label: "DPA" },
       { href: "/acceptable-use", label: "Acceptable Use" },
       { href: "/third-party-services", label: "Third-Party Services" },
-      { href: "/license", label: "License" },
       { href: "/refund-policy", label: "Refund Policy" },
     ],
   },
@@ -60,8 +67,8 @@ const COLUMNS: { title: string; links: { href: string; label: string }[] }[] = [
 export default function Footer() {
   return (
     <footer className="px-4 sm:px-6 pt-14 sm:pt-16 pb-8 border-t border-border/60 mt-6">
-      <div className="max-w-5xl mx-auto">
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-[1.3fr_repeat(4,1fr)] gap-x-6 gap-y-10">
+      <div className="max-w-6xl mx-auto">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-[1.1fr_repeat(5,1fr)] gap-x-6 gap-y-10">
           {/* brand block */}
           <div className="col-span-2 sm:col-span-3 lg:col-span-1 mb-2 lg:mb-0">
             <Link href="/" className="inline-flex items-center gap-2 mb-3">

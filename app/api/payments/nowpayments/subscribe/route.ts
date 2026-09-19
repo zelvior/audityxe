@@ -84,8 +84,13 @@ export async function POST(req: NextRequest) {
     if (err instanceof AuthError) {
       return NextResponse.json({ error: "Sign in to subscribe." }, { status: 401 });
     }
+    // Same reasoning as /api/payments/nowpayments/create: internal
+    // NOWPayments diagnostics (auth/JWT/API-key detail) are logged for
+    // an operator, never shown to the customer.
+    const detail = err instanceof Error ? err.message : String(err);
+    console.error("[nowpayments/subscribe] subscription creation failed:", detail);
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Couldn't start the subscription." },
+      { error: "Recurring crypto checkout is temporarily unavailable. Please try again shortly, or use the email payment option below." },
       { status: 502 }
     );
   }

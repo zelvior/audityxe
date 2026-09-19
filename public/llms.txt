@@ -34,6 +34,8 @@
 - [Contact](https://audityxe.vercel.app/contact)
 - [Privacy](https://audityxe.vercel.app/privacy)
 - [Terms](https://audityxe.vercel.app/terms)
+- [Workflow diagram](https://audityxe.vercel.app/workflow)
+- [Crash reports](https://audityxe.vercel.app/crash-reports)
 
 ## FAQ
 Q: How do I audit a website for free?

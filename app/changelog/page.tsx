@@ -11,6 +11,34 @@ export const metadata: Metadata = {
 
 const ENTRIES: { version: string; date: string; changes: string[] }[] = [
   {
+    version: "3.5.1",
+    date: "September 2026",
+    changes: [
+      "Fixed a real leak in both crypto checkout endpoints (/api/payments/nowpayments/create and /subscribe): NOWPayments' detailed internal diagnostics — dashboard setting names, which of three causes applied to an INVALID_API_KEY error — were being returned straight to the customer's browser and shown on the checkout button as a confusing wall of setup instructions, instead of staying where they belong: in the server logs, for whoever is operating the deployment to fix. Customers now see a short, generic, still-actionable message pointing at the email payment fallback; the full diagnostic is still logged in full via console.error for the operator.",
+    ],
+  },
+  {
+    version: "3.5.0",
+    date: "September 2026",
+    changes: [
+      "Added a real Deep crawl mode (lib/site-crawl-deep.ts), selectable per audit from a \"Fast / Deep\" toggle under the URL field, alongside the existing Fast mode — a genuine multi-hop request queue (up to 25 pages, 3 hops) instead of a one-page link sample, with retries, concurrency, robots.txt compliance, UA rotation, and real DOM parsing via cheerio.",
+      "Investigated merging in the supplied Crawlee-derived crawler package directly rather than building Deep mode from scratch, and confirmed it cannot be built as delivered: @audityxe-crawler/core depends on a fs-storage package that isn't present in the archive, and every package in it is ESM-only with a Node >=22 requirement built via a pnpm+Turborepo pipeline this project doesn't otherwise need. Reimplemented its useful techniques instead (request queue, retries, concurrency, robots.txt, cheerio parsing) with cheerio as the only new dependency — documented in full under \"Site Crawl module\" in the README.",
+      "Deep mode's module and its cheerio dependency are lazy-loaded via dynamic import only when requested, so the default Fast path's bundle and cold start are unaffected.",
+      "Raised the overall audit timeout specifically for deep-mode requests (60s vs the usual 30s shared budget) so a real multi-page crawl has room to run without starving the audit's other parallel checks.",
+    ],
+  },
+  {
+    version: "3.4.0",
+    date: "September 2026",
+    changes: [
+      "Fixed real footer bugs: /crash-reports had no footer link at all, and the Legal column had grown to 9 links stacked in one narrow column while the rest of the footer had room to spare. Legal is now split into Legal and Compliance, no links were removed, and the grid widened by one column so nothing feels cramped.",
+      "Added a public /workflow page publishing the same architecture diagram used internally, linked from the footer's Resources column and documented in the README under \"Workflow Diagram,\" including exact steps for keeping it current when the module wiring changes.",
+      "Reviewed a separate Crawlee-based crawler package against lib/site-crawl.ts and merged in its two genuinely useful techniques additively, without a rewrite: a bounded-concurrency fetch pool (was a sequential loop) and /sitemap.xml-seeded URL discovery, which catches orphan pages the link-only crawl could never reach. The package's full dependency tree was deliberately not adopted — it's built for a persistent request queue, a poor fit for a serverless function's cold-start and timeout budget, which the module's own file header already explains for headless-browser crawling.",
+      "Regenerated the README's Project structure block from a full repository scan (187 files) and added a Site Crawl module section documenting the crawler merge decision and its known JS-rendering limitation.",
+      "Updated sitemap.xml, robots.txt's referenced routes, and both llms.txt files to include /workflow and /crash-reports.",
+    ],
+  },
+  {
     version: "3.3.0",
     date: "September 2026",
     changes: [

@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  let body: { url?: string; competitorUrl?: string; confirmPageSpeed?: boolean };
+  let body: { url?: string; competitorUrl?: string; confirmPageSpeed?: boolean; crawlMode?: string };
   try {
     body = await req.json();
   } catch {
@@ -131,6 +131,10 @@ export async function POST(req: NextRequest) {
   }
 
   const competitorUrl = competitorAllowed ? body.competitorUrl : undefined;
+  // Deep crawl is opt-in and available to every plan (it trades speed
+  // for coverage, not a paid capability) — anything other than the
+  // literal string "deep" falls back to fast mode.
+  const crawlMode: "fast" | "deep" = body.crawlMode === "deep" ? "deep" : "fast";
 
   // Promo copy/banner is Pro-only AND requires the user's own AI key
   // (BYOK) — Audityxe doesn't spend its own AI budget generating promo
@@ -177,7 +181,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const result = await runAudit(url, competitorUrl, { includePromo, promoLockReason, includePageSpeed, byok, psiByokKey });
+    const result = await runAudit(url, competitorUrl, { includePromo, promoLockReason, includePageSpeed, byok, psiByokKey, crawlMode });
 
     // The weekly shared-key slot was reserved before the PSI call ran
     // (has to be, to keep the check+increment atomic) — if that call

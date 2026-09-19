@@ -19,7 +19,57 @@ import { probe } from "./network-checks";
 const CRAWL_TIMEOUT_MS = 6000;
 const MAX_PAGES = 6; // homepage + up to 5 more
 const MAX_LINKS_SAMPLED_PER_PAGE = 40;
+const MAX_CONCURRENT_FETCHES = 3; // bounded request pool, same idea as a Crawlee RequestQueue's concurrency cap, without the dependency
 const UA = "Mozilla/5.0 (compatible; AudityxeBot/1.0; +https://audityxe.vercel.app)";
+
+/**
+ * Best-effort extra seed URLs pulled from /sitemap.xml, merged in
+ * alongside the homepage's own <a> links before the BFS queue is capped
+ * at MAX_PAGES. Mirrors Crawlee's sitemap-seeded RequestList pattern:
+ * a sitemap often surfaces pages that aren't linked from the homepage
+ * at all (exactly the orphan-page case this module already flags), so
+ * sampling from it improves the odds of catching one. Never fatal —
+ * an unreachable or malformed sitemap just yields no extra seeds.
+ */
+async function seedUrlsFromSitemap(origin: string): Promise<string[]> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), CRAWL_TIMEOUT_MS);
+  try {
+    const res = await fetch(`${origin}/sitemap.xml`, {
+      redirect: "follow",
+      signal: controller.signal,
+      headers: { "User-Agent": UA, Accept: "application/xml,text/xml,*/*;q=0.8" },
+    });
+    if (!res.ok) return [];
+    const xml = await res.text();
+    const locs = [...xml.matchAll(/<loc>\s*([^<\s]+)\s*<\/loc>/gi)].map((m) => m[1]);
+    return locs.filter((u) => {
+      try {
+        return new URL(u).origin === origin;
+      } catch {
+        return false;
+      }
+    });
+  } catch {
+    return [];
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** Runs `worker` over `items` with at most `limit` in flight at once. */
+async function runWithConcurrency<T, R>(items: T[], limit: number, worker: (item: T) => Promise<R>): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let next = 0;
+  async function runNext(): Promise<void> {
+    const i = next++;
+    if (i >= items.length) return;
+    results[i] = await worker(items[i]);
+    return runNext();
+  }
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, () => runNext()));
+  return results;
+}
 
 export interface CrawledPage {
   url: string;
@@ -163,21 +213,26 @@ export async function crawlSite(homepageHtml: string, homepageUrl: string): Prom
     return empty("Homepage URL could not be parsed.");
   }
 
+  const sitemapSeeds = await seedUrlsFromSitemap(origin);
   const homepageLinks = extractInternalLinks(homepageHtml, homepageUrl, origin).slice(0, MAX_LINKS_SAMPLED_PER_PAGE);
-  const toVisit = Array.from(new Set([homepageUrl, ...homepageLinks])).slice(0, MAX_PAGES);
-  const uncrawledInternalLinkCount = Math.max(0, new Set([homepageUrl, ...homepageLinks]).size - toVisit.length);
+  const candidateUrls = new Set([homepageUrl, ...homepageLinks, ...sitemapSeeds]);
+  const toVisit = Array.from(candidateUrls).slice(0, MAX_PAGES);
+  const uncrawledInternalLinkCount = Math.max(0, candidateUrls.size - toVisit.length);
 
-  const pages: CrawledPage[] = [];
   const outLinksByPage = new Map<string, string[]>();
-  const brokenInternalLinks: { from: string; to: string; status: number }[] = [];
 
-  for (const url of toVisit) {
+  // Bounded-concurrency fetch pool (see runWithConcurrency) instead of a
+  // sequential for-loop: same MAX_PAGES budget, fetched several at a
+  // time rather than one after another, cutting wall-clock crawl time
+  // roughly by MAX_CONCURRENT_FETCHES on a typical multi-page run.
+  const pages: CrawledPage[] = await runWithConcurrency(toVisit, MAX_CONCURRENT_FETCHES, async (url) => {
     const isHomepage = url === homepageUrl;
     const fetched = isHomepage ? { html: homepageHtml, status: 200, ok: true } : await fetchPage(url);
 
     if (!fetched) {
       const r = await probe(url, "HEAD");
-      pages.push({
+      outLinksByPage.set(url, []);
+      return {
         url,
         status: r.status,
         ok: r.ok,
@@ -186,9 +241,7 @@ export async function crawlSite(homepageHtml: string, homepageUrl: string): Prom
         internalLinkCount: 0,
         possibleJsRenderedContent: false,
         jsRenderReasons: [],
-      });
-      outLinksByPage.set(url, []);
-      continue;
+      };
     }
 
     const titleMatch = fetched.html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
@@ -206,7 +259,7 @@ export async function crawlSite(homepageHtml: string, homepageUrl: string): Prom
 
     const jsRender = detectJsRenderedContent(fetched.html);
 
-    pages.push({
+    return {
       url,
       status: fetched.status,
       ok: fetched.ok,
@@ -215,8 +268,10 @@ export async function crawlSite(homepageHtml: string, homepageUrl: string): Prom
       internalLinkCount: links.length,
       possibleJsRenderedContent: jsRender.flag,
       jsRenderReasons: jsRender.reasons,
-    });
-  }
+    };
+  });
+
+  const brokenInternalLinks: { from: string; to: string; status: number }[] = [];
 
   // Cross-check every internal link found on any crawled page against
   // the set of pages we actually fetched: links to pages outside the
