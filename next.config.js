@@ -33,6 +33,15 @@ const nextConfig = {
       },
     ];
   },
+
+  // /admin/discount-codes was renamed to /admin/redeem-codes when the
+  // percent_off code type (and everything checkout-side built on it)
+  // was removed — this keeps any bookmark or saved link working.
+  async redirects() {
+    return [
+      { source: "/admin/discount-codes", destination: "/admin/redeem-codes", permanent: true },
+    ];
+  },
 };
 
 module.exports = nextConfig;

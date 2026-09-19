@@ -28,12 +28,13 @@
 - [Scoring model](#scoring-model)
 - [Exports](#exports)
 - [Tech stack](#tech-stack)
+- [SEO & discoverability](#seo--discoverability)
 - [Getting started](#getting-started)
 - [Environment variables](#environment-variables)
 - [PageSpeed Insights (Lighthouse) setup](#pagespeed-insights-lighthouse-setup)
 - [Payments (NOWPayments)](#payments-nowpayments)
+- [Redeem codes](#redeem-codes)
 - [Site Crawl module](#site-crawl-module)
-- [Workflow Diagram](#workflow-diagram)
 - [Project structure](#project-structure)
 - [Plans and limits](#plans-and-limits)
 - [Design system](#design-system)
@@ -198,6 +199,46 @@ Scores are **deterministic**, not model-generated.
 - **[Google PageSpeed Insights API](https://developers.google.com/speed/docs/insights/v5/get-started)** for the real-browser pass
 - **[NOWPayments](https://nowpayments.io)** for crypto checkout
 
+## SEO & discoverability
+
+What's already in place, and what's genuinely outside what code alone can do:
+
+**On-page and technical SEO (in place):**
+
+- `Organization`, `WebSite` (with a `SearchAction`), `SoftwareApplication`, `FAQPage`, and
+  `BreadcrumbList` JSON-LD structured data across the homepage and every nested content page.
+- `app/robots.ts` explicitly allow-lists every major AI/answer-engine crawler by name (`GPTBot`,
+  `ClaudeBot`, `anthropic-ai`, `PerplexityBot`, `Google-Extended`, `CCBot`, and others) rather than
+  relying on a bare wildcard rule, which some of these treat as ambiguous for their exact
+  user-agent token.
+- `public/llms.txt` and `public/llms-full.txt` — the emerging convention AI crawlers check for a
+  structured summary of a site, independent of robots.txt.
+- `app/sitemap.ts` covers every public route with sensible `priority`/`changeFrequency` values.
+- Canonical URLs, Open Graph, and Twitter Card metadata on every page (`lib/seo.ts`).
+- Google Search Console verification (meta tag + `google*.html` file in `public/`).
+
+**Backlinks — what's structurally built in vs. what's genuinely outside code's control:**
+
+The single strongest built-in backlink mechanism is the **embeddable audit badge**
+(`/badge` → `/api/badge/[domain]`): every site that embeds one links back to Audityxe with a real,
+dofollow `<a href>` — the more sites use it, the more real backlinks accumulate organically, with
+zero manual link-building. That's already live and working (verified: no `rel="nofollow"` on the
+generated snippet).
+
+What code cannot do is manufacture backlinks from other real websites, or make an LLM's training
+data include or prioritize Audityxe — both require other people, sites, and organizations actually
+linking to or citing it, which is an external, ongoing process, not a one-time setting. A concrete
+starting checklist for that outreach: submit to [Product Hunt](https://producthunt.com),
+[BetaList](https://betalist.com), [SaaSHub](https://saashub.com),
+[AlternativeTo](https://alternativeto.net), and [Indie Hackers](https://indiehackers.com); post a
+"Show HN" on [Hacker News](https://news.ycombinator.com/show); write a launch post on
+[dev.to](https://dev.to) or [Hashnode](https://hashnode.com) linking back to the repo/site; open a
+PR adding Audityxe to a relevant `awesome-*` GitHub list; and list it on developer-tool directories
+like [G2](https://g2.com) or [Capterra](https://capterra.com) if it fits their categories. Every one
+of these is a real inbound link from a real domain — the kind of link SEO and LLM-training-data
+crawls actually weight, and not something that can be faked from inside this codebase without
+risking a manipulative-link penalty.
+
 ## Getting started
 
 ```bash
@@ -290,6 +331,9 @@ codebase.
 - **Donations** — `/donate` embeds the real NOWPayments donation widget via `NEXT_PUBLIC_NOWPAYMENTS_DONATION_KEY` (a public, funds-safe key — not the same as `NOWPAYMENTS_API_KEY`). The footer's Sponsor button links there. The donation `<iframe>` requires `nowpayments.io` to be allowed in this app's `frame-src` Content-Security-Policy (`next.config.js`) — without it the browser blocks the widget outright with "This content is blocked."
 - **Live payment status page** — `/payment/status` polls the app's own backend (never NOWPayments directly from the browser) every few seconds after checkout, showing "waiting for confirmation" until the IPN webhook actually credits the plan, then a clear confirmation. This is the `success_url` for both one-off invoices and subscriptions.
 - **Single price source of truth** — all pricing (the pricing page, the manual "pay another way" email flow, and crypto checkout) reads from `PLANS` in `lib/plans.ts`. There used to be a second, separate price table hardcoded in the NOWPayments integration that had silently drifted from the real advertised prices — fixed, and structurally can't drift again since there's only one table now.
+- **Prices are env-var overridable** — `NEXT_PUBLIC_STANDARD_PRICE_USD` / `NEXT_PUBLIC_PRO_PRICE_USD` let you retune plan prices from Vercel's Environment Variables UI, no code change needed. Set the var, redeploy (Next.js inlines `NEXT_PUBLIC_*` vars at build time, so a redeploy is required for it to take effect). If unset, prices fall back to $5 Standard / $6 Pro.
+
+**Getting "Crypto amount ... is less than minimal"?** NOWPayments enforces a minimum crypto amount per invoice that varies by coin — currencies with meaningful network/gas fees (ETH-network USDT, for example) can reject a low-USD invoice outright even though the price itself is valid. Standard was originally priced at $3, which several coins' minimums sat right at or above; it's now $5 by default, with real headroom. If you lower `NEXT_PUBLIC_STANDARD_PRICE_USD` back down and see this again, that's why — raise it back up, or expect certain coins to be unavailable at checkout below their own minimum.
 
 **Getting "INVALID_API_KEY" (HTTP 403) with a key that looks completely correct?** This exact NOWPayments error message covers three different causes — see the full checklist in `.env.example` (API access must be separately enabled in dashboard Settings, a payout wallet must be configured, and sandbox keys are rejected by the production endpoint this app calls). The app also defensively trims the key value in case a stray newline was pasted into an env var.
 
@@ -316,6 +360,16 @@ That detailed diagnosis is deliberately **operator-only**: `createInvoice`'s tra
 
 See the [Refund Policy](https://audityxe.vercel.app/refund-policy) for refund handling, including
 why crypto refunds are sent as new transactions.
+
+## Redeem codes
+
+For giveaways and comps — instant, free plan access, redeemed at `/account`. Manage them from
+`/admin/redeem-codes` (create one-off codes, or generate a batch of distinct single-use codes for
+something like a launch giveaway). There used to also be a separate percent-off discount code type
+applied manually at checkout — removed, since there's no self-serve checkout flow left for it to
+adjust (NOWPayments' hosted invoice always charges exactly the advertised price), so it was sitting
+half-wired to a checkout path that no longer exists. Redeem codes (`plan_grant`) are unaffected and
+fully supported. The old `/admin/discount-codes` URL 301-redirects to the new one.
 
 ## Site Crawl module
 
@@ -379,26 +433,6 @@ Playwright/Puppeteer serverless fallback for exactly these sites, as noted in `s
 header comment; this remains unimplemented for the cold-start/bundle-size reasons already explained
 there.
 
-## Workflow Diagram
-
-Audityxe is open source, so the same end-to-end architecture diagram used internally is published
-at [`/workflow`](https://audityxe.vercel.app/workflow) and linked from the footer under
-**Resources**. It traces every route, module, and data store a single audit request touches — the
-Audit Experience (UI + API), the Audit Runtime (orchestrator + checks), Operations And Outputs
-(admin, badges, logs), Billing And Features (payments), and Identity And Plans (auth, quotas,
-Firestore).
-
-**To update it:**
-
-1. Regenerate the diagram from the current codebase (whatever diagramming tool was used to produce
-   the existing one — group by the five areas above, one box per route/module file, one labeled
-   arrow per call/dependency).
-2. Export it as a PNG.
-3. Replace `public/workflow-diagram.png` with the new file, same filename.
-
-Nothing else needs to change — the `/workflow` page and this README section both reference that one
-file path, not a copy.
-
 ## Project structure
 
 ```
@@ -421,16 +455,15 @@ audityxe/
 │   ├── layout.tsx, page.tsx, globals.css
 │   ├── opengraph-image.tsx, robots.ts, sitemap.ts
 │   ├── about/  acceptable-use/  account/  admin/
-│   │   ├── activity/  announcement/  dashboard/  discount-codes/  users/
+│   │   ├── activity/  announcement/  dashboard/  redeem-codes/  users/
 │   ├── api/
 │   │   ├── account/            # profile, delete, redeem-code
-│   │   ├── admin/               # activity, announcement, audits, discount-codes, search, stats, users
+│   │   ├── admin/               # activity, announcement, audits, redeem-codes, search, stats, users
 │   │   ├── announcement/
 │   │   ├── audit/               # the main audit endpoint (+ bulk/)
 │   │   ├── badge/[domain]/
 │   │   ├── banner-bg/
 │   │   ├── cron/cleanup-unverified/
-│   │   ├── discount/             # consume, validate
 │   │   ├── payments/nowpayments/ # create, ipn, status, subscribe
 │   │   └── settings/
 │   ├── audit-verification/  badge/  bulk/  changelog/  contact/  cookies/
@@ -439,7 +472,6 @@ audityxe/
 │   ├── offline/  payment/status/  pricing/  privacy/  refund-policy/
 │   ├── register/  sample-report/  settings/  status/  terms/
 │   ├── third-party-services/  trust-center/  verify-email/
-│   └── workflow/                 # public architecture-diagram page
 ├── components/
 │   ├── AnnouncementBanner.tsx   AuditActionBar.tsx      AuditDefenderGame.tsx
 │   ├── AuditModules.tsx         AuthSidePanel.tsx        BannerCanvas.tsx
@@ -462,7 +494,8 @@ audityxe/
 │   ├── bloom-filter.ts          breadcrumb.ts            constants.ts
 │   ├── counters.ts              crypto.ts                currency.ts
 │   ├── deep-signals.ts       # HTML/DOM signal extraction
-│   ├── discount-codes.ts        dns-email-auth.ts        dns-security.ts
+│   ├── discount-codes.ts     # redeem/giveaway codes only — percent-off codes removed
+│   ├── dns-email-auth.ts        dns-security.ts
 │   ├── export-payload.ts     # JSON report builder
 │   ├── fetch-json.ts            gemini.ts                ip.ts
 │   ├── legal-pages.ts           network-checks.ts
@@ -482,7 +515,6 @@ audityxe/
     ├── llms.txt / llms-full.txt
     ├── manifest.webmanifest
     ├── security.txt
-    └── workflow-diagram.png      # see "Workflow Diagram" above
 ```
 
 Generated from a full repository scan (187 files analyzed at commit `99feeee`); regenerate this
@@ -554,5 +586,10 @@ on it. Just credit **Zelvior** as the original author, clearly and visibly, with
 ---
 
 <div align="center">
-<sub>Audityxe — original work of <a href="mailto:zelvior@proton.me">Zelvior</a> · <a href="https://zsupport.netlify.app">Support</a></sub>
+<sub>
+Made by <a href="mailto:zelvior@proton.me">Zelvior Labs</a> with ❤ from Pakistan ·
+<a href="https://orcid.org/0009-0009-2376-367X">ORCID</a> ·
+<a href="https://youtube.com/@zelviorhere">YouTube</a> ·
+<a href="https://linktr.ee/zelvior">Linktree</a>
+</sub>
 </div>

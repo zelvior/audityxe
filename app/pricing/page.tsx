@@ -60,10 +60,6 @@ export default function PricingPage() {
   }, []);
   const [status, setStatus] = useState<AccountStatus | null>(null);
   const [statusLoading, setStatusLoading] = useState(false);
-  const [promoInput, setPromoInput] = useState("");
-  const [promo, setPromo] = useState<{ code: string; plan: PlanId; percentOff: number } | null>(null);
-  const [promoError, setPromoError] = useState("");
-  const [checkingPromo, setCheckingPromo] = useState(false);
   const [cryptoBusy, setCryptoBusy] = useState<"standard" | "pro" | null>(null);
   const [cryptoError, setCryptoError] = useState("");
   const [subBusy, setSubBusy] = useState<"standard" | "pro" | null>(null);
@@ -176,34 +172,7 @@ export default function PricingPage() {
       return;
     }
     const plan = PLANS[planId];
-    const usdPrice = plan.priceUsd;
-    const promoApplies = promo && promo.plan === planId;
-    const finalUsdPrice = promoApplies ? usdPrice * (1 - promo!.percentOff / 100) : usdPrice;
-    const priceLabel = formatPrice(finalUsdPrice, currency) + (promoApplies ? ` (${promo!.percentOff}% off with ${promo!.code})` : "");
-
-    if (promoApplies) {
-      // Mark the code consumed the moment they actually proceed to
-      // checkout with it applied — fire-and-forget is fine here since
-      // the mailto navigation happens regardless of this call's outcome,
-      // and a failed consume just means the code doesn't get marked
-      // used (safer direction to fail in than double-charging usage).
-      getToken()
-        .then((token) =>
-          fetchJson("/api/discount/consume", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-            body: JSON.stringify({ code: promo!.code }),
-          })
-        )
-        .catch(() => {
-          // Fire-and-forget by design (see above) — but fetchJson can still
-          // reject on a genuine network failure (offline/DNS/CORS), and
-          // with nothing awaiting this promise, an uncaught rejection here
-          // would surface as an unhandled-rejection console error with no
-          // user-facing benefit. Swallow it; the code just doesn't get
-          // marked used, same as any other failure path here.
-        });
-    }
+    const priceLabel = formatPrice(plan.priceUsd, currency);
 
     const href = buildBuyMailto({
       planName: plan.name,
@@ -214,27 +183,6 @@ export default function PricingPage() {
     });
     window.location.href = href;
   }
-
-  const applyPromo = useCallback(async () => {
-    if (!promoInput.trim() || checkingPromo) return;
-    setCheckingPromo(true);
-    setPromoError("");
-    try {
-      const token = user ? await getToken() : null;
-      const { ok, data, error } = await fetchJson<{ plan: PlanId; percentOff: number }>("/api/discount/validate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        body: JSON.stringify({ code: promoInput }),
-      });
-      if (!ok || !data) throw new Error(error || "That code isn't valid.");
-      setPromo({ code: promoInput.trim().toUpperCase(), plan: data.plan, percentOff: data.percentOff });
-    } catch (err) {
-      setPromo(null);
-      setPromoError(err instanceof Error ? err.message : "Something went wrong.");
-    } finally {
-      setCheckingPromo(false);
-    }
-  }, [promoInput, checkingPromo, user, getToken]);
 
   return (
     <main className="min-h-screen flex flex-col">
@@ -282,50 +230,9 @@ export default function PricingPage() {
             )}
           </div>
 
-          <div className="max-w-xs mx-auto mb-8 sm:mb-10">
-            {promo ? (
-              <div className="glass rounded-card px-4 py-2.5 flex items-center justify-between text-xs">
-                <span className="text-emerald font-semibold">
-                  {promo.percentOff}% off {PLANS[promo.plan].name} applied ({promo.code})
-                </span>
-                <button
-                  onClick={() => {
-                    setPromo(null);
-                    setPromoInput("");
-                  }}
-                  className="text-text-secondary hover:text-text-primary"
-                >
-                  Remove
-                </button>
-              </div>
-            ) : (
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={promoInput}
-                  onChange={(e) => setPromoInput(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && applyPromo()}
-                  placeholder="Promo code"
-                  className="flex-1 min-w-0 rounded-card bg-[rgb(var(--color-text-primary)/0.045)] border border-border px-3 py-2 text-xs font-mono uppercase focus:outline-none focus:border-primary/50"
-                  disabled={checkingPromo}
-                />
-                <button
-                  onClick={applyPromo}
-                  disabled={checkingPromo || !promoInput.trim()}
-                  className="px-3 py-2 rounded-card glass text-xs font-semibold disabled:opacity-50 flex items-center gap-1.5"
-                >
-                  {checkingPromo ? <Loader2 size={12} className="animate-spin" /> : "Apply"}
-                </button>
-              </div>
-            )}
-            {promoError && !promo && <p className="text-[11px] text-rose mt-1.5 text-center">{promoError}</p>}
-          </div>
-
           <div className="grid md:grid-cols-3 gap-5 sm:gap-6">
             {Object.values(PLANS).map((plan) => {
               const usdPrice = plan.priceUsd;
-              const promoApplies = promo && promo.plan === plan.id;
-              const discountedUsdPrice = promoApplies ? usdPrice * (1 - promo!.percentOff / 100) : usdPrice;
               const isFree = plan.id === "free";
               const isCurrentPlan = status?.plan === plan.id;
 
@@ -351,11 +258,6 @@ export default function PricingPage() {
                   <p className="text-3xl font-display font-bold mb-1 flex items-center gap-2 flex-wrap">
                     {currency.loading && !isFree ? (
                       <Loader2 size={20} className="animate-spin text-text-secondary" />
-                    ) : promoApplies ? (
-                      <>
-                        <span className="line-through text-text-secondary/50 text-xl">{formatPrice(usdPrice, currency)}</span>
-                        <span className="text-emerald">{formatPrice(discountedUsdPrice, currency)}</span>
-                      </>
                     ) : (
                       formatPrice(usdPrice, currency)
                     )}

@@ -98,6 +98,26 @@ function sanitizePsiErrorMessage(raw: string): string {
     .trim();
 }
 
+function extractBestScreenshot(audits: Record<string, unknown>): string | null {
+  // Lighthouse captures two different screenshots per run:
+  //   - "final-screenshot": a small thumbnail (Lighthouse caps it at a
+  //     low max width, ~960px, with fairly aggressive JPEG compression)
+  //     meant only for a quick visual in its own report UI.
+  //   - "full-page-screenshot": a much higher-resolution capture of the
+  //     entire page at the real viewport's device pixel ratio, taken
+  //     for the report's element-highlighting overlays. Same Lighthouse
+  //     run, same zero extra cost/request — just a different audit in
+  //     the same response — and visibly sharper.
+  // Prefer the full-page one; fall back to final-screenshot only if a
+  // given run genuinely didn't produce it (e.g. certain failure modes).
+  const fullPage = (audits["full-page-screenshot"] as { details?: { screenshot?: { data?: string } } } | undefined)
+    ?.details?.screenshot?.data;
+  if (typeof fullPage === "string" && fullPage.startsWith("data:image")) return fullPage;
+
+  const final = (audits["final-screenshot"] as { details?: { data?: string } } | undefined)?.details?.data;
+  return typeof final === "string" && final.startsWith("data:image") ? final : null;
+}
+
 async function fetchPageSpeedInsightsPrimary(targetUrl: string, byokApiKey?: string | null): Promise<PageSpeedSummary> {
   const empty: PageSpeedSummary = { ...EMPTY_PAGESPEED_SUMMARY, attempted: true };
 
@@ -181,17 +201,10 @@ async function fetchPageSpeedInsightsPrimary(targetUrl: string, byokApiKey?: str
         description: (a.description as string).replace(/\[.*?\]\(.*?\)/g, "").trim(),
       }));
 
-    // The base64 final-render screenshot Lighthouse already captures as
-    // part of a normal run — free visual proof of how Chrome actually
-    // rendered the page, with zero extra requests or headless-browser
-    // cost of our own.
-    const screenshotAudit = audits["final-screenshot"] as
-      | { details?: { data?: string } }
-      | undefined;
-    const finalScreenshotDataUrl =
-      typeof screenshotAudit?.details?.data === "string" && screenshotAudit.details.data.startsWith("data:image")
-        ? screenshotAudit.details.data
-        : null;
+    // Free visual proof of how Chrome actually rendered the page, at
+    // the highest resolution Lighthouse's own run already captured —
+    // see extractBestScreenshot for which audit that pulls from.
+    const finalScreenshotDataUrl = extractBestScreenshot(audits);
 
     return {
       fetched: true,
@@ -253,8 +266,7 @@ async function fetchDesktopScreenshot(targetUrl: string, apiKey: string | undefi
     });
     if (!res.ok) return null;
     const data = await res.json();
-    const shot = data?.lighthouseResult?.audits?.["final-screenshot"]?.details?.data;
-    return typeof shot === "string" && shot.startsWith("data:image") ? shot : null;
+    return extractBestScreenshot(data?.lighthouseResult?.audits || {});
   } catch {
     return null;
   } finally {

@@ -17,6 +17,7 @@ interface UsageData {
   remaining: number;
   planExpiresAt: string | null;
   planExpired: boolean;
+  isAdmin: boolean;
 }
 
 function AccountPageInner() {
@@ -258,7 +259,7 @@ function AccountPageInner() {
 
           <div className="glass rounded-card p-5 sm:p-6 mb-5">
             <span className="flex items-center gap-2 text-sm font-semibold mb-3">
-              <Tag size={15} className="text-primary" /> Have a discount code?
+              <Tag size={15} className="text-primary" /> Have a redeem code?
             </span>
             <div className="flex gap-2">
               <input
@@ -288,13 +289,15 @@ function AccountPageInner() {
             copy for yourself.
           </p>
 
-          {/* Admin link is shown to any signed-in, verified user — there's
-              no hardcoded email here. The actual gate is entirely
-              server-side (ADMIN_EMAILS allowlist + ADMIN_PASSWORD) in
-              lib/admin.ts; a non-admin clicking through gets a clear
-              "access denied" message on the admin page itself rather than
-              this link being conditioned on a baked-in address. */}
-          {user.emailVerified && (
+          {/* Only shown to accounts on the ADMIN_EMAILS allowlist — this
+              used to render for every signed-in, verified user
+              regardless of whether they were actually an admin, which
+              needlessly advertised the admin panel's existence (and its
+              password-entry screen) to anyone with an account. The
+              real gate — email allowlist + ADMIN_PASSWORD, enforced
+              server-side on every /api/admin/* route — is unchanged;
+              this only controls whether the link is shown at all. */}
+          {user.emailVerified && usage?.isAdmin && (
             <Link
               href="/admin"
               className="w-full flex items-center justify-center gap-2 py-3 rounded-card glass text-sm font-semibold hover:border-[rgb(var(--color-text-primary)/0.2)] transition mb-3"

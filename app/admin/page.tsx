@@ -37,7 +37,7 @@ type Tab = "dashboard" | "codes" | "users" | "audits" | "announcement" | "activi
 
 const TABS: { id: Tab; label: string; icon: any }[] = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { id: "codes", label: "Discount Codes", icon: Tag },
+  { id: "codes", label: "Redeem Codes", icon: Tag },
   { id: "users", label: "Users", icon: ShieldCheck },
   { id: "audits", label: "Audits", icon: Gauge },
   { id: "announcement", label: "Announcement", icon: Megaphone },
@@ -58,7 +58,7 @@ interface AdminStats {
   byPlan: { free: number; standard: number; pro: number };
   banned: number;
   suspended: number;
-  discountCodes: { total: number; active: number; totalRedemptions: number };
+  redeemCodes: { total: number; active: number; totalRedemptions: number };
   newUsersToday: number;
   newUsersThisWeek: number;
   newUsersThisMonth: number;
@@ -82,13 +82,11 @@ interface AuditListItem {
   error: string | null;
   createdAt: string | null;
 }
-interface DiscountCodeDoc {
+interface RedeemCodeDoc {
   code: string;
-  type: "plan_grant" | "percent_off";
   active: boolean;
   plan: PlanId;
-  durationDays: number | null;
-  percentOff: number | null;
+  durationDays: number;
   maxRedemptions: number;
   redemptions: number;
   expiresAt: string | null;
@@ -124,11 +122,11 @@ interface LogEntry {
 }
 
 const ACTION_LABELS: Record<string, string> = {
-  create_discount_code: "Created discount code",
-  bulk_create_discount_codes: "Bulk-generated discount codes",
-  enable_discount_code: "Enabled discount code",
-  disable_discount_code: "Disabled discount code",
-  delete_discount_code: "Deleted discount code",
+  create_redeem_code: "Created redeem code",
+  bulk_create_redeem_codes: "Bulk-generated redeem codes",
+  enable_redeem_code: "Enabled redeem code",
+  disable_redeem_code: "Disabled redeem code",
+  delete_redeem_code: "Deleted redeem code",
   user_ban: "Banned user",
   user_suspend: "Suspended user",
   user_unban: "Unbanned user",
@@ -388,9 +386,9 @@ function DashboardTab({ getToken, passwordEntered }: { getToken: () => Promise<s
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <StatCard icon={DollarSign} label="Paid users" value={stats.paidUsers} />
           <StatCard icon={DollarSign} label="Est. MRR" value={`$${(stats.estimatedMrrCents / 100).toFixed(2)}`} />
-          <StatCard icon={Tag} label="Discount codes" value={stats.discountCodes.total} />
-          <StatCard icon={Tag} label="Active codes" value={stats.discountCodes.active} />
-          <StatCard icon={Tag} label="Total redemptions" value={stats.discountCodes.totalRedemptions} />
+          <StatCard icon={Tag} label="Redeem codes" value={stats.redeemCodes.total} />
+          <StatCard icon={Tag} label="Active codes" value={stats.redeemCodes.active} />
+          <StatCard icon={Tag} label="Total redemptions" value={stats.redeemCodes.totalRedemptions} />
         </div>
       </div>
 
@@ -460,16 +458,14 @@ function DashboardTab({ getToken, passwordEntered }: { getToken: () => Promise<s
 
 /* ══════════════════════════ CODES TAB ══════════════════════════ */
 function CodesTab({ getToken, passwordEntered }: { getToken: () => Promise<string | null>; passwordEntered: string }) {
-  const [codes, setCodes] = useState<DiscountCodeDoc[] | null>(null);
+  const [codes, setCodes] = useState<RedeemCodeDoc[] | null>(null);
   const [fetching, setFetching] = useState(true);
   const [listError, setListError] = useState("");
   const [copiedCode, setCopiedCode] = useState("");
 
   const [customCode, setCustomCode] = useState("");
-  const [codeType, setCodeType] = useState<"plan_grant" | "percent_off">("plan_grant");
   const [plan, setPlan] = useState<PlanId>("pro");
   const [durationDays, setDurationDays] = useState(30);
-  const [percentOff, setPercentOff] = useState(20);
   const [maxRedemptions, setMaxRedemptions] = useState(1);
   const [note, setNote] = useState("");
   const [creating, setCreating] = useState(false);
@@ -488,7 +484,7 @@ function CodesTab({ getToken, passwordEntered }: { getToken: () => Promise<strin
     setListError("");
     try {
       const token = await getToken();
-      const { ok, data, error } = await fetchJson<{ codes: DiscountCodeDoc[] }>("/api/admin/discount-codes", {
+      const { ok, data, error } = await fetchJson<{ codes: RedeemCodeDoc[] }>("/api/admin/redeem-codes", {
         headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), "x-admin-password": passwordEntered },
       });
       if (!ok || !data) throw new Error(error || "Couldn't load codes.");
@@ -510,7 +506,7 @@ function CodesTab({ getToken, passwordEntered }: { getToken: () => Promise<strin
     setCreateError("");
     try {
       const token = await getToken();
-      const { ok, error } = await fetchJson("/api/admin/discount-codes", {
+      const { ok, error } = await fetchJson("/api/admin/redeem-codes", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -519,10 +515,8 @@ function CodesTab({ getToken, passwordEntered }: { getToken: () => Promise<strin
         },
         body: JSON.stringify({
           code: customCode.trim() || undefined,
-          type: codeType,
           plan,
-          durationDays: codeType === "plan_grant" ? durationDays : undefined,
-          percentOff: codeType === "percent_off" ? percentOff : undefined,
+          durationDays,
           maxRedemptions,
           note: note.trim() || null,
         }),
@@ -536,7 +530,7 @@ function CodesTab({ getToken, passwordEntered }: { getToken: () => Promise<strin
     } finally {
       setCreating(false);
     }
-  }, [creating, customCode, codeType, plan, durationDays, percentOff, maxRedemptions, note, getToken, fetchCodes, passwordEntered]);
+  }, [creating, customCode, plan, durationDays, maxRedemptions, note, getToken, fetchCodes, passwordEntered]);
 
   const generateBatch = useCallback(async () => {
     if (generatingBatch) return;
@@ -545,7 +539,7 @@ function CodesTab({ getToken, passwordEntered }: { getToken: () => Promise<strin
     setBatchResult(null);
     try {
       const token = await getToken();
-      const { ok, data, error } = await fetchJson<{ codes: DiscountCodeDoc[] }>("/api/admin/discount-codes/batch", {
+      const { ok, data, error } = await fetchJson<{ codes: RedeemCodeDoc[] }>("/api/admin/redeem-codes/batch", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -567,7 +561,7 @@ function CodesTab({ getToken, passwordEntered }: { getToken: () => Promise<strin
   const toggleActive = useCallback(
     async (code: string, active: boolean) => {
       const token = await getToken();
-      await fetchJson(`/api/admin/discount-codes/${code}`, {
+      await fetchJson(`/api/admin/redeem-codes/${code}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -585,7 +579,7 @@ function CodesTab({ getToken, passwordEntered }: { getToken: () => Promise<strin
     async (code: string) => {
       if (!confirm(`Delete code "${code}"? This can't be undone.`)) return;
       const token = await getToken();
-      await fetchJson(`/api/admin/discount-codes/${code}`, {
+      await fetchJson(`/api/admin/redeem-codes/${code}`, {
         method: "DELETE",
         headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), "x-admin-password": passwordEntered },
       });
@@ -616,17 +610,6 @@ function CodesTab({ getToken, passwordEntered }: { getToken: () => Promise<strin
             />
           </div>
           <div>
-            <label className="text-xs text-text-secondary block mb-1">Type</label>
-            <select
-              value={codeType}
-              onChange={(e) => setCodeType(e.target.value as "plan_grant" | "percent_off")}
-              className="w-full rounded-card bg-[rgb(var(--color-text-primary)/0.045)] border border-border px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
-            >
-              <option value="plan_grant">Plan grant (instant free access)</option>
-              <option value="percent_off">Percent off (applied at checkout)</option>
-            </select>
-          </div>
-          <div>
             <label className="text-xs text-text-secondary block mb-1">Plan</label>
             <select
               value={plan}
@@ -637,30 +620,16 @@ function CodesTab({ getToken, passwordEntered }: { getToken: () => Promise<strin
               <option value="pro">{PLANS.pro.name}</option>
             </select>
           </div>
-          {codeType === "plan_grant" ? (
-            <div>
-              <label className="text-xs text-text-secondary block mb-1">Duration (days)</label>
-              <input
-                type="number"
-                min={1}
-                value={durationDays}
-                onChange={(e) => setDurationDays(Number(e.target.value))}
-                className="w-full rounded-card bg-[rgb(var(--color-text-primary)/0.045)] border border-border px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
-              />
-            </div>
-          ) : (
-            <div>
-              <label className="text-xs text-text-secondary block mb-1">Percent off</label>
-              <input
-                type="number"
-                min={1}
-                max={100}
-                value={percentOff}
-                onChange={(e) => setPercentOff(Number(e.target.value))}
-                className="w-full rounded-card bg-[rgb(var(--color-text-primary)/0.045)] border border-border px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
-              />
-            </div>
-          )}
+          <div>
+            <label className="text-xs text-text-secondary block mb-1">Duration (days)</label>
+            <input
+              type="number"
+              min={1}
+              value={durationDays}
+              onChange={(e) => setDurationDays(Number(e.target.value))}
+              className="w-full rounded-card bg-[rgb(var(--color-text-primary)/0.045)] border border-border px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
+            />
+          </div>
           <div>
             <label className="text-xs text-text-secondary block mb-1">Max redemptions</label>
             <input
@@ -694,7 +663,7 @@ function CodesTab({ getToken, passwordEntered }: { getToken: () => Promise<strin
 
       <div className="glass rounded-card p-5 sm:p-6 mb-6">
         <span className="text-sm font-semibold mb-1 block">Generate giveaway batch</span>
-        <p className="text-xs text-text-secondary mb-4">Creates N distinct single-use plan-grant codes at once.</p>
+        <p className="text-xs text-text-secondary mb-4">Creates N distinct single-use codes at once.</p>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
           <div>
             <label className="text-xs text-text-secondary block mb-1">How many</label>
@@ -786,13 +755,11 @@ function CodesTab({ getToken, passwordEntered }: { getToken: () => Promise<strin
                 >
                   {c.code} {copiedCode === c.code ? <Check size={13} className="text-emerald" /> : <Copy size={13} />}
                 </button>
-                {c.type === "percent_off" && <span className="text-xs px-2 py-0.5 rounded-full bg-emerald/20 text-emerald">% off</span>}
                 {!c.active && <span className="text-xs px-2 py-0.5 rounded-full bg-white/10 text-text-secondary">Disabled</span>}
               </div>
               <div className="text-xs text-text-secondary flex flex-wrap gap-x-4 gap-y-1">
                 <span>
-                  {PLANS[c.plan]?.name ?? c.plan}
-                  {c.type === "percent_off" ? ` · ${c.percentOff}% off` : ` · ${c.durationDays}d`}
+                  {PLANS[c.plan]?.name ?? c.plan} · {c.durationDays}d
                 </span>
                 <span>
                   {c.redemptions}/{c.maxRedemptions} redeemed

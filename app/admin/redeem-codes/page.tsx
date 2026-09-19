@@ -11,13 +11,11 @@ import { PLANS, PlanId } from "@/lib/plans";
 import PasswordInput from "@/components/PasswordInput";
 import { fetchJson } from "@/lib/fetch-json";
 
-interface DiscountCodeDoc {
+interface RedeemCodeDoc {
   code: string;
-  type: "plan_grant" | "percent_off";
   active: boolean;
   plan: PlanId;
-  durationDays: number | null;
-  percentOff: number | null;
+  durationDays: number;
   maxRedemptions: number;
   redemptions: number;
   expiresAt: string | null;
@@ -26,10 +24,10 @@ interface DiscountCodeDoc {
   note: string | null;
 }
 
-export default function AdminDiscountCodesPage() {
+export default function AdminRedeemCodesPage() {
   const { user, loading, getToken } = useAuth();
   const router = useRouter();
-  const [codes, setCodes] = useState<DiscountCodeDoc[] | null>(null);
+  const [codes, setCodes] = useState<RedeemCodeDoc[] | null>(null);
   const [listError, setListError] = useState("");
   const [fetching, setFetching] = useState(true);
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
@@ -42,10 +40,8 @@ export default function AdminDiscountCodesPage() {
   const [checkingPassword, setCheckingPassword] = useState(false);
 
   const [customCode, setCustomCode] = useState("");
-  const [codeType, setCodeType] = useState<"plan_grant" | "percent_off">("plan_grant");
   const [plan, setPlan] = useState<PlanId>("pro");
   const [durationDays, setDurationDays] = useState(30);
-  const [percentOff, setPercentOff] = useState(20);
   const [maxRedemptions, setMaxRedemptions] = useState(1);
   const [note, setNote] = useState("");
   const [creating, setCreating] = useState(false);
@@ -61,7 +57,7 @@ export default function AdminDiscountCodesPage() {
 
   useEffect(() => {
     if (!loading && !user) {
-      router.replace("/login?redirect=/admin/discount-codes");
+      router.replace("/login?redirect=/admin/redeem-codes");
     }
   }, [loading, user, router]);
 
@@ -73,8 +69,8 @@ export default function AdminDiscountCodesPage() {
       setListError("");
       try {
         const token = await getToken();
-        const { ok, status, data, error } = await fetchJson<{ codes: DiscountCodeDoc[]; code?: string }>(
-          "/api/admin/discount-codes",
+        const { ok, status, data, error } = await fetchJson<{ codes: RedeemCodeDoc[]; code?: string }>(
+          "/api/admin/redeem-codes",
           {
             headers: {
               ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -102,7 +98,7 @@ export default function AdminDiscountCodesPage() {
           setDenyReason("Your session couldn't be verified — try signing out and back in. If this persists, the server's Firebase Admin credentials may be misconfigured.");
           return;
         }
-        if (!ok || !data) throw new Error(error || "Couldn't load discount codes.");
+        if (!ok || !data) throw new Error(error || "Couldn't load redeem codes.");
         setIsAdmin(true);
         setCodes(data.codes);
       } catch (err) {
@@ -135,7 +131,7 @@ export default function AdminDiscountCodesPage() {
     setCreateError("");
     try {
       const token = await getToken();
-      const { ok, data, error } = await fetchJson<{ code: DiscountCodeDoc }>("/api/admin/discount-codes", {
+      const { ok, data, error } = await fetchJson<{ code: RedeemCodeDoc }>("/api/admin/redeem-codes", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -144,10 +140,8 @@ export default function AdminDiscountCodesPage() {
         },
         body: JSON.stringify({
           code: customCode.trim() || undefined,
-          type: codeType,
           plan,
-          durationDays: codeType === "plan_grant" ? durationDays : undefined,
-          percentOff: codeType === "percent_off" ? percentOff : undefined,
+          durationDays,
           maxRedemptions,
           note: note.trim() || null,
         }),
@@ -161,7 +155,7 @@ export default function AdminDiscountCodesPage() {
     } finally {
       setCreating(false);
     }
-  }, [creating, customCode, codeType, plan, durationDays, percentOff, maxRedemptions, note, getToken, fetchCodes, passwordEntered]);
+  }, [creating, customCode, plan, durationDays, maxRedemptions, note, getToken, fetchCodes, passwordEntered]);
 
   const generateBatch = useCallback(async () => {
     if (generatingBatch) return;
@@ -170,7 +164,7 @@ export default function AdminDiscountCodesPage() {
     setBatchResult(null);
     try {
       const token = await getToken();
-      const { ok, data, error } = await fetchJson<{ codes: DiscountCodeDoc[] }>("/api/admin/discount-codes/batch", {
+      const { ok, data, error } = await fetchJson<{ codes: RedeemCodeDoc[] }>("/api/admin/redeem-codes/batch", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -197,7 +191,7 @@ export default function AdminDiscountCodesPage() {
   const toggleActive = useCallback(
     async (code: string, active: boolean) => {
       const token = await getToken();
-      await fetchJson(`/api/admin/discount-codes/${code}`, {
+      await fetchJson(`/api/admin/redeem-codes/${code}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -215,7 +209,7 @@ export default function AdminDiscountCodesPage() {
     async (code: string) => {
       if (!confirm(`Delete code "${code}"? This can't be undone.`)) return;
       const token = await getToken();
-      await fetchJson(`/api/admin/discount-codes/${code}`, {
+      await fetchJson(`/api/admin/redeem-codes/${code}`, {
         method: "DELETE",
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -295,10 +289,11 @@ export default function AdminDiscountCodesPage() {
         </Link>
 
         <h1 className="font-display font-bold text-2xl mb-1 flex items-center gap-2">
-          <Tag size={20} className="text-primary" /> Discount Codes
+          <Tag size={20} className="text-primary" /> Redeem Codes
         </h1>
         <p className="text-sm text-text-secondary mb-6">
-          Create a code here and it's instantly redeemable at /account — no manual Firestore edits.
+          For giveaways and comps — create a code here and it's instantly redeemable at /account for
+          free plan access. No manual Firestore edits.
         </p>
 
         <div className="glass rounded-card p-5 sm:p-6 mb-8">
@@ -315,17 +310,6 @@ export default function AdminDiscountCodesPage() {
               />
             </div>
             <div>
-              <label className="text-xs text-text-secondary block mb-1">Type</label>
-              <select
-                value={codeType}
-                onChange={(e) => setCodeType(e.target.value as "plan_grant" | "percent_off")}
-                className="w-full rounded-card bg-[rgb(var(--color-text-primary)/0.045)] border border-border px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
-              >
-                <option value="plan_grant">Plan grant (instant free access)</option>
-                <option value="percent_off">Percent off (applied at checkout)</option>
-              </select>
-            </div>
-            <div>
               <label className="text-xs text-text-secondary block mb-1">Plan</label>
               <select
                 value={plan}
@@ -336,30 +320,16 @@ export default function AdminDiscountCodesPage() {
                 <option value="pro">{PLANS.pro.name}</option>
               </select>
             </div>
-            {codeType === "plan_grant" ? (
-              <div>
-                <label className="text-xs text-text-secondary block mb-1">Duration (days)</label>
-                <input
-                  type="number"
-                  min={1}
-                  value={durationDays}
-                  onChange={(e) => setDurationDays(Number(e.target.value))}
-                  className="w-full rounded-card bg-[rgb(var(--color-text-primary)/0.045)] border border-border px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
-                />
-              </div>
-            ) : (
-              <div>
-                <label className="text-xs text-text-secondary block mb-1">Percent off</label>
-                <input
-                  type="number"
-                  min={1}
-                  max={100}
-                  value={percentOff}
-                  onChange={(e) => setPercentOff(Number(e.target.value))}
-                  className="w-full rounded-card bg-[rgb(var(--color-text-primary)/0.045)] border border-border px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
-                />
-              </div>
-            )}
+            <div>
+              <label className="text-xs text-text-secondary block mb-1">Duration (days)</label>
+              <input
+                type="number"
+                min={1}
+                value={durationDays}
+                onChange={(e) => setDurationDays(Number(e.target.value))}
+                className="w-full rounded-card bg-[rgb(var(--color-text-primary)/0.045)] border border-border px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
+              />
+            </div>
             <div>
               <label className="text-xs text-text-secondary block mb-1">Max redemptions</label>
               <input
@@ -394,7 +364,7 @@ export default function AdminDiscountCodesPage() {
         <div className="glass rounded-card p-5 sm:p-6 mb-8">
           <span className="text-sm font-semibold mb-1 block">Generate giveaway batch</span>
           <p className="text-xs text-text-secondary mb-4">
-            Creates N distinct single-use plan-grant codes at once — e.g. 50 codes for a YouTube giveaway, one per winner.
+            Creates N distinct single-use codes at once — e.g. 50 codes for a YouTube giveaway, one per winner.
           </p>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
             <div>
@@ -492,15 +462,11 @@ export default function AdminDiscountCodesPage() {
                   >
                     {c.code} {copiedCode === c.code ? <Check size={13} className="text-emerald" /> : <Copy size={13} />}
                   </button>
-                  {c.type === "percent_off" && (
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-emerald/20 text-emerald">% off</span>
-                  )}
                   {!c.active && <span className="text-xs px-2 py-0.5 rounded-full bg-white/10 text-text-secondary">Disabled</span>}
                 </div>
                 <div className="text-xs text-text-secondary flex flex-wrap gap-x-4 gap-y-1">
                   <span>
-                    {PLANS[c.plan]?.name ?? c.plan}
-                    {c.type === "percent_off" ? ` · ${c.percentOff}% off` : ` · ${c.durationDays}d`}
+                    {PLANS[c.plan]?.name ?? c.plan} · {c.durationDays}d
                   </span>
                   <span>{c.redemptions}/{c.maxRedemptions} redeemed</span>
                   {c.note && <span>"{c.note}"</span>}

@@ -12,6 +12,19 @@ export interface Plan {
   features: string[];
 }
 
+/** Reads a plan's USD price from its NEXT_PUBLIC_* env var if set (so
+ * it's baked into both the client bundle — this file is imported
+ * directly by the client "use client" pricing page — and the server),
+ * otherwise falls back to `fallback`. Lets you retune prices from
+ * Vercel's Environment Variables UI without touching code; a redeploy
+ * is still required since Next.js inlines NEXT_PUBLIC_* vars at build
+ * time, not per-request. See "Payments" in the README. */
+function envPriceUsd(envVar: string, fallback: number): number {
+  const raw = process.env[envVar];
+  const n = raw ? Number(raw) : NaN;
+  return Number.isFinite(n) && n > 0 ? n : fallback;
+}
+
 export const PLANS: Record<PlanId, Plan> = {
   free: {
     id: "free",
@@ -32,7 +45,12 @@ export const PLANS: Record<PlanId, Plan> = {
     name: "Standard",
     dailyAudits: 5,
     competitorAudits: true,
-    priceUsd: 3,
+    // Was a flat $3 — several NOWPayments-supported coins (notably
+    // ones with meaningful network/gas fees, like ETH-network USDT)
+    // enforce a minimum crypto amount per invoice that a $3 conversion
+    // can land under, producing "Crypto amount ... is less than
+    // minimal" at checkout. $5 clears that floor with real headroom.
+    priceUsd: envPriceUsd("NEXT_PUBLIC_STANDARD_PRICE_USD", 5),
     tagline: "For builders shipping and promoting regularly.",
     features: [
       "5 audits per day",
@@ -47,7 +65,7 @@ export const PLANS: Record<PlanId, Plan> = {
     name: "Pro",
     dailyAudits: 8,
     competitorAudits: true,
-    priceUsd: 6,
+    priceUsd: envPriceUsd("NEXT_PUBLIC_PRO_PRICE_USD", 6),
     tagline: "Built for agencies auditing client sites and portfolios at scale.",
     features: [
       "8 audits per day",

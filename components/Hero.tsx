@@ -187,7 +187,7 @@ export default function Hero({
           </label>
         )}
 
-        <div className="mt-3 ml-1 flex items-center gap-1.5 text-xs text-text-secondary w-fit" role="radiogroup" aria-label="Site crawl depth">
+        <div className="mt-3 ml-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-text-secondary" role="radiogroup" aria-label="Site crawl depth">
           <span className="mr-1">Site crawl:</span>
           <button
             type="button"

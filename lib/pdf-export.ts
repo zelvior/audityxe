@@ -375,7 +375,20 @@ export function generateAuditPdf(result: AuditResult) {
         doc.setFontSize(8.5);
         doc.setTextColor(MUTED);
         doc.text("Final render captured by Chrome during the Lighthouse run:", MARGIN, shotY);
-        doc.addImage(bestScreenshot, "JPEG", MARGIN, shotY + 4, 90, 0);
+        // Fixed width AND height (not the previous height=0 "auto from
+        // aspect ratio"): the screenshot now comes from Lighthouse's
+        // full-page-screenshot audit when available (see
+        // extractBestScreenshot in lib/pagespeed.ts), which captures
+        // the *entire* scrolled page rather than one viewport-height
+        // frame — auto-sizing from that image's real aspect ratio could
+        // produce a height of hundreds of mm on a long page and run
+        // straight off subsequent report pages with no pagination logic
+        // to catch it. addImage stretches to whatever box you give it
+        // (no cropping option in this synchronous call), so a very long
+        // page's capture will appear vertically compressed here rather
+        // than true-to-proportion — a real trade-off, but a bounded,
+        // predictable one instead of a broken PDF layout.
+        doc.addImage(bestScreenshot, "JPEG", MARGIN, shotY + 4, 90, 60);
       } catch {
         // non-fatal — skip the image, keep the rest of the report
       }

@@ -20,10 +20,10 @@ interface LogEntry {
 }
 
 const ACTION_LABELS: Record<string, string> = {
-  create_discount_code: "Created discount code",
-  enable_discount_code: "Enabled discount code",
-  disable_discount_code: "Disabled discount code",
-  delete_discount_code: "Deleted discount code",
+  create_redeem_code: "Created redeem code",
+  enable_redeem_code: "Enabled redeem code",
+  disable_redeem_code: "Disabled redeem code",
+  delete_redeem_code: "Deleted redeem code",
   user_ban: "Banned user",
   user_suspend: "Suspended user",
   user_unban: "Unbanned user",

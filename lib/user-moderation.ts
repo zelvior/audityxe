@@ -156,7 +156,7 @@ export interface AdminStats {
   byPlan: Record<PlanId, number>;
   banned: number;
   suspended: number;
-  discountCodes: { total: number; active: number; totalRedemptions: number };
+  redeemCodes: { total: number; active: number; totalRedemptions: number };
   newUsersToday: number;
   newUsersThisWeek: number;
   newUsersThisMonth: number;
@@ -214,7 +214,7 @@ export async function getAdminStats(): Promise<AdminStats> {
     users.where("createdAt", ">=", Timestamp.fromDate(startOfWeek)).count().get(),
     users.where("createdAt", ">=", Timestamp.fromDate(startOfMonth)).count().get(),
     users.where("lastActiveAt", ">=", active30dCutoff).count().get(),
-    db.collection("discountCodes").get(),
+    db.collection("redeemCodes").get(),
     getGlobalCounters(),
     getAuditCounts(),
     getDailyStats(14),
@@ -239,7 +239,7 @@ export async function getAdminStats(): Promise<AdminStats> {
     byPlan: { free: freeSnap.data().count, standard: standardCount, pro: proCount },
     banned: bannedSnap.data().count,
     suspended: suspendedSnap.data().count,
-    discountCodes: { total: codesSnap.size, active: activeCodes, totalRedemptions },
+    redeemCodes: { total: codesSnap.size, active: activeCodes, totalRedemptions },
     newUsersToday: todaySnap.data().count,
     newUsersThisWeek: weekSnap.data().count,
     newUsersThisMonth: monthSnap.data().count,

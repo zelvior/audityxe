@@ -36,6 +36,17 @@ export default function RenderProof({ result }: { result: AuditResult }) {
   // requests happened to fail.
   const onlyOne = mobileSrc && !desktopSrc ? mobileSrc : !mobileSrc && desktopSrc ? desktopSrc : null;
 
+  // These now come from Lighthouse's full-page-screenshot audit when
+  // available (see extractBestScreenshot in lib/pagespeed.ts) — a much
+  // higher-resolution capture than the old final-screenshot thumbnail,
+  // but of the *entire scrolled page*, not just one viewport-height
+  // frame. Left unconstrained, a long page would render as an
+  // enormous, mostly-empty-looking strip. Capping the height and
+  // cropping to the top (object-cover + object-top) keeps this framed
+  // the same way final-screenshot always was — the above-the-fold
+  // view — while still benefiting from the sharper source resolution.
+  const shotClass = "w-full rounded-input border border-border object-cover object-top";
+
   return (
     <section className="px-4 sm:px-6 py-6 sm:py-10">
       <div className="max-w-4xl mx-auto">
@@ -51,7 +62,7 @@ export default function RenderProof({ result }: { result: AuditResult }) {
             <img
               src={onlyOne}
               alt="Screenshot of the audited page as rendered by Chrome during the Lighthouse run"
-              className="w-full max-w-md mx-auto rounded-input border border-border"
+              className={`max-w-md mx-auto max-h-[70vh] sm:max-h-[560px] ${shotClass}`}
             />
           ) : (
             <>
@@ -61,7 +72,7 @@ export default function RenderProof({ result }: { result: AuditResult }) {
               <img
                 src={mobileSrc!}
                 alt="Screenshot of the audited page as rendered by Chrome on a mobile viewport"
-                className="block sm:hidden w-full max-w-[380px] mx-auto rounded-input border border-border"
+                className={`block sm:hidden max-w-[380px] max-h-[70vh] mx-auto ${shotClass}`}
               />
               {/* Everything sm: and up: the desktop-viewport capture —
                   substantially higher native resolution, so it stays
@@ -70,7 +81,7 @@ export default function RenderProof({ result }: { result: AuditResult }) {
               <img
                 src={desktopSrc!}
                 alt="Screenshot of the audited page as rendered by Chrome on a desktop viewport"
-                className="hidden sm:block w-full max-w-2xl mx-auto rounded-input border border-border"
+                className={`hidden sm:block max-w-2xl mx-auto max-h-[560px] ${shotClass}`}
               />
             </>
           )}

@@ -129,7 +129,12 @@ const jsonLd = {
         "@type": "ImageObject",
         url: `${SITE_URL}/logo-mark-192.png`,
       },
-      sameAs: ["https://github.com/zelvior"],
+      sameAs: [
+        "https://github.com/zelvior",
+        "https://orcid.org/0009-0009-2376-367X",
+        "https://youtube.com/@zelviorhere",
+        "https://linktr.ee/zelvior",
+      ],
     },
     {
       "@type": "WebSite",

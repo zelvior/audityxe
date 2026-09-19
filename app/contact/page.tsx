@@ -47,6 +47,22 @@ export default function ContactPage() {
             </a>
           </div>
 
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-text-secondary mb-6">
+            <span>Elsewhere:</span>
+            <a href="https://orcid.org/0009-0009-2376-367X" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition">
+              ORCID
+            </a>
+            <a href="https://youtube.com/@zelviorhere" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition">
+              YouTube
+            </a>
+            <a href="https://linktr.ee/zelvior" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition">
+              Linktree
+            </a>
+            <a href="https://github.com/zelvior/audityxe" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition">
+              GitHub
+            </a>
+          </div>
+
           <form onSubmit={handleSubmit} className="glass rounded-card p-5 sm:p-6 space-y-4">
             <div>
               <label htmlFor="name" className="block text-xs font-mono text-text-secondary mb-1.5">

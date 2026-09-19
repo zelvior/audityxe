@@ -15,7 +15,7 @@ interface AdminStats {
   byPlan: { free: number; standard: number; pro: number };
   banned: number;
   suspended: number;
-  discountCodes: { total: number; active: number; totalRedemptions: number };
+  redeemCodes: { total: number; active: number; totalRedemptions: number };
 }
 
 function StatCard({ icon: Icon, label, value }: { icon: any; label: string; value: string | number }) {
@@ -162,7 +162,7 @@ export default function AdminDashboardPage() {
         <h1 className="font-display font-bold text-2xl mb-1 flex items-center gap-2">
           <LayoutDashboard size={20} className="text-primary" /> Dashboard
         </h1>
-        <p className="text-sm text-text-secondary mb-6">Live overview across users and discount codes.</p>
+        <p className="text-sm text-text-secondary mb-6">Live overview across users and redeem codes.</p>
 
         {fetching && (
           <div className="flex items-center gap-2 text-sm text-text-secondary">
@@ -179,9 +179,9 @@ export default function AdminDashboardPage() {
             <StatCard icon={Users} label="Pro plan" value={stats.byPlan.pro} />
             <StatCard icon={Ban} label="Banned" value={stats.banned} />
             <StatCard icon={Clock} label="Suspended" value={stats.suspended} />
-            <StatCard icon={Tag} label="Discount codes" value={stats.discountCodes.total} />
-            <StatCard icon={Tag} label="Active codes" value={stats.discountCodes.active} />
-            <StatCard icon={Tag} label="Total redemptions" value={stats.discountCodes.totalRedemptions} />
+            <StatCard icon={Tag} label="Redeem codes" value={stats.redeemCodes.total} />
+            <StatCard icon={Tag} label="Active codes" value={stats.redeemCodes.active} />
+            <StatCard icon={Tag} label="Total redemptions" value={stats.redeemCodes.totalRedemptions} />
           </div>
         )}
       </main>

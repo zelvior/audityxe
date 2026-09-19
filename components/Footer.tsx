@@ -4,7 +4,23 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Logo from "./Logo";
 import HoverRevealButton from "./HoverRevealButton";
-import { Heart, ChevronDown } from "lucide-react";
+import { Heart, ChevronDown, Youtube, Link2 } from "lucide-react";
+
+// The real, minimal ORCID mark (a green circle with a white "iD"
+// wordmark) — lucide-react has no ORCID icon, and a generic badge/id
+// icon wouldn't be recognizable as ORCID specifically, so this is
+// reproduced directly rather than approximated.
+function OrcidIcon({ size = 15 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 256 256" fill="none" aria-hidden="true">
+      <circle cx="128" cy="128" r="128" fill="#A6CE39" />
+      <path
+        fill="#fff"
+        d="M86.3 186.2H70.9V79.1h15.4v107.1zM108.9 79.1h41.6c39.6 0 57 28.3 57 53.6 0 27.5-21.5 53.6-56.8 53.6h-41.8V79.1zm15.4 93.3h24.5c34.9 0 42.9-26.5 42.9-39.7 0-21.5-13.7-39.7-43.7-39.7h-23.7v79.4zM78.6 63.5a9.9 9.9 0 1 1 0-19.8 9.9 9.9 0 0 1 0 19.8z"
+      />
+    </svg>
+  );
+}
 
 // Points at our own /donate page by default, which embeds the
 // NOWPayments donation widget and also offers non-financial ways to
@@ -12,6 +28,12 @@ import { Heart, ChevronDown } from "lucide-react";
 // (a NOWPayments-hosted donation link, GitHub Sponsors, etc.).
 const DONATION_URL = process.env.NEXT_PUBLIC_DONATION_URL || "/donate";
 const DONATION_IS_EXTERNAL = DONATION_URL.startsWith("http");
+
+const SOCIAL_LINKS = [
+  { href: "https://orcid.org/0009-0009-2376-367X", label: "ORCID", icon: OrcidIcon },
+  { href: "https://youtube.com/@zelviorhere", label: "YouTube", icon: Youtube },
+  { href: "https://linktr.ee/zelvior", label: "Linktree", icon: Link2 },
+];
 
 const COLUMNS: { title: string; links: { href: string; label: string }[] }[] = [
   {
@@ -34,7 +56,6 @@ const COLUMNS: { title: string; links: { href: string; label: string }[] }[] = [
       { href: "/changelog", label: "Changelog" },
       { href: "/status", label: "Service Status" },
       { href: "/crash-reports", label: "Crash Reports" },
-      { href: "/workflow", label: "Workflow Diagram" },
     ],
   },
   {
@@ -117,20 +138,29 @@ function FooterColumn({ title, links }: { title: string; links: { href: string; 
       </button>
 
       {open && (
-        <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-48 glass rounded-card py-1.5 z-20 sm:left-0 sm:translate-x-0">
-          <ul>
-            {links.map((l) => (
-              <li key={l.href}>
-                <Link
-                  href={l.href}
-                  onClick={() => setOpen(false)}
-                  className="block px-3.5 py-2 text-sm text-text-secondary hover:text-primary hover:bg-[rgb(var(--color-text-primary)/0.07)] transition"
-                >
-                  {l.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
+        // Outer box uses padding (not margin) to bridge the gap up to
+        // the button — padding is still "inside" this element for
+        // hover-hit-testing purposes, so the cursor never crosses dead
+        // space between the button and the popover on its way up. A
+        // margin here (the previous bug) sits outside the element's own
+        // box, so the mouse briefly left every hoverable element while
+        // crossing it and the popover closed before it could be reached.
+        <div className="absolute left-1/2 -translate-x-1/2 bottom-full pb-2 z-20 sm:left-0 sm:translate-x-0">
+          <div className="w-48 glass backdrop-blur-xl rounded-card py-1.5 shadow-lg shadow-black/10">
+            <ul>
+              {links.map((l) => (
+                <li key={l.href}>
+                  <Link
+                    href={l.href}
+                    onClick={() => setOpen(false)}
+                    className="block px-3.5 py-2 text-sm text-text-secondary hover:text-primary hover:bg-[rgb(var(--color-text-primary)/0.07)] transition"
+                  >
+                    {l.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       )}
     </div>
@@ -182,25 +212,32 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="mt-10 pt-6 border-t border-border/60 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <p className="text-[11px] text-text-secondary/70 text-center sm:text-left order-2 sm:order-1">
+        <div className="mt-10 pt-6 border-t border-border/60 flex flex-col sm:flex-row flex-wrap items-center justify-center sm:justify-between gap-4">
+          <p className="text-[11px] text-text-secondary/70 text-center sm:text-left order-3 sm:order-1">
             &copy; {new Date().getFullYear()} Audityxe. All rights reserved.
           </p>
-          <p className="text-[11px] text-text-secondary/70 text-center order-1 sm:order-2">
+          <p className="text-[11px] text-text-secondary/70 text-center order-2 flex items-center gap-1 flex-wrap justify-center">
             Made by{" "}
             <a href="mailto:zelvior@proton.me" className="hover:text-primary transition">
-              Zelvior
-            </a>
-            {" · "}
-            <a
-              href="https://zsupport.netlify.app"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-primary transition"
-            >
-              Support
-            </a>
+              Zelvior Labs
+            </a>{" "}
+            with <Heart size={11} className="inline text-rose fill-rose mx-0.5" /> from Pakistan
           </p>
+          <div className="flex items-center gap-3 order-1 sm:order-3">
+            {SOCIAL_LINKS.map(({ href, label, icon: Icon }) => (
+              <a
+                key={href}
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={label}
+                title={label}
+                className="w-8 h-8 rounded-full glass flex items-center justify-center text-text-secondary hover:text-primary hover:border-[rgb(var(--color-text-primary)/0.2)] transition"
+              >
+                <Icon size={15} />
+              </a>
+            ))}
+          </div>
         </div>
 
         <p className="mt-4 text-[10px] sm:text-[11px] font-mono text-text-secondary/50 text-center max-w-2xl mx-auto leading-relaxed">

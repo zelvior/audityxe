@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth, AuthError } from "@/lib/auth-server";
 import { requireAdmin } from "@/lib/admin";
-import { createDiscountCodeBatch } from "@/lib/discount-codes";
+import { createRedeemCodeBatch } from "@/lib/discount-codes";
 import { logAdminAction } from "@/lib/admin-log";
 
 export const runtime = "nodejs";
@@ -13,17 +13,16 @@ export async function POST(req: NextRequest) {
     await requireAdmin(identity, req);
     const body = await req.json().catch(() => ({}));
 
-    const codes = await createDiscountCodeBatch(Number(body?.count), {
-      type: "plan_grant",
+    const codes = await createRedeemCodeBatch(Number(body?.count), {
       plan: body?.plan,
-      durationDays: body?.durationDays != null ? Number(body.durationDays) : undefined,
+      durationDays: Number(body?.durationDays),
       expiresAt: body?.expiresAt || null,
       note: typeof body?.note === "string" ? body.note : null,
     });
 
     await logAdminAction(
       identity.email || "unknown",
-      "bulk_create_discount_codes",
+      "bulk_create_redeem_codes",
       null,
       `${codes.length}× ${body?.plan} · ${body?.durationDays}d`
     );
