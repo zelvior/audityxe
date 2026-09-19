@@ -1,7 +1,10 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Logo from "./Logo";
 import HoverRevealButton from "./HoverRevealButton";
-import { Heart } from "lucide-react";
+import { Heart, ChevronDown } from "lucide-react";
 
 // Points at our own /donate page by default, which embeds the
 // NOWPayments donation widget and also offers non-financial ways to
@@ -64,21 +67,91 @@ const COLUMNS: { title: string; links: { href: string; label: string }[] }[] = [
   },
 ];
 
+/**
+ * One footer category: a small pill button that reveals its links in a
+ * popover instead of a permanently-expanded list. Hover opens it on
+ * devices that have real hover (mouse/trackpad); a click/tap toggles it
+ * open on touch devices, where hover either doesn't fire at all or
+ * fires-and-sticks in a confusing way. Either path, clicking outside or
+ * pressing Escape closes it, same as the account menu in Header.tsx.
+ */
+function FooterColumn({ title, links }: { title: string; links: { href: string; label: string }[] }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function onClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("mousedown", onClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onClick);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, []);
+
+  return (
+    <div
+      ref={ref}
+      className="relative"
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+    >
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        aria-haspopup="true"
+        className={`flex items-center gap-1 text-xs sm:text-[13px] font-display font-semibold tracking-wide px-3 py-2 rounded-full border transition ${
+          open
+            ? "bg-primary/10 border-primary/40 text-primary"
+            : "border-border glass text-text-primary hover:border-[rgb(var(--color-text-primary)/0.16)]"
+        }`}
+      >
+        {title}
+        <ChevronDown size={12} className={`transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+
+      {open && (
+        <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-48 glass rounded-card py-1.5 z-20 sm:left-0 sm:translate-x-0">
+          <ul>
+            {links.map((l) => (
+              <li key={l.href}>
+                <Link
+                  href={l.href}
+                  onClick={() => setOpen(false)}
+                  className="block px-3.5 py-2 text-sm text-text-secondary hover:text-primary hover:bg-[rgb(var(--color-text-primary)/0.07)] transition"
+                >
+                  {l.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Footer() {
   return (
     <footer className="px-4 sm:px-6 pt-14 sm:pt-16 pb-8 border-t border-border/60 mt-6">
-      <div className="max-w-6xl mx-auto">
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-[1.1fr_repeat(5,1fr)] gap-x-6 gap-y-10">
+      <div className="max-w-5xl mx-auto">
+        <div className="flex flex-col items-center text-center gap-5">
           {/* brand block */}
-          <div className="col-span-2 sm:col-span-3 lg:col-span-1 mb-2 lg:mb-0">
+          <div>
             <Link href="/" className="inline-flex items-center gap-2 mb-3">
               <Logo size={36} />
               <span className="font-display font-bold text-base tracking-tight hand-underline">Audityxe</span>
             </Link>
-            <p className="text-xs text-text-secondary max-w-[220px] leading-relaxed mb-4">
+            <p className="text-xs text-text-secondary max-w-[320px] mx-auto leading-relaxed mb-4">
               Instant, evidence-based website audits — every score backed by a real, live check.
             </p>
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center justify-center gap-2">
               <HoverRevealButton
                 frontLabel="Star on GitHub"
                 backLabel="Thanks! ⭐"
@@ -99,28 +172,17 @@ export default function Footer() {
             </div>
           </div>
 
-          {COLUMNS.map((col) => (
-            <div key={col.title} className="min-w-0">
-              <h3 className="text-xs font-display font-semibold text-text-primary mb-3 tracking-wide">
-                {col.title}
-              </h3>
-              <ul className="space-y-2.5">
-                {col.links.map((l) => (
-                  <li key={l.href}>
-                    <Link
-                      href={l.href}
-                      className="text-xs sm:text-[13px] text-text-secondary hover:text-primary transition"
-                    >
-                      {l.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+          {/* category popovers — every link from COLUMNS is still here,
+              just tucked behind a hover/tap reveal instead of five
+              permanently-expanded columns stacked on the page. */}
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            {COLUMNS.map((col) => (
+              <FooterColumn key={col.title} title={col.title} links={col.links} />
+            ))}
+          </div>
         </div>
 
-        <div className="mt-12 pt-6 border-t border-border/60 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="mt-10 pt-6 border-t border-border/60 flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="text-[11px] text-text-secondary/70 text-center sm:text-left order-2 sm:order-1">
             &copy; {new Date().getFullYear()} Audityxe. All rights reserved.
           </p>

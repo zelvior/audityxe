@@ -11,6 +11,14 @@ export const metadata: Metadata = {
 
 const ENTRIES: { version: string; date: string; changes: string[] }[] = [
   {
+    version: "3.5.2",
+    date: "September 2026",
+    changes: [
+      "Replaced the footer's five permanently-expanded link columns with pill buttons that reveal each category's links in a popover on hover (desktop) or tap (touch) — every link is still there, none removed, just no longer all visible at once, which is what was actually causing the crowding.",
+      "Popovers close on outside click, Escape, or clicking a link inside — same interaction pattern as the account menu in Header.tsx.",
+    ],
+  },
+  {
     version: "3.5.1",
     date: "September 2026",
     changes: [
