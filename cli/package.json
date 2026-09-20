@@ -35,7 +35,6 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "prepublishOnly": "npm run build",
     "start": "node ./dist/bin/audityxe.js"
   },
   "dependencies": {
