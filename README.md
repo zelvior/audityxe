@@ -10,6 +10,7 @@ Instant, evidence-based website audits — every score backed by a real, live ch
 <p>
 <a href="https://viberank.dev/apps/Audityxe" target="_blank" rel="noopener noreferrer"><img src="https://viberank.dev/badge?app=Audityxe&theme=dark" alt="Audityxe on VibeRank" /></a>
 <a href="https://programmerneeds.com/tools/audityxe-a2486b?utm_source=maker-site&utm_medium=badge&utm_campaign=audityxe-a2486b" target="_blank" rel="noopener"><img src="https://programmerneeds.com/api/badge/audityxe-a2486b?v=9" alt="Find Audityxe on ProgrammerNeeds" width="220" height="54" /></a>
+<a href="https://www.producthunt.com/products/audityxe?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-audityxe" target="_blank" rel="noopener noreferrer"><img alt="Audityxe - Build better. Launch faster. | Product Hunt" width="250" height="54" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1256500&theme=neutral&t=1789932465351" /></a>
 </p>
 
 </div>
@@ -205,9 +206,9 @@ because it's your own compute running it, not Audityxe's servers.
 
 ### CLI (`audityxe-cli`)
 
-Same audit engine as the website, copied out of `lib/` into [`cli/`](./cli), running entirely on
-your own machine — no account, no API key, no rate limit, no data sent anywhere except to the URL
-you're auditing.
+Same audit engine as the website, running entirely on your own machine — no account, no API key,
+no rate limit, no data sent anywhere except to the URL you're auditing. **Live on npm:**
+[npmjs.com/package/audityxe-cli](https://www.npmjs.com/package/audityxe-cli).
 
 ```bash
 npx audityxe-cli https://example.com
@@ -215,11 +216,10 @@ npx audityxe-cli https://example.com --deep --min-score 80   # CI-gate friendly:
 npx audityxe-cli https://example.com --json > report.json
 ```
 
-See [`cli/README.md`](./cli/README.md) for full usage, flags, and how the package is structured
-(it's a real, independently buildable/publishable npm package — run `npm run build` inside `cli/`
-to verify, `npm publish` from `cli/` to ship it once you're ready). It isn't published yet as of
-this commit; until it is, `npx audityxe-cli` won't resolve — build and `npm link` it locally, or
-publish it under your own npm account first.
+Works right now, no setup — see [`cli/README.md`](./cli/README.md) for full usage and flags. The
+source lives at [`cli/`](./cli), copied out of `lib/` (it's a real, independently
+buildable/publishable npm package — `npm run build` inside `cli/` reproduces exactly what's
+published, if you want to verify or fork it).
 
 ### GitHub Action
 
@@ -243,8 +243,8 @@ jobs:
           # psi-key: ${{ secrets.PSI_API_KEY }}
 ```
 
-Like the CLI, this needs `audityxe-cli` actually published to npm to work as `npx
-audityxe-cli@latest` inside the action — see the CLI section above.
+Works out of the box — `audityxe-cli` is live on npm, so `npx audityxe-cli@latest` inside the
+action resolves immediately, no setup needed on your end beyond adding the step above.
 
 ### REST API
 
@@ -257,9 +257,12 @@ runs the engine locally instead of calling this hosted endpoint.
 ### VS Code extension
 
 [`vscode-extension/`](./vscode-extension) — run an audit from the Command Palette, results in an
-output panel. Also a thin wrapper around the CLI. Not yet published to the Marketplace — see
-[`vscode-extension/README.md`](./vscode-extension/README.md) for building/trying it locally and the
-exact publish steps (needs your own Marketplace publisher account).
+output panel. Also a thin wrapper around the CLI. A pre-built `.vsix` ships in the repo
+([`vscode-extension/audityxe-1.0.0.vsix`](./vscode-extension/audityxe-1.0.0.vsix)) — install it
+locally right now with `code --install-extension vscode-extension/audityxe-1.0.0.vsix`, no build
+step needed. Not yet published to the Marketplace itself — see
+[`vscode-extension/README.md`](./vscode-extension/README.md) for the exact publish steps (needs
+your own Marketplace publisher account, which this repo can't create on your behalf).
 
 ### Pre-commit / pre-deploy gate
 
@@ -267,6 +270,7 @@ Not GitHub-specific? [`cli/examples/pre-commit-audit-gate.sh`](./cli/examples/pr
 is a copy-pasteable script for a git hook (e.g. via [husky](https://typicode.github.io/husky/)) or
 any other CI's pre-deploy step.
 
+## Tech stack
 
 - **[Next.js 14](https://nextjs.org)** (App Router) · **[React 18](https://react.dev)** · **[TypeScript](https://www.typescriptlang.org)**
 - **[Tailwind CSS](https://tailwindcss.com)** with a fully CSS-variable-driven token system

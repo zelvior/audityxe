@@ -1,5 +1,8 @@
 # audityxe-cli
 
+**Live on npm:** [npmjs.com/package/audityxe-cli](https://www.npmjs.com/package/audityxe-cli) —
+`npx audityxe-cli <url>` works right now, no setup.
+
 The exact same audit engine that powers [audityxe.vercel.app](https://audityxe.vercel.app) — SEO,
 accessibility, security headers, performance, DNS/TLS/email-auth, legal pages, and more — running
 entirely on **your own machine or CI runner**. Free, unlimited, and offline except for the requests

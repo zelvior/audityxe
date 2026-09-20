@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { canonicalMeta } from "@/lib/seo";
 import LegalLayout from "@/components/LegalLayout";
+import FeaturedOn from "@/components/FeaturedOn";
 import { Code2, Palette, Flame, MousePointerClick, Type, Compass, Sparkles } from "lucide-react";
 
 export const metadata: Metadata = {
@@ -118,6 +119,10 @@ export default function CreditsPage() {
         <CreditCard icon={Compass} name="MDN HTTP Observatory" role="Independent third-party security header grading" href="https://developer.mozilla.org/en-US/observatory" />
         <CreditCard icon={Compass} name="Qualys SSL Labs" role="Independent third-party TLS configuration grading" href="https://www.ssllabs.com/ssltest/" />
       </div>
+
+      <h2>Featured on</h2>
+      <p>Where Audityxe is listed and covered:</p>
+      <FeaturedOn />
 
       <p className="text-xs text-text-secondary/80 mt-8">
         Missing something you contributed or think should be credited? See the{" "}

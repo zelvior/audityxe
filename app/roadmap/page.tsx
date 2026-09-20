@@ -15,9 +15,9 @@ const SECTIONS: { title: string; items: string[] }[] = [
   {
     title: "Shipping next",
     items: [
-      "Publish audityxe-cli to npm so `npx audityxe-cli` works without building it from source first.",
+      "~~Publish audityxe-cli to npm~~ — done: live at npmjs.com/package/audityxe-cli.",
       "Publish the GitHub Action to the GitHub Marketplace.",
-      "Package and publish the VS Code extension.",
+      "Publish the VS Code extension to the Marketplace — a pre-built .vsix already ships in the repo for local install in the meantime.",
     ],
   },
   {

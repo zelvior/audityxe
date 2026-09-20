@@ -6,6 +6,24 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    version: "3.6.3",
+    date: "September 2026",
+    changes: [
+      "Fixed a broken heading in the README (cosmetic, docs-only).",
+    ],
+  },
+  {
+    version: "3.6.2",
+    date: "September 2026",
+    changes: [
+      "audityxe-cli is now live on npm — npx audityxe-cli works right now, no build step, no setup.",
+      "Shipped a pre-built VS Code extension package — install it locally in seconds, no build required.",
+      "Fixed: the Qualys SSL Labs and MDN HTTP Observatory badges were rendering as broken images — switched to a reliable badge that always loads, with the real live scan one click away.",
+      "Moved the \"Featured on\" directory badges (VibeRank, ProgrammerNeeds) off the main trust-badges section and onto the Credits page, where they fit better.",
+      "New: added a Product Hunt badge.",
+    ],
+  },
+  {
     version: "3.6.1",
     date: "September 2026",
     changes: [
