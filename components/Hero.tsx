@@ -75,8 +75,9 @@ export default function Hero({
           transition={{ delay: 0.1 }}
           className="mt-4 sm:mt-5 text-text-secondary text-sm sm:text-base md:text-lg max-w-xl mx-auto lg:mx-0 px-2"
         >
-          Drop any URL in. Get a brutally specific score, exact code fixes, and
-          exactly what to ship in under a minute.
+          <span className="font-semibold text-text-primary">Build better. Launch faster.</span> Drop any URL
+          in and get a brutally specific score, exact code fixes, and exactly what to ship in under
+          a minute.
         </motion.p>
 
         <motion.form

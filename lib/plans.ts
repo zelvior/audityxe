@@ -12,15 +12,22 @@ export interface Plan {
   features: string[];
 }
 
-/** Reads a plan's USD price from its NEXT_PUBLIC_* env var if set (so
- * it's baked into both the client bundle — this file is imported
- * directly by the client "use client" pricing page — and the server),
- * otherwise falls back to `fallback`. Lets you retune prices from
- * Vercel's Environment Variables UI without touching code; a redeploy
- * is still required since Next.js inlines NEXT_PUBLIC_* vars at build
- * time, not per-request. See "Payments" in the README. */
-function envPriceUsd(envVar: string, fallback: number): number {
-  const raw = process.env[envVar];
+/** Parses a plan price override into a positive number, or returns
+ * `fallback` if unset/invalid. Kept separate from *reading* the env
+ * var (see the two call sites below) because Next.js's build-time env
+ * inlining only recognizes a literal `process.env.NEXT_PUBLIC_X`
+ * expression — a *static* member access — written out at its actual
+ * call site. It does NOT work through a dynamic `process.env[name]`
+ * lookup parameterized by a variable, which is what this file used to
+ * do: that pattern can't be statically analyzed, so Next never inlines
+ * a real value for it, and in the browser bundle `process.env` doesn't
+ * exist at all — the override silently evaluated to `undefined` on
+ * every single page load, which is exactly why setting these vars
+ * appeared to do nothing. Lets you retune prices from Vercel's
+ * Environment Variables UI without touching code; a redeploy is still
+ * required since Next.js inlines NEXT_PUBLIC_* vars at build time, not
+ * per-request. See "Payments" in the README. */
+function parsePriceOverride(raw: string | undefined, fallback: number): number {
   const n = raw ? Number(raw) : NaN;
   return Number.isFinite(n) && n > 0 ? n : fallback;
 }
@@ -50,7 +57,7 @@ export const PLANS: Record<PlanId, Plan> = {
     // enforce a minimum crypto amount per invoice that a $3 conversion
     // can land under, producing "Crypto amount ... is less than
     // minimal" at checkout. $5 clears that floor with real headroom.
-    priceUsd: envPriceUsd("NEXT_PUBLIC_STANDARD_PRICE_USD", 5),
+    priceUsd: parsePriceOverride(process.env.NEXT_PUBLIC_STANDARD_PRICE_USD, 5),
     tagline: "For builders shipping and promoting regularly.",
     features: [
       "5 audits per day",
@@ -65,7 +72,7 @@ export const PLANS: Record<PlanId, Plan> = {
     name: "Pro",
     dailyAudits: 8,
     competitorAudits: true,
-    priceUsd: envPriceUsd("NEXT_PUBLIC_PRO_PRICE_USD", 6),
+    priceUsd: parsePriceOverride(process.env.NEXT_PUBLIC_PRO_PRICE_USD, 6),
     tagline: "Built for agencies auditing client sites and portfolios at scale.",
     features: [
       "8 audits per day",

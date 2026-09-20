@@ -1,0 +1,253 @@
+openapi: 3.0.3
+info:
+  title: Audityxe API
+  description: |
+    The hosted API behind [audityxe.vercel.app](https://audityxe.vercel.app)'s own audit UI.
+
+    **Important — read before integrating:** this endpoint is subject to the same per-plan daily
+    limits as the website (see the README's "Plans and limits" section), and authenticated access
+    requires a **Firebase ID token** (obtained by signing in via the Firebase client SDK), not a
+    conventional long-lived API key — there is no separate API-key issuance mechanism. ID tokens
+    expire in about an hour and must be refreshed through Firebase, which is straightforward from a
+    browser but extra work from a plain script.
+
+    **For unlimited, key-free, script/CI-friendly usage, use [`audityxe-cli`](../cli/README.md)
+    instead** — the same audit engine, running on your own machine, with no auth and no limit at
+    all. This REST API exists to document what the website itself calls, not as the primary way to
+    automate audits.
+  version: "1.0.0"
+  license:
+    name: See LICENSE.md
+    url: https://github.com/zelvior/audityxe/blob/main/LICENSE.md
+  contact:
+    name: Zelvior Labs
+    email: zelvior@proton.me
+servers:
+  - url: https://audityxe.vercel.app
+    description: Production
+
+paths:
+  /api/audit:
+    post:
+      summary: Run a website audit
+      description: |
+        Runs a full audit against `url` and returns the complete scored result.
+
+        **Auth / rate limits:**
+        - No `Authorization` header → treated as an anonymous visitor: 1 free audit per IP per
+          calendar day (UTC).
+        - `Authorization: Bearer <Firebase ID token>` → uses that account's plan limit instead
+          (Free/Standard/Pro — see the README).
+        - A cross-site browser request (one sending an `Origin` header that doesn't match this
+          host) is rejected with 403 — this is CSRF protection for browser clients, not a block on
+          server-side/script callers, which typically don't send `Origin` at all.
+
+        Competitor comparison (`competitorUrl`), the real-browser PageSpeed Insights pass
+        (`confirmPageSpeed`), and AI-generated promo copy all require specific plan tiers and are
+        silently ignored (not audited) rather than erroring if the caller's plan doesn't include
+        them — check `promoLockReason` / `pageSpeedLockReason` in the response to see why.
+      operationId: runAudit
+      security:
+        - {}
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url]
+              properties:
+                url:
+                  type: string
+                  format: uri
+                  maxLength: 2048
+                  example: "https://example.com"
+                competitorUrl:
+                  type: string
+                  format: uri
+                  maxLength: 2048
+                  description: Standard/Pro plans only; ignored otherwise.
+                confirmPageSpeed:
+                  type: boolean
+                  description: >-
+                    Explicit opt-in for the real-browser Lighthouse pass (Pro only, capped to 1/week
+                    on the shared key — unlimited with your own PSI key configured on the account).
+                crawlMode:
+                  type: string
+                  enum: [fast, deep]
+                  default: fast
+                  description: >-
+                    "deep" runs a real multi-hop crawl (up to 25 pages, 3 hops) instead of the
+                    default homepage-sample crawl. Available on every plan.
+      responses:
+        "200":
+          description: Audit completed successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditResult"
+        "400":
+          description: Invalid request (missing/malformed URL, oversized body).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Invalid or expired Firebase ID token.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Cross-site request rejected, or automated-traffic pattern detected.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "413":
+          description: Request body too large.
+        "429":
+          description: Daily/weekly quota exhausted for this account or IP.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ErrorResponse"
+                  - type: object
+                    properties:
+                      code:
+                        type: string
+                        example: RATE_LIMITED
+                      plan:
+                        type: string
+                      limit:
+                        type: integer
+        "502":
+          description: The audit itself failed partway through (target site unreachable, timed out, etc).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: "Firebase ID token"
+      description: Obtained via the Firebase client SDK after signing in — not a static API key.
+
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        code:
+          type: string
+
+    CategoryScore:
+      type: object
+      properties:
+        key:
+          type: string
+        label:
+          type: string
+        score:
+          type: number
+
+    AuditModuleFinding:
+      type: object
+      properties:
+        label:
+          type: string
+        status:
+          type: string
+          enum: [pass, warn, fail]
+        severity:
+          type: string
+          enum: [critical, high, medium, low]
+        detail:
+          type: string
+        evidence:
+          type: string
+
+    AuditModule:
+      type: object
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+        status:
+          type: string
+          enum: [good, warning, critical]
+        score:
+          type: number
+          nullable: true
+        summary:
+          type: string
+        findings:
+          type: array
+          items:
+            $ref: "#/components/schemas/AuditModuleFinding"
+
+    FixItem:
+      type: object
+      properties:
+        id:
+          type: string
+        category:
+          type: string
+        target:
+          type: string
+        problem:
+          type: string
+        evidence:
+          type: string
+        fix:
+          type: string
+
+    AuditResult:
+      type: object
+      properties:
+        url:
+          type: string
+        overall:
+          type: number
+        verdict:
+          type: string
+        categories:
+          type: array
+          items:
+            $ref: "#/components/schemas/CategoryScore"
+        modules:
+          type: array
+          items:
+            $ref: "#/components/schemas/AuditModule"
+        fixes:
+          type: array
+          items:
+            $ref: "#/components/schemas/FixItem"
+        xPost:
+          type: string
+        linkedinPost:
+          type: string
+        scoringMethodology:
+          type: string
+        pageSpeedLockReason:
+          type: string
+          enum: [not_confirmed, weekly_limit]
+        _usage:
+          type: object
+          description: Not part of the audit itself — the caller's remaining quota after this request.
+          properties:
+            used:
+              type: integer
+            limit:
+              type: integer
+            remaining:
+              type: integer
+            plan:
+              type: string

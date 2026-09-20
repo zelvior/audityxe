@@ -2,279 +2,19 @@ import type { Metadata } from "next";
 import { canonicalMeta } from "@/lib/seo";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { CHANGELOG_ENTRIES } from "@/lib/changelog-data";
+import { Rss } from "lucide-react";
 
 export const metadata: Metadata = {
   ...canonicalMeta("changelog"),
   title: "Changelog — Audityxe",
   description: "What's new, fixed, and changed in Audityxe.",
+  alternates: {
+    ...canonicalMeta("changelog").alternates,
+    types: { "application/rss+xml": "https://audityxe.vercel.app/changelog/rss.xml" },
+  },
 };
 
-const ENTRIES: { version: string; date: string; changes: string[] }[] = [
-  {
-    version: "3.5.5",
-    date: "September 2026",
-    changes: [
-      "Improved: Render Proof screenshots are now noticeably sharper — switched to a higher-resolution capture Lighthouse already produces, instead of the small thumbnail used before.",
-      "Fixed: the same higher-quality screenshot in PDF exports could previously distort on very long pages — now sized consistently.",
-    ],
-  },
-  {
-    version: "3.5.4",
-    date: "September 2026",
-    changes: [
-      "Fixed: a security/privacy issue — the Admin Dashboard link on your account page was visible to every signed-in account, not just admins.",
-      "Removed: the old support link site-wide.",
-      "New: added ORCID, YouTube, and Linktree links to the footer.",
-      "Improved: \"Made by Zelvior Labs\" now credited in the footer.",
-      "Fixed: a couple of small layout overflow issues on narrow screens.",
-    ],
-  },
-  {
-    version: "3.5.3",
-    date: "September 2026",
-    changes: [
-      "Fixed: crypto checkout for the Standard plan sometimes failed with a confusing payment error.",
-      "Improved: crypto checkout prices are now easier to update from settings, and Standard is priced a little higher to avoid that error going forward.",
-      "Removed: the discount code system. Redeem codes (for giveaways and free plan access) are still here and unaffected.",
-      "Fixed: footer menus could close before you reached them with your mouse.",
-      "Improved: footer menus now have a nicer frosted-glass background.",
-      "Removed: the public workflow diagram page.",
-    ],
-  },
-  {
-    version: "3.5.2",
-    date: "September 2026",
-    changes: [
-      "Improved: the footer is tidier — links are now grouped under simple category buttons instead of five long columns.",
-    ],
-  },
-  {
-    version: "3.5.1",
-    date: "September 2026",
-    changes: ["Fixed: crypto checkout could show overly technical error messages. You'll now see a simple, helpful message instead."],
-  },
-  {
-    version: "3.5.0",
-    date: "September 2026",
-    changes: [
-      "New: added a Deep crawl option for audits — scans more of a site for a more thorough report, alongside the existing fast option.",
-    ],
-  },
-  {
-    version: "3.4.0",
-    date: "September 2026",
-    changes: [
-      "Fixed: some pages weren't linked anywhere in the footer.",
-      "Improved: the site crawler now catches more pages during an audit.",
-    ],
-  },
-  {
-    version: "3.3.0",
-    date: "September 2026",
-    changes: [
-      "Fixed: the donation box could fail to load.",
-      "Fixed: a pricing mismatch between the pricing page and crypto checkout.",
-      "Removed: the yearly pricing option — plans are monthly only now.",
-      "Improved: clearer guidance when crypto checkout rejects an invalid setup.",
-      "Fixed: recurring subscription payments could, in rare cases, fail to renew properly.",
-      "Improved: sharper, higher-quality preview screenshots in reports.",
-      "New: added a live payment status page so you can see checkout progress in real time.",
-    ],
-  },
-  {
-    version: "3.2.1",
-    date: "September 2026",
-    changes: ["Improved: recurring subscriptions are now available directly from the pricing page."],
-  },
-  {
-    version: "3.2.0",
-    date: "September 2026",
-    changes: [
-      "New: added recurring (auto-renewing) crypto subscriptions, in addition to one-time payments.",
-      "New: added a dedicated donation page.",
-    ],
-  },
-  {
-    version: "3.1.0",
-    date: "September 2026",
-    changes: [
-      "Improved: much clearer setup instructions for self-hosting Audityxe.",
-      "Improved: added safeguards so crypto checkout can't accept payments it wouldn't be able to credit.",
-      "Improved: your account page now shows a notice while a crypto payment is still confirming.",
-    ],
-  },
-  {
-    version: "3.0.0",
-    date: "September 2026",
-    changes: [
-      "New: added crypto checkout for paid plans.",
-      "New: added a Refund Policy page.",
-      "New: added a live status page showing service uptime.",
-      "Fixed: two broken trust badges on the site.",
-      "New: reports now include a real screenshot of the audited page.",
-    ],
-  },
-  {
-    version: "2.9.0",
-    date: "September 2026",
-    changes: [
-      "Fixed: real-browser performance scans were timing out too early on slower sites.",
-      "Fixed: results tables could get cut off and unreadable on mobile.",
-    ],
-  },
-  {
-    version: "2.8.0",
-    date: "September 2026",
-    changes: ["Fixed: several audit modules could show a misleading warning when a check genuinely couldn't be verified, instead of leaving it out of the score."],
-  },
-  {
-    version: "2.7.1",
-    date: "September 2026",
-    changes: ["Fixed: a failed performance scan could unfairly use up your weekly quota even though it produced no result."],
-  },
-  {
-    version: "2.7.0",
-    date: "September 2026",
-    changes: ["Improved: using your own PageSpeed Insights API key now gives you unlimited real-browser scans instead of a capped amount."],
-  },
-  {
-    version: "2.6.2",
-    date: "September 2026",
-    changes: ["Improved: added a full step-by-step walkthrough for setting up your own PageSpeed Insights key."],
-  },
-  {
-    version: "2.6.1",
-    date: "September 2026",
-    changes: ["Improved: clearer guidance and warnings when setting up a PageSpeed Insights key."],
-  },
-  {
-    version: "2.6.0",
-    date: "September 2026",
-    changes: [
-      "Fixed: a failed performance scan could still show a misleading score instead of clearly saying it couldn't be measured.",
-      "Fixed: performance error messages could leak technical internal details — cleaned up.",
-    ],
-  },
-  {
-    version: "2.5.0",
-    date: "September 2026",
-    changes: ["Improved: audit reports now surface more of the data already being collected — nothing new to run, just more shown in your results."],
-  },
-  {
-    version: "2.4.0",
-    date: "September 2026",
-    changes: ["Fixed: the performance module could disappear entirely instead of showing what went wrong when a scan failed."],
-  },
-  {
-    version: "2.3.0",
-    date: "September 2026",
-    changes: [
-      "New: added duplicate title/canonical tag detection to the SEO checks.",
-      "New: added a check for non-descriptive link text (e.g. \"click here\"), which hurts accessibility.",
-    ],
-  },
-  {
-    version: "2.2.0",
-    date: "September 2026",
-    changes: [
-      "New: expanded AI-crawler readiness checks.",
-      "New: added a check for unsafe target=\"_blank\" links.",
-    ],
-  },
-  {
-    version: "2.1.0",
-    date: "September 2026",
-    changes: [
-      "New: replaced the homepage puzzle with \"Audit Defender,\" a 60-second find-the-bug mini-game.",
-      "Fixed: restored the original logo artwork with a cleaner background removal.",
-    ],
-  },
-  {
-    version: "2.0.0",
-    date: "September 2026",
-    changes: [
-      "New: full visual redesign, including automatic light/dark mode based on your system setting.",
-      "New: brand new logo.",
-      "New: added an \"AI Crawler Readiness\" audit module.",
-      "New: added a keyboard-accessibility focus check.",
-      "New: added a Credits page and an open-source license.",
-      "Improved: redesigned the footer and legal pages.",
-      "Fixed: removed a duplicate performance module that was cluttering results.",
-    ],
-  },
-  {
-    version: "1.9.0",
-    date: "September 2026",
-    changes: ["Improved: general polish and bug fixes across the audit engine."],
-  },
-  {
-    version: "1.8.0",
-    date: "September 2026",
-    changes: [
-      "Improved: cleaner homepage audit-flow diagram.",
-      "Fixed: theme changes made by an admin weren't reaching visitors.",
-      "New: added a full real-browser performance (Lighthouse) module to results.",
-    ],
-  },
-  {
-    version: "1.7.0",
-    date: "September 2026",
-    changes: [
-      "Improved: search engine and AI-crawler discoverability across the whole site.",
-      "New: fresh color theme, plus a site-wide theme picker for admins.",
-      "Fixed: a couple of layout bugs in the homepage diagram.",
-    ],
-  },
-  {
-    version: "1.6.0",
-    date: "September 2026",
-    changes: [
-      "Fixed: the real-browser performance opt-in for paid plans wasn't working reliably.",
-      "Improved: fixes suggested in reports are now tailored to your site's actual tech stack.",
-      "New: added PDF export for reports.",
-      "Fixed: a layout bug that produced blank gaps in exported PDFs.",
-      "Fixed: a rare bug that could let one visitor's free audits affect another's.",
-    ],
-  },
-  {
-    version: "1.5.0",
-    date: "September 2026",
-    changes: [
-      "New: added live SSL/TLS certificate checks.",
-      "New: added email authentication checks (SPF, DKIM, DMARC).",
-      "New: added server hardening and DNS security checks.",
-      "New: added an AI-generated ('vibe-coded') design pattern detector.",
-      "Fixed: badges could fail to update after re-auditing a site.",
-    ],
-  },
-  {
-    version: "1.4.0",
-    date: "September 2026",
-    changes: [
-      "Fixed: a crash affecting audits.",
-      "Improved: refreshed design system.",
-      "New: added Trust Center, DPA, Acceptable Use, and Third-Party Services pages.",
-    ],
-  },
-  {
-    version: "1.3.0",
-    date: "August 2026",
-    changes: [
-      "New: added email verification before running audits.",
-      "New: added daily audit limits per account.",
-      "New: added real-browser performance scoring via PageSpeed Insights.",
-    ],
-  },
-  {
-    version: "1.2.0",
-    date: "July 2026",
-    changes: [
-      "New: launched bulk audits for Pro accounts.",
-      "New: added competitor comparison.",
-      "New: added shareable promo banners.",
-    ],
-  },
-];
 
 export default function ChangelogPage() {
   return (
@@ -282,10 +22,20 @@ export default function ChangelogPage() {
       <Header />
       <div className="flex-1 max-w-3xl mx-auto w-full px-4 sm:px-6 py-14 sm:py-20">
         <p className="font-mono text-xs text-text-secondary mb-2">CHANGELOG</p>
-        <h1 className="font-display font-bold text-2xl sm:text-3xl mb-10">What's <span className="hand-underline">changed</span></h1>
+        <div className="flex items-baseline justify-between mb-10 flex-wrap gap-2">
+          <h1 className="font-display font-bold text-2xl sm:text-3xl">
+            What's <span className="hand-underline">changed</span>
+          </h1>
+          <a
+            href="/changelog/rss.xml"
+            className="inline-flex items-center gap-1.5 text-xs text-text-secondary hover:text-primary transition"
+          >
+            <Rss size={13} /> RSS feed
+          </a>
+        </div>
         <div className="flex flex-col gap-8">
-          {ENTRIES.map((e) => (
-            <div key={e.version} className="glass rounded-card p-5 sm:p-6">
+          {CHANGELOG_ENTRIES.map((e) => (
+            <div key={e.version} id={`v${e.version.replace(/\./g, "-")}`} className="glass rounded-card p-5 sm:p-6 scroll-mt-24">
               <div className="flex items-baseline gap-3 mb-3">
                 <span className="font-mono text-sm text-primary">v{e.version}</span>
                 <span className="text-xs text-text-secondary">{e.date}</span>

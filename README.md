@@ -2,9 +2,15 @@
 
 # Audityxe
 
-**Instant, evidence-based website audits — every score backed by a real, live check.**
+**Build better. Launch faster.**
+Instant, evidence-based website audits — every score backed by a real, live check.
 
 [Live app](https://audityxe.vercel.app) · [Methodology](https://audityxe.vercel.app/methodology) · [Sample report](https://audityxe.vercel.app/sample-report) · [Changelog](https://audityxe.vercel.app/changelog)
+
+<p>
+<a href="https://viberank.dev/apps/Audityxe" target="_blank" rel="noopener noreferrer"><img src="https://viberank.dev/badge?app=Audityxe&theme=dark" alt="Audityxe on VibeRank" /></a>
+<a href="https://programmerneeds.com/tools/audityxe-a2486b?utm_source=maker-site&utm_medium=badge&utm_campaign=audityxe-a2486b" target="_blank" rel="noopener"><img src="https://programmerneeds.com/api/badge/audityxe-a2486b?v=9" alt="Find Audityxe on ProgrammerNeeds" width="220" height="54" /></a>
+</p>
 
 </div>
 
@@ -27,6 +33,7 @@
 - [Audit engine: what actually gets checked](#audit-engine-what-actually-gets-checked)
 - [Scoring model](#scoring-model)
 - [Exports](#exports)
+- [CLI, GitHub Action & API](#cli-github-action--api)
 - [Tech stack](#tech-stack)
 - [SEO & discoverability](#seo--discoverability)
 - [Getting started](#getting-started)
@@ -34,6 +41,7 @@
 - [PageSpeed Insights (Lighthouse) setup](#pagespeed-insights-lighthouse-setup)
 - [Payments (NOWPayments)](#payments-nowpayments)
 - [Redeem codes](#redeem-codes)
+- [Showcase](#showcase)
 - [Site Crawl module](#site-crawl-module)
 - [Project structure](#project-structure)
 - [Plans and limits](#plans-and-limits)
@@ -41,6 +49,7 @@
 - [Scripts](#scripts)
 - [Deploying](#deploying)
 - [Contributing](#contributing)
+- [Roadmap](#roadmap)
 - [Security](#security)
 - [Credits](#credits)
 - [License](#license)
@@ -189,7 +198,75 @@ Scores are **deterministic**, not model-generated.
 | **Badge** | Embeddable "Audited by Audityxe" SVG badge with live verification |
 | **Social** | Auto-generated X/LinkedIn post copy and a downloadable share banner |
 
-## Tech stack
+## CLI, GitHub Action & API
+
+The audit engine is also available outside the hosted website — free and genuinely unlimited,
+because it's your own compute running it, not Audityxe's servers.
+
+### CLI (`audityxe-cli`)
+
+Same audit engine as the website, copied out of `lib/` into [`cli/`](./cli), running entirely on
+your own machine — no account, no API key, no rate limit, no data sent anywhere except to the URL
+you're auditing.
+
+```bash
+npx audityxe-cli https://example.com
+npx audityxe-cli https://example.com --deep --min-score 80   # CI-gate friendly: exits 1 below threshold
+npx audityxe-cli https://example.com --json > report.json
+```
+
+See [`cli/README.md`](./cli/README.md) for full usage, flags, and how the package is structured
+(it's a real, independently buildable/publishable npm package — run `npm run build` inside `cli/`
+to verify, `npm publish` from `cli/` to ship it once you're ready). It isn't published yet as of
+this commit; until it is, `npx audityxe-cli` won't resolve — build and `npm link` it locally, or
+publish it under your own npm account first.
+
+### GitHub Action
+
+[`action.yml`](./action.yml) at the repo root wraps the CLI for CI — runs an audit, optionally
+comments the results on the PR, and fails the job below a score threshold:
+
+```yaml
+name: Audit
+on: pull_request
+permissions:
+  pull-requests: write
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: zelvior/audityxe@main
+        with:
+          url: https://staging.example.com
+          min-score: "75"
+          # deep: "true"
+          # psi-key: ${{ secrets.PSI_API_KEY }}
+```
+
+Like the CLI, this needs `audityxe-cli` actually published to npm to work as `npx
+audityxe-cli@latest` inside the action — see the CLI section above.
+
+### REST API
+
+The hosted `/api/audit` endpoint is documented as an OpenAPI 3.0 spec at
+[`openapi.yaml`](./openapi.yaml) (view it rendered at [`/api-docs`](https://audityxe.vercel.app/api-docs)).
+It's subject to the same per-plan daily limits as the website itself (see
+[Plans and limits](#plans-and-limits)) — for unlimited use, the CLI above is the right tool, since it
+runs the engine locally instead of calling this hosted endpoint.
+
+### VS Code extension
+
+[`vscode-extension/`](./vscode-extension) — run an audit from the Command Palette, results in an
+output panel. Also a thin wrapper around the CLI. Not yet published to the Marketplace — see
+[`vscode-extension/README.md`](./vscode-extension/README.md) for building/trying it locally and the
+exact publish steps (needs your own Marketplace publisher account).
+
+### Pre-commit / pre-deploy gate
+
+Not GitHub-specific? [`cli/examples/pre-commit-audit-gate.sh`](./cli/examples/pre-commit-audit-gate.sh)
+is a copy-pasteable script for a git hook (e.g. via [husky](https://typicode.github.io/husky/)) or
+any other CI's pre-deploy step.
+
 
 - **[Next.js 14](https://nextjs.org)** (App Router) · **[React 18](https://react.dev)** · **[TypeScript](https://www.typescriptlang.org)**
 - **[Tailwind CSS](https://tailwindcss.com)** with a fully CSS-variable-driven token system
@@ -331,7 +408,7 @@ codebase.
 - **Donations** — `/donate` embeds the real NOWPayments donation widget via `NEXT_PUBLIC_NOWPAYMENTS_DONATION_KEY` (a public, funds-safe key — not the same as `NOWPAYMENTS_API_KEY`). The footer's Sponsor button links there. The donation `<iframe>` requires `nowpayments.io` to be allowed in this app's `frame-src` Content-Security-Policy (`next.config.js`) — without it the browser blocks the widget outright with "This content is blocked."
 - **Live payment status page** — `/payment/status` polls the app's own backend (never NOWPayments directly from the browser) every few seconds after checkout, showing "waiting for confirmation" until the IPN webhook actually credits the plan, then a clear confirmation. This is the `success_url` for both one-off invoices and subscriptions.
 - **Single price source of truth** — all pricing (the pricing page, the manual "pay another way" email flow, and crypto checkout) reads from `PLANS` in `lib/plans.ts`. There used to be a second, separate price table hardcoded in the NOWPayments integration that had silently drifted from the real advertised prices — fixed, and structurally can't drift again since there's only one table now.
-- **Prices are env-var overridable** — `NEXT_PUBLIC_STANDARD_PRICE_USD` / `NEXT_PUBLIC_PRO_PRICE_USD` let you retune plan prices from Vercel's Environment Variables UI, no code change needed. Set the var, redeploy (Next.js inlines `NEXT_PUBLIC_*` vars at build time, so a redeploy is required for it to take effect). If unset, prices fall back to $5 Standard / $6 Pro.
+- **Prices are env-var overridable** — `NEXT_PUBLIC_STANDARD_PRICE_USD` / `NEXT_PUBLIC_PRO_PRICE_USD` let you retune plan prices from Vercel's Environment Variables UI, no code change needed. Set the var, redeploy (Next.js inlines `NEXT_PUBLIC_*` vars at build time, so a redeploy is required for it to take effect). If unset, prices fall back to $5 Standard / $6 Pro. **Fixed:** these previously didn't actually apply anywhere — `lib/plans.ts` read them through a helper function taking the variable name as a runtime string (`process.env[envVar]`), and Next.js's build-time env-inlining only recognizes a literal, statically-written `process.env.NEXT_PUBLIC_X` expression at its actual call site, never a dynamic bracket lookup. In the browser bundle, `process.env` doesn't exist at all outside those inlined literals, so the override silently evaluated to nothing on every page load. Fixed by reading each var through its own literal expression instead — verified by building with test values and confirming the real number appears in the compiled client bundle.
 
 **Getting "Crypto amount ... is less than minimal"?** NOWPayments enforces a minimum crypto amount per invoice that varies by coin — currencies with meaningful network/gas fees (ETH-network USDT, for example) can reject a low-USD invoice outright even though the price itself is valid. Standard was originally priced at $3, which several coins' minimums sat right at or above; it's now $5 by default, with real headroom. If you lower `NEXT_PUBLIC_STANDARD_PRICE_USD` back down and see this again, that's why — raise it back up, or expect certain coins to be unavailable at checkout below their own minimum.
 
@@ -370,6 +447,17 @@ applied manually at checkout — removed, since there's no self-serve checkout f
 adjust (NOWPayments' hosted invoice always charges exactly the advertised price), so it was sitting
 half-wired to a checkout path that no longer exists. Redeem codes (`plan_grant`) are unaffected and
 fully supported. The old `/admin/discount-codes` URL 301-redirects to the new one.
+
+## Showcase
+
+[`/showcase`](https://audityxe.vercel.app/showcase) — a public wall of real sites using the
+Audityxe badge, and a genuine backlink source (see [SEO & discoverability](#seo--discoverability)).
+Deliberately **ownership-verified, not a dump of every badge ever requested**: anyone can request a
+badge for any domain without proving they own it (see [Exports](#exports)), so listing every domain
+that's ever had one generated would risk featuring sites whose owners never agreed to it. Submission
+(`lib/showcase.ts`, `/api/showcase`) instead fetches the submitted domain's own homepage and
+confirms it actually contains a live link back to Audityxe before adding it — the same proof of
+control a DNS-TXT domain-verification flow relies on, just via the badge link instead.
 
 ## Site Crawl module
 
@@ -553,15 +641,14 @@ npx next lint     # lint
 
 ## Contributing
 
-Issues and pull requests are welcome. Before opening a PR:
+See [CONTRIBUTING.md](./CONTRIBUTING.md) — covers general PRs and, in detail, how to add a new
+audit module (the most common kind of contribution), including why it's a reviewed-PR model rather
+than a live plugin system.
 
-```bash
-npx tsc --noEmit && npx next lint && npm run build
-```
+## Roadmap
 
-All three must pass. Please keep new audit checks **deterministic** and **evidence-backed** — if a
-check can't state *why* it failed with a real artifact from the page, it doesn't belong in the
-engine.
+See [`/roadmap`](https://audityxe.vercel.app/roadmap) for what's planned next, and
+[GitHub Issues](https://github.com/zelvior/audityxe/issues) to weigh in or request something.
 
 ## Security
 

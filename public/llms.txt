@@ -1,6 +1,6 @@
 # Audityxe
 
-> Free website audit tool: instant SEO, performance, accessibility, security & UX scores with evidence-based fixes.
+> Build better. Launch faster. Free website audit tool: instant SEO, performance, accessibility, security & UX scores with evidence-based fixes.
 
 ## What it does
 - Free website audit tool and website analysis tool
@@ -35,6 +35,9 @@
 - [Privacy](https://audityxe.vercel.app/privacy)
 - [Terms](https://audityxe.vercel.app/terms)
 - [Crash reports](https://audityxe.vercel.app/crash-reports)
+- [API docs](https://audityxe.vercel.app/api-docs)
+- [Roadmap](https://audityxe.vercel.app/roadmap)
+- [Showcase](https://audityxe.vercel.app/showcase)
 
 ## FAQ
 Q: How do I audit a website for free?

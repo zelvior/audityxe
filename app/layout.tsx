@@ -8,6 +8,7 @@ import AnnouncementBanner from "@/components/AnnouncementBanner";
 
 const SITE_URL = "https://audityxe.vercel.app";
 const SITE_NAME = "Audityxe";
+const SITE_TAGLINE = "Build better. Launch faster.";
 const SITE_TITLE = "Audityxe: Free Website Audit & Fix Report";
 const SITE_DESCRIPTION =
   "Free website audit tool: instant SEO, performance, accessibility, security & UX scores with evidence-based fixes, the same strict benchmark for every site.";
@@ -124,6 +125,7 @@ const jsonLd = {
       legalName: SITE_NAME,
       url: SITE_URL,
       email: "zelvior@proton.me",
+      slogan: SITE_TAGLINE,
       description: SITE_DESCRIPTION,
       logo: {
         "@type": "ImageObject",
