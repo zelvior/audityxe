@@ -1,4 +1,4 @@
-import { AuditModule, PageSpeedSummary } from "./types";
+import { AuditModule, PageSpeedSummary, CruxSummary } from "./types";
 import { Signals } from "./analyze";
 import { DeepSignals } from "./deep-signals";
 import { BrokenLinkResult, ImageSampleResult, AdsTxtResult, OgImageResult, ServerHardeningResult, SourceMapExposureResult, SecurityTxtResult, FaviconManifestResult, AssetWeightResult, CookieAuditResult, RedirectChainResult } from "./network-checks";
@@ -16,6 +16,7 @@ export interface ModuleContext {
     adsTxt: AdsTxtResult;
     ogImage: OgImageResult;
     pageSpeed: PageSpeedSummary;
+    crux: CruxSummary;
     tlsCert: TlsCertInfo;
     emailAuth: EmailAuthInfo;
     serverHardening: ServerHardeningResult;
@@ -40,4 +41,11 @@ export interface ModuleContext {
  * simply skip pushing anything rather than showing an empty module.
  */
 export declare function buildLighthouseModule(pageSpeed: PageSpeedSummary): AuditModule | null;
+/**
+ * Real-user Core Web Vitals (Chrome UX Report), shown independently of
+ * whether a Lighthouse run happened at all — see the header comment in
+ * lib/crux.ts for why this is a separate, always-attempted check rather
+ * than folded into the Lighthouse-gated fieldData above.
+ */
+export declare function buildCruxModule(crux: CruxSummary): AuditModule | null;
 export declare function buildAuditModules(ctx: ModuleContext): AuditModule[];

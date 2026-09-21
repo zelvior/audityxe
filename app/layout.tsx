@@ -185,6 +185,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <head>
+        <link type="text/plain" rel="author" href="/humans.txt" />
         <script
           type="application/ld+json"
           // eslint-disable-next-line react/no-danger

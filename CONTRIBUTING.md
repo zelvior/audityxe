@@ -89,7 +89,11 @@ as certainty, no guessing.
   a shared timeout budget every module races against).
 - Doesn't call a paid third-party API — the free/unlimited nature of the CLI and the low cost of the
   hosted service both depend on the engine itself never needing a paid key to run its core checks.
-  (PageSpeed Insights is the one deliberate exception, and it's already opt-in/BYOK-friendly.)
+  (PageSpeed Insights and Chrome UX Report are the two deliberate exceptions — both free, both
+  opt-in/BYOK-friendly, and both degrade to cleanly omitting the module rather than erroring when no
+  key is configured. `lib/crux.ts` is the reference example if you're adding another
+  optional/keyed check: never a hard dependency, never a visible "not configured" error in a normal
+  report, only a real finding when the check actually ran.)
 - Scoped to something checkable from an already-fetched page/response, DNS, or TLS handshake — not
   something that requires rendering the page in a real browser (that's the headless-browser fallback
   on the [roadmap](https://audityxe.vercel.app/roadmap), not something to bolt onto individual PRs).

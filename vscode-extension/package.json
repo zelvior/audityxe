@@ -39,6 +39,16 @@
         "command": "audityxe.auditUrlDeep",
         "title": "Audityxe: Audit a URL (Deep crawl)",
         "icon": "$(search)"
+      },
+      {
+        "command": "audityxe.compareUrls",
+        "title": "Audityxe: Compare Two URLs",
+        "icon": "$(diff)"
+      },
+      {
+        "command": "audityxe.viewHistory",
+        "title": "Audityxe: View Score History",
+        "icon": "$(graph-line)"
       }
     ]
   },

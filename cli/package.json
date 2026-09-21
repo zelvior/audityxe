@@ -1,6 +1,6 @@
 {
   "name": "audityxe-cli",
-  "version": "1.0.0",
+  "version": "1.1.1",
   "description": "Build better. Launch faster. Free, unlimited, local-first website audit CLI \u2014 the exact same audit engine that powers audityxe.vercel.app, running entirely on your own machine or CI runner. No account, no API key, no rate limit, no data leaves your machine except requests to the URL you're auditing.",
   "license": "SEE LICENSE IN https://github.com/zelvior/audityxe/blob/main/LICENSE.md",
   "author": "Zelvior Labs",
@@ -35,7 +35,6 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "prepublishOnly": "npm run build",
     "start": "node ./dist/bin/audityxe.js"
   },
   "dependencies": {

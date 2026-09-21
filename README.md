@@ -5,6 +5,11 @@
 **Build better. Launch faster.**
 Instant, evidence-based website audits — every score backed by a real, live check.
 
+[![CI](https://github.com/zelvior/audityxe/actions/workflows/ci.yml/badge.svg)](https://github.com/zelvior/audityxe/actions/workflows/ci.yml)
+[![npm version](https://img.shields.io/npm/v/audityxe-cli.svg)](https://www.npmjs.com/package/audityxe-cli)
+[![npm downloads](https://img.shields.io/npm/dm/audityxe-cli.svg)](https://www.npmjs.com/package/audityxe-cli)
+[![License](https://img.shields.io/badge/license-see%20LICENSE.md-blue.svg)](./LICENSE.md)
+
 [Live app](https://audityxe.vercel.app) · [Methodology](https://audityxe.vercel.app/methodology) · [Sample report](https://audityxe.vercel.app/sample-report) · [Changelog](https://audityxe.vercel.app/changelog)
 
 <p>
@@ -155,8 +160,8 @@ Generative Engine Optimization — whether AI answer engines can read and cite t
 <details>
 <summary><strong>Performance &amp; mobile</strong></summary>
 
-- Real browser-rendered Lighthouse pass via Google PageSpeed Insights (Core Web Vitals: LCP, CLS, TBT, FCP, Speed Index)
-- **Real-world CrUX field data** when Google has enough traffic on the origin — distinguished from lab data
+- Real browser-rendered Lighthouse pass via Google PageSpeed Insights (Core Web Vitals: LCP, CLS, TBT, FCP, Speed Index) — Pro plan, weekly-capped on the shared key, unlimited with your own PSI key
+- **Real-User Experience (CrUX)** — aggregated Core Web Vitals from real Chrome users over the past 28 days, straight from Google's Chrome UX Report dataset. Unlike the Lighthouse pass above, this runs for **every plan**, not just Pro — it's a separate, much lighter API call (a dataset lookup, not a full simulated browser run), so it isn't gated behind the same weekly cap. Needs `CRUX_API_KEY` (or reuses `PAGESPEED_API_KEY`/a user's own PSI key) — see [Environment variables](#environment-variables). Degrades cleanly (and invisibly, not as an error) when no key is configured, or when a given site simply doesn't have enough real Chrome traffic for Google to publish data on
 - **Render Proof** — the actual Chrome screenshot(s) Lighthouse captures, embedded in the report. Two independent captures (mobile viewport from the primary pass, desktop viewport from a small parallel best-effort call) are fetched, and the viewer's own device picks which renders via CSS — a phone gets the sharp native mobile capture, a desktop visitor gets the larger, higher-resolution desktop one, instead of one fixed low-res image stretched to fit everyone
 - Compression, cache headers, image format/sizing/lazy-loading, inline-base64 bloat
 - Render-blocking resources, web-font weight
@@ -213,6 +218,9 @@ no rate limit, no data sent anywhere except to the URL you're auditing. **Live o
 ```bash
 npx audityxe-cli https://example.com
 npx audityxe-cli https://example.com --deep --min-score 80   # CI-gate friendly: exits 1 below threshold
+npx audityxe-cli https://example.com --compare https://competitor.com  # head-to-head comparison
+npx audityxe-cli https://example.com --track                 # save score locally for trend tracking
+npx audityxe-cli history https://example.com                 # view that trend
 npx audityxe-cli https://example.com --json > report.json
 ```
 
@@ -240,6 +248,7 @@ jobs:
           url: https://staging.example.com
           min-score: "75"
           # deep: "true"
+          # compare-url: https://competitor.com
           # psi-key: ${{ secrets.PSI_API_KEY }}
 ```
 
@@ -385,6 +394,14 @@ The Lighthouse module needs a Google API key. It's free, no billing required.
 Users can also add their own key in **Settings**, which is validated against the live API at save
 time and grants **unlimited** Lighthouse passes (their own Google quota) instead of the shared
 1/week cap.
+
+### Also enabling Real-User Experience (CrUX)
+
+The same key can power the free-for-every-plan CrUX module too — just also enable the
+[Chrome UX Report API](https://console.cloud.google.com/apis/library/chromeuxreport.googleapis.com)
+on the same project (step 3 above, second API). No second key needed; set `CRUX_API_KEY` separately
+only if you want it on a distinct key/quota from PageSpeed Insights. See
+[Environment variables](#environment-variables) for the exact var.
 
 ## Payments (NOWPayments)
 

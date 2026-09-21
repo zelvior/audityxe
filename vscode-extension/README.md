@@ -19,6 +19,12 @@ Or in VS Code: **Extensions panel → `...` menu → Install from VSIX...** → 
 
 - **Audityxe: Audit a URL** — fast crawl (homepage sample)
 - **Audityxe: Audit a URL (Deep crawl)** — real multi-hop crawl, up to 25 pages
+- **Audityxe: Compare Two URLs** — prompts for your URL and a competitor's, prints a head-to-head
+  category-by-category comparison. Audits both fully, so it takes longer than a single audit.
+- **Audityxe: View Score History** — reads local trend data from `~/.audityxe/history.json`, written
+  by running `audityxe <url> --track` from a terminal (this extension only reads history, it doesn't
+  create tracked entries itself — there's no "track" command here, by design, since a background
+  auto-tracking extension would be a surprising thing for an editor extension to silently do).
 
 Results print to the "Audityxe" output panel.
 

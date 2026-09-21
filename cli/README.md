@@ -46,16 +46,47 @@ npx audityxe https://example.com
 
 ```
 audityxe <url> [options]
+audityxe history [url]
 
   --deep                 Real multi-hop crawl (up to 25 pages, 3 hops) instead
                           of the default fast crawl (homepage sample only).
+  --compare <url>        Also audit a second URL and print a head-to-head
+                          comparison, category by category.
   --psi-key <key>        Your own free Google PageSpeed Insights API key — adds
-                          a real-browser Lighthouse pass.
+                          a real-browser Lighthouse pass, and enables the
+                          real-user Core Web Vitals (CrUX) module.
   --min-score <n>        Exit non-zero if the overall score is below <n> (0-100).
                           This is what makes it usable as a CI gate.
+  --track                Save this run's score locally (~/.audityxe/history.json)
+                          so `audityxe history <url>` can show the trend.
   --json                 Print the full result as JSON.
   --no-color             Disable ANSI colors.
 ```
+
+### Head-to-head comparison
+
+```bash
+audityxe https://yoursite.com --compare https://competitor.com
+```
+
+Runs the exact same audit against both URLs and prints a category-by-category comparison. Note:
+comparing two sites is genuinely closer to two full audits' worth of work than one — if the
+competitor URL is slow or unreachable, the comparison is silently omitted (the primary audit still
+completes and prints normally) rather than failing the whole run.
+
+### Score history / trend tracking
+
+```bash
+audityxe https://yoursite.com --track   # save this run's score locally
+audityxe history                        # list every URL you've tracked
+audityxe history https://yoursite.com   # full trend for one URL, oldest to newest
+```
+
+Purely local — a JSON file at `~/.audityxe/history.json` on your own machine, nothing sent
+anywhere. Useful for watching a score trend over time without needing an account or the hosted
+app's dashboard at all. `audityxe history <url>` matches by hostname, so
+`audityxe history yoursite.com` and `audityxe history https://yoursite.com/` both find the same
+entries.
 
 ### CI gate example
 
@@ -64,10 +95,11 @@ npx audityxe-cli https://staging.example.com --min-score 75
 ```
 
 The command exits with status code `1` if the score is below the threshold, so it fails the build
-step on its own — no extra scripting needed. See the [GitHub Action](../.github/README.md) if
-you're on GitHub Actions specifically; it wraps exactly this. For a git pre-commit/pre-push hook or
-any other CI, see [`examples/pre-commit-audit-gate.sh`](./examples/pre-commit-audit-gate.sh) for a
-copy-pasteable starting point.
+step on its own — no extra scripting needed. See the [GitHub Action](../action.yml) if you're on
+GitHub Actions specifically; it wraps exactly this (including the `--compare` flag, via its
+`compare-url` input). For a git pre-commit/pre-push hook or any other CI, see
+[`examples/pre-commit-audit-gate.sh`](./examples/pre-commit-audit-gate.sh) for a copy-pasteable
+starting point.
 
 ### Get a free PageSpeed Insights key (optional)
 

@@ -124,6 +124,15 @@ export default function CreditsPage() {
       <p>Where Audityxe is listed and covered:</p>
       <FeaturedOn />
 
+      <p className="text-xs text-text-secondary/80 mt-6">
+        Team, contact, and site credits are also published machine-readably at{" "}
+        <a href="/humans.txt">/humans.txt</a>, following the{" "}
+        <a href="https://humanstxt.org" target="_blank" rel="noopener noreferrer">
+          humanstxt.org
+        </a>{" "}
+        convention.
+      </p>
+
       <p className="text-xs text-text-secondary/80 mt-8">
         Missing something you contributed or think should be credited? See the{" "}
         <Link href="/contact">Contact page</Link>.

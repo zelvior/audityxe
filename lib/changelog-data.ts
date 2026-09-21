@@ -6,6 +6,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    version: "3.7.0",
+    date: "September 2026",
+    changes: [
+      "New: Real-User Experience (CrUX) module — real Core Web Vitals from actual Chrome users, not a simulated run. Free on every plan, not just Pro.",
+      "New: audityxe-cli can now compare two sites head-to-head (--compare), and track a site's score over time locally (--track, audityxe history).",
+      "New: the GitHub Action supports the same head-to-head comparison in its PR comments.",
+      "New: two new VS Code commands — Compare Two URLs, and View Score History.",
+      "New: a real, public CI pipeline — every change is now automatically typechecked, linted, and built before merging, with a live status badge in the README.",
+      "New: npm version/download badges, and a humans.txt crediting the team.",
+      "Improved: comparing two sites got a longer time budget, since auditing two full sites is closer to two audits' worth of work than one.",
+    ],
+  },
+  {
     version: "3.6.3",
     date: "September 2026",
     changes: [

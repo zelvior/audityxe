@@ -29,6 +29,14 @@ const SECTIONS: { title: string; items: string[] }[] = [
     ],
   },
   {
+    title: "CLI, Action & extension",
+    items: [
+      "CI regression gating on --compare — fail a build when a score drops vs. a stored baseline (e.g. production), not just below an absolute --min-score.",
+      "Hosted-account score history/trend view in the web app itself, matching what the CLI's local --track/history already does on your own machine.",
+      "A shared, documented JSON result schema version, so tooling built against the CLI/API's JSON output has a stable contract to depend on across releases.",
+    ],
+  },
+  {
     title: "Community & extensibility",
     items: [
       "A reviewed-PR pathway for community-contributed audit modules — see CONTRIBUTING.md. Deliberately not a live third-party plugin loader (arbitrary code executing inside the audit engine is a real security risk), so new checks ship as reviewed, merged code.",

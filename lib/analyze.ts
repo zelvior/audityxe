@@ -2,9 +2,10 @@ import { AuditResult, BannerDesign, CategoryKey, CategoryScore, FixItem } from "
 import { generateJsonForTask } from "./ai";
 import { extractDeepSignals } from "./deep-signals";
 import { checkBrokenLinks, checkImageSample, checkAdsTxt, checkOgImage, checkServerHardening, checkSourceMapExposure, checkSecurityTxt, checkFaviconManifest, checkAssetWeights, checkCookieFlags, checkRedirectChain } from "./network-checks";
-import { buildAuditModules, buildLighthouseModule } from "./audit-modules";
+import { buildAuditModules, buildLighthouseModule, buildCruxModule } from "./audit-modules";
 import { assertSafeUrl } from "./url-safety";
 import { fetchPageSpeedInsights, EMPTY_PAGESPEED_SUMMARY } from "./pagespeed";
+import { fetchCruxSummary } from "./crux";
 import { checkTlsCertificate, TlsCertInfo } from "./tls-check";
 import { checkEmailAuthDns } from "./dns-email-auth";
 import { checkDnsSecurity } from "./dns-security";
@@ -1650,6 +1651,18 @@ const OVERALL_AUDIT_TIMEOUT_MS = 30000;
 // module races against — bumped for deep-mode requests only, and still
 // comfortably under the route's own maxDuration=90 (see app/api/audit/route.ts).
 const DEEP_OVERALL_AUDIT_TIMEOUT_MS = 60000;
+// A competitor comparison audits a second full site sequentially after
+// the primary one finishes (see the `competitor` block in
+// runAuditInner) — genuinely closer to two audits' worth of work than
+// one, so the default 30s budget was too tight for it in practice
+// (auditOne's own internal try/catch silently drops the competitor
+// result on timeout rather than failing the whole request, which made
+// this look like an intermittent bug rather than what it actually was:
+// not enough time budgeted for the extra work). Deep crawl AND a
+// competitor together is the most demanding combination, so it gets
+// the largest budget — still with real margin under maxDuration=90.
+const COMPETITOR_OVERALL_AUDIT_TIMEOUT_MS = 60000;
+const COMPETITOR_DEEP_OVERALL_AUDIT_TIMEOUT_MS = 75000;
 
 function withOverallTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
   let timer: ReturnType<typeof setTimeout>;
@@ -1697,9 +1710,19 @@ export async function runAudit(
     throw new Error("The competitor URL is too long.");
   }
 
+  const isDeep = options.crawlMode === "deep";
+  const hasCompetitor = !!(competitorRawUrl && competitorRawUrl.trim());
+  const timeoutMs = isDeep && hasCompetitor
+    ? COMPETITOR_DEEP_OVERALL_AUDIT_TIMEOUT_MS
+    : isDeep
+      ? DEEP_OVERALL_AUDIT_TIMEOUT_MS
+      : hasCompetitor
+        ? COMPETITOR_OVERALL_AUDIT_TIMEOUT_MS
+        : OVERALL_AUDIT_TIMEOUT_MS;
+
   return withOverallTimeout(
     runAuditInner(rawUrl, competitorRawUrl, options),
-    options.crawlMode === "deep" ? DEEP_OVERALL_AUDIT_TIMEOUT_MS : OVERALL_AUDIT_TIMEOUT_MS,
+    timeoutMs,
     "This audit took too long overall and was stopped. Please try again — some sites are slower to fully analyze than others."
   );
 }
@@ -1725,7 +1748,7 @@ async function runAuditInner(
   const weakestLabel = sortedByScore[0]?.label ?? "Technical & Metadata Health";
   const strongestLabel = sortedByScore[sortedByScore.length - 1]?.label ?? weakestLabel;
 
-  const [verdictCopy, promoCopy, bannerDesign, brokenLinks, imageSample, adsTxt, ogImage, pageSpeed, emailAuth, serverHardening, dnsSecurity, sourceMapExposure, securityTxt, faviconManifest, assetWeights, legalPages, siteCrawl, cookieFlags, redirectChain] = await Promise.all([
+  const [verdictCopy, promoCopy, bannerDesign, brokenLinks, imageSample, adsTxt, ogImage, pageSpeed, crux, emailAuth, serverHardening, dnsSecurity, sourceMapExposure, securityTxt, faviconManifest, assetWeights, legalPages, siteCrawl, cookieFlags, redirectChain] = await Promise.all([
     generateVerdictWithGemini(primary.host, primary.overall, primary.categories, weakestLabel),
     includePromo
       ? generatePromoWithGemini(primary.host, primary.overall, primary.categories, strongestLabel, weakestLabel, options.byok)
@@ -1738,6 +1761,12 @@ async function runAuditInner(
     checkAdsTxt(primary.origin),
     checkOgImage(deepSignals.socialMeta.ogImageUrl, primary.finalUrl),
     includePageSpeed ? fetchPageSpeedInsights(primary.finalUrl, options.psiByokKey) : Promise.resolve(EMPTY_PAGESPEED_SUMMARY),
+    // Independent of includePageSpeed/confirmPageSpeed on purpose — CrUX
+    // is a separate, much cheaper Google API (a single fast lookup, not
+    // a full Lighthouse run) and reuses the same BYOK/shared key. It
+    // degrades to a clean "not configured" or "no data" result on its
+    // own, same as PSI, so there's no hard dependency being added here.
+    fetchCruxSummary(primary.finalUrl, options.psiByokKey),
     checkEmailAuthDns(new URL(primary.finalUrl).hostname),
     checkServerHardening(primary.origin),
     checkDnsSecurity(new URL(primary.finalUrl).hostname),
@@ -1761,6 +1790,7 @@ async function runAuditInner(
     adsTxt,
     ogImage,
     pageSpeed,
+    crux,
     tlsCert: primary.tlsCert,
     emailAuth,
     serverHardening,
@@ -1785,6 +1815,13 @@ async function runAuditInner(
   // having run.
   const lighthouseModule = buildLighthouseModule(pageSpeed);
   if (lighthouseModule) modules.push(lighthouseModule);
+
+  // Unlike Lighthouse above, this runs — and is shown — for every
+  // plan, every time: it's not gated behind confirmPageSpeed/Pro, and
+  // returns null only when the operator hasn't configured a CrUX/PSI
+  // key on this deployment at all (see buildCruxModule).
+  const cruxModule = buildCruxModule(crux);
+  if (cruxModule) modules.push(cruxModule);
 
   const verdict = verdictCopy?.verdict || verdictFor(primary.overall, primary.host, weakestLabel);
   const { xPost, linkedinPost } = promoCopy || buildPromo(primary.host, primary.overall, weakestLabel);
@@ -1831,6 +1868,7 @@ async function runAuditInner(
     banner,
     modules,
     pageSpeed,
+    crux,
     promoLocked: !includePromo,
     promoLockReason: !includePromo ? options.promoLockReason ?? "plan" : promoCopy ? undefined : "byok_failed",
     pageSpeedLocked: !includePageSpeed,

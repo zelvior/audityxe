@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.buildLighthouseModule = buildLighthouseModule;
+exports.buildCruxModule = buildCruxModule;
 exports.buildAuditModules = buildAuditModules;
 function pass(label, detail, evidence, confidence) {
     return { label, status: "pass", detail, evidence, confidence };
@@ -163,6 +164,48 @@ function buildLighthouseModule(pageSpeed) {
         findings.push(warn(issue.title, issue.description, undefined, "low"));
     });
     return makeModule("lighthouse", "Lighthouse Audit", "Real browser-rendered performance, accessibility, best-practices, and SEO scores from a live Google PageSpeed Insights run — distinct from this audit's own deterministic checks.", findings);
+}
+/**
+ * Real-user Core Web Vitals (Chrome UX Report), shown independently of
+ * whether a Lighthouse run happened at all — see the header comment in
+ * lib/crux.ts for why this is a separate, always-attempted check rather
+ * than folded into the Lighthouse-gated fieldData above.
+ */
+function buildCruxModule(crux) {
+    // No key configured on this deployment at all — an operator-facing
+    // gap, not something about the audited site, so there's nothing
+    // meaningful to show the person reading the report. Mirrors
+    // buildLighthouseModule's `!attempted` → null pattern above.
+    if (crux.reason === "not_configured" || crux.reason === "invalid_url")
+        return null;
+    if (!crux.available) {
+        // "No data" is the single most common real outcome here — most
+        // sites simply don't have enough recorded Chrome traffic for
+        // Google to publish aggregated, privacy-safe field data. That's
+        // worth saying plainly, not hiding, but it's informational, not a
+        // problem with the site — no pass/warn/fail language for it.
+        const detail = crux.reason === "no_data"
+            ? "No Chrome UX Report data is published for this site — not enough real Chrome traffic for Google to report on. This isn't a problem with the site; smaller/newer sites commonly don't have enough recorded visits yet."
+            : "The Chrome UX Report lookup failed to complete.";
+        return makeModule("real-user-experience", "Real-User Experience (CrUX)", "Aggregated, real-Chrome-user Core Web Vitals from Google's public dataset — separate from any single Lighthouse run.", [
+            unknown("Field data availability", detail),
+        ]);
+    }
+    const findings = [];
+    for (const m of crux.metrics) {
+        const formatted = m.unit === "ms" ? `${Math.round(m.p75)}ms` : m.p75.toFixed(3);
+        const evidence = `p75 over real Chrome sessions, past 28 days: ${formatted}`;
+        if (m.verdict === "good")
+            findings.push(pass(m.label, `${formatted} at the 75th percentile — in Google's "good" band for real users.`, evidence));
+        else if (m.verdict === "needs-improvement")
+            findings.push(warn(m.label, `${formatted} at the 75th percentile — "needs improvement" for real users, not just in a lab simulation.`, evidence, "medium"));
+        else
+            findings.push(fail(m.label, `${formatted} at the 75th percentile — in Google's "poor" band for real users on this site today.`, evidence, "high"));
+    }
+    const period = crux.collectionPeriod?.firstDate && crux.collectionPeriod?.lastDate
+        ? ` (${crux.collectionPeriod.firstDate} to ${crux.collectionPeriod.lastDate})`
+        : "";
+    return makeModule("real-user-experience", "Real-User Experience (CrUX)", `Aggregated Core Web Vitals from real Chrome users who actually visited this site over the last 28 days${period} — Google's own field dataset, not a simulated single run.`, findings);
 }
 function buildAuditModules(ctx) {
     const { signals: s, deep: d, brokenLinks, imageSample, adsTxt, ogImage, cookieFlags, redirectChain } = ctx;

@@ -73,6 +73,22 @@ export interface AuditModule {
   findings: AuditModuleFinding[];
 }
 
+export interface CruxMetric {
+  id: string;
+  label: string;
+  unit: "ms" | "score";
+  p75: number;
+  verdict: "good" | "needs-improvement" | "poor";
+}
+
+export interface CruxSummary {
+  available: boolean;
+  reason: "not_configured" | "invalid_url" | "no_data" | "request_failed" | null;
+  origin: string | null;
+  collectionPeriod: { firstDate: string | null; lastDate: string | null } | null;
+  metrics: CruxMetric[];
+}
+
 export interface PageSpeedSummary {
   fetched: boolean;
   /** Distinct from `fetched`: true whenever a PageSpeed Insights call
@@ -156,6 +172,12 @@ export interface AuditResult {
   banner: BannerDesign;
   modules: AuditModule[];
   pageSpeed: PageSpeedSummary;
+  /** Real-user Chrome UX Report field data — separate from and
+   * complementary to the pageSpeed lab data above. Always present in
+   * the shape, `available: false` (with a `reason`) when there's no
+   * configured key or no published field data for the site, same
+   * graceful-degradation pattern as pageSpeed. */
+  crux: CruxSummary;
   /** True when promo copy/banner and PageSpeed weren't generated because
    * the caller's plan doesn't include them (Free/anonymous). The UI uses
    * this to show an upgrade prompt instead of the (deterministic-only)

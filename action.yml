@@ -17,6 +17,10 @@ inputs:
     description: "Use the deep crawl (up to 25 pages, 3 hops) instead of the default fast crawl (homepage sample only)."
     required: false
     default: "false"
+  compare-url:
+    description: "Also audit a second URL and include a head-to-head comparison in the PR comment (e.g. a competitor, or your production site as a baseline)."
+    required: false
+    default: ""
   psi-key:
     description: "Your own free Google PageSpeed Insights API key, for a real-browser Lighthouse pass. Optional."
     required: false
@@ -49,6 +53,7 @@ runs:
         set -e
         ARGS=("${{ inputs.url }}" "--json")
         if [ "${{ inputs.deep }}" = "true" ]; then ARGS+=("--deep"); fi
+        if [ -n "${{ inputs.compare-url }}" ]; then ARGS+=("--compare" "${{ inputs.compare-url }}"); fi
         if [ -n "${{ inputs.psi-key }}" ]; then ARGS+=("--psi-key" "${{ inputs.psi-key }}"); fi
 
         set +e
@@ -91,7 +96,18 @@ runs:
           | Module | Score |
           |---|---|
           ${modules}
-
+          ${
+            result.competitor
+              ? `\n### Head-to-head vs ${result.competitor.url}\n\n| Category | ${result.url} | ${result.competitor.url} |\n|---|---|---|\n` +
+                result.categories
+                  .map((c) => {
+                    const other = result.competitor.categories.find((cc) => cc.label === c.label);
+                    return `| ${c.label} | ${c.score} | ${other ? other.score : "n/a"} |`;
+                  })
+                  .join("\n") +
+                `\n`
+              : ""
+          }
           <sub>Full report: run \`npx audityxe-cli ${result.url} --json\` locally, or download this run's result-file artifact. Powered by [audityxe-cli](https://www.npmjs.com/package/audityxe-cli) — free and unlimited.</sub>`;
 
           const { data: comments } = await github.rest.issues.listComments({

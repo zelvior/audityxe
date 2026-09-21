@@ -2,21 +2,30 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.main = main;
 const analyze_1 = require("./engine/analyze");
+const history_1 = require("./history");
 const VERSION = "1.0.0";
 const HELP = `
 audityxe — free, unlimited, local-first website audit
 
 USAGE
   audityxe <url> [options]
+  audityxe history [url]
 
 OPTIONS
   --deep                 Run the deep crawl (up to 25 pages, 3 hops) instead
                           of the default fast crawl (homepage sample only).
+  --compare <url>        Also audit a second URL and print a head-to-head
+                          comparison (category-by-category and overall).
   --psi-key <key>        Your own free Google PageSpeed Insights API key —
-                          adds a real-browser Lighthouse pass. Get one free
-                          at https://developers.google.com/speed/docs/insights/v5/get-started
+                          adds a real-browser Lighthouse pass, and enables
+                          the real-user Core Web Vitals (CrUX) module. Get
+                          one free at
+                          https://developers.google.com/speed/docs/insights/v5/get-started
   --min-score <n>        Exit with a non-zero status code if the overall
                           score is below <n> (0-100). Designed for CI gates.
+  --track                Save this run's score to a local history file
+                          (~/.audityxe/history.json) so you can see the
+                          trend over time with \`audityxe history <url>\`.
   --json                 Print the full result as JSON instead of a
                           formatted terminal report (also useful piped to
                           \`jq\`, saved to a file, etc).
@@ -24,19 +33,29 @@ OPTIONS
   -h, --help             Show this help.
   -v, --version          Show the CLI version.
 
+SUBCOMMANDS
+  audityxe history              List every URL you've tracked with --track,
+                                 and its most recent score.
+  audityxe history <url>        Show the full score trend for one URL —
+                                 every tracked run, oldest to newest.
+
 EXAMPLES
   audityxe https://example.com
   audityxe https://example.com --deep --min-score 80
+  audityxe https://example.com --compare https://competitor.com
+  audityxe https://example.com --track
+  audityxe history https://example.com
   audityxe https://example.com --json > report.json
 
 Everything runs on your own machine — the only network requests made are
-to the URL you're auditing (and Google's PageSpeed API, only if you pass
---psi-key). No account, no signup, no rate limit, no data sent anywhere
-else. Same audit engine as https://audityxe.vercel.app, MIT-equivalent
-licensed — see https://github.com/zelvior/audityxe/blob/main/LICENSE.md
+to the URL(s) you're auditing (and Google's PageSpeed API, only if you pass
+--psi-key). --track writes only to a local file on your own disk — nothing
+is ever sent anywhere. No account, no signup, no rate limit. Same audit
+engine as https://audityxe.vercel.app, MIT-equivalent licensed — see
+https://github.com/zelvior/audityxe/blob/main/LICENSE.md
 `.trim();
 function parseArgs(argv) {
-    const args = { deep: false, json: false, color: true, help: false, version: false };
+    const args = { deep: false, track: false, json: false, color: true, help: false, version: false };
     for (let i = 0; i < argv.length; i++) {
         const a = argv[i];
         switch (a) {
@@ -51,11 +70,17 @@ function parseArgs(argv) {
             case "--deep":
                 args.deep = true;
                 break;
+            case "--track":
+                args.track = true;
+                break;
             case "--json":
                 args.json = true;
                 break;
             case "--no-color":
                 args.color = false;
+                break;
+            case "--compare":
+                args.compareUrl = argv[++i];
                 break;
             case "--psi-key":
                 args.psiKey = argv[++i];
@@ -139,7 +164,82 @@ function printReport(result, useColor) {
         console.log("");
     }
 }
+function printComparison(result, useColor) {
+    const c = color(useColor);
+    const comp = result.competitor;
+    if (!comp) {
+        console.log(c.dim("\n(No comparison data returned for the --compare URL.)"));
+        return;
+    }
+    console.log("");
+    console.log(c.bold("Head-to-head"));
+    const leftLabel = result.url;
+    const rightLabel = comp.url;
+    const overallDiff = result.overall - comp.overall;
+    const overallArrow = overallDiff > 0 ? c.green("▲ ahead") : overallDiff < 0 ? c.red("▼ behind") : c.dim("= tied");
+    console.log(`  Overall   ${String(result.overall).padStart(5)}  vs  ${String(comp.overall).padEnd(5)}   ${overallArrow}`);
+    for (const cat of result.categories) {
+        const other = comp.categories.find((cc) => cc.label === cat.label);
+        if (!other)
+            continue;
+        const diff = cat.score - other.score;
+        const arrow = diff > 0 ? c.green("▲") : diff < 0 ? c.red("▼") : c.dim("=");
+        console.log(`  ${cat.label.padEnd(28)} ${String(cat.score).padStart(5)}  vs  ${String(other.score).padEnd(5)}   ${arrow}`);
+    }
+    if (comp.summary.length > 0) {
+        console.log("");
+        console.log(c.dim(`Compared: ${leftLabel} vs ${rightLabel}`));
+        for (const line of comp.summary)
+            console.log(`  • ${line}`);
+    }
+    console.log("");
+}
+function printHistoryList(useColor) {
+    const c = color(useColor);
+    const tracked = (0, history_1.readAllTrackedUrls)();
+    if (tracked.length === 0) {
+        console.log(`No tracked history yet. Run \`audityxe <url> --track\` at least once first.`);
+        console.log(c.dim(`(History file: ${(0, history_1.getHistoryFilePath)()})`));
+        return;
+    }
+    console.log(c.bold(`Tracked URLs (${tracked.length})`));
+    for (const { url, latest } of tracked) {
+        const sc = scoreColor(c, latest.overall);
+        console.log(`  ${sc(String(latest.overall).padStart(5))}  ${url}  ${c.dim(new Date(latest.timestamp).toLocaleDateString())}`);
+    }
+    console.log(c.dim(`\n${(0, history_1.getHistoryFilePath)()}`));
+}
+function printHistoryForUrl(url, useColor) {
+    const c = color(useColor);
+    const entries = (0, history_1.readHistoryForUrl)(url);
+    if (entries.length === 0) {
+        console.log(`No tracked history for ${url} yet. Run \`audityxe ${url} --track\` first.`);
+        return;
+    }
+    console.log(c.bold(`History: ${url} (${entries.length} run${entries.length > 1 ? "s" : ""})`));
+    console.log("");
+    let prev = null;
+    for (const e of entries) {
+        const sc = scoreColor(c, e.overall);
+        const diff = prev ? e.overall - prev.overall : 0;
+        const trend = !prev ? "" : diff > 0 ? c.green(` (+${diff.toFixed(1)})`) : diff < 0 ? c.red(` (${diff.toFixed(1)})`) : c.dim(" (=)");
+        console.log(`  ${new Date(e.timestamp).toLocaleString().padEnd(22)} ${sc(String(e.overall).padStart(5))}${trend}`);
+        prev = e;
+    }
+    console.log("");
+}
+async function handleHistoryCommand(argv, useColor) {
+    const url = argv.find((a) => !a.startsWith("-"));
+    if (url)
+        printHistoryForUrl(url, useColor);
+    else
+        printHistoryList(useColor);
+}
 async function main(argv) {
+    if (argv[0] === "history") {
+        await handleHistoryCommand(argv.slice(1), !argv.includes("--no-color"));
+        return;
+    }
     let args;
     try {
         args = parseArgs(argv);
@@ -171,18 +271,30 @@ async function main(argv) {
     };
     let result;
     try {
-        result = await (0, analyze_1.runAudit)(args.url, undefined, options);
+        result = await (0, analyze_1.runAudit)(args.url, args.compareUrl, options);
     }
     catch (err) {
         console.error(`Audit failed: ${err instanceof Error ? err.message : String(err)}`);
         process.exitCode = 1;
         return;
     }
+    if (args.track) {
+        (0, history_1.appendHistoryEntry)({
+            url: result.url,
+            timestamp: new Date().toISOString(),
+            overall: result.overall,
+            categories: result.categories.map((c) => ({ label: c.label, score: c.score })),
+        });
+    }
     if (args.json) {
         console.log(JSON.stringify(result, null, 2));
     }
     else {
         printReport(result, args.color);
+        if (args.compareUrl)
+            printComparison(result, args.color);
+        if (args.track)
+            console.log(color(args.color).dim(`Saved to history. View the trend with: audityxe history ${result.url}`));
     }
     if (args.minScore !== undefined && result.overall < args.minScore) {
         if (!args.json) {
