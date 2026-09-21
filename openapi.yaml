@@ -5,11 +5,17 @@ info:
     The hosted API behind [audityxe.vercel.app](https://audityxe.vercel.app)'s own audit UI.
 
     **Important — read before integrating:** this endpoint is subject to the same per-plan daily
-    limits as the website (see the README's "Plans and limits" section), and authenticated access
-    requires a **Firebase ID token** (obtained by signing in via the Firebase client SDK), not a
-    conventional long-lived API key — there is no separate API-key issuance mechanism. ID tokens
-    expire in about an hour and must be refreshed through Firebase, which is straightforward from a
-    browser but extra work from a plain script.
+    limits as the website (see the README's "Plans and limits" section). Two credential types work:
+
+    - A **Firebase ID token** (`Authorization: Bearer <token>`), obtained by signing in via the
+      Firebase client SDK. Expires in about an hour and must be refreshed through Firebase —
+      straightforward from a browser, extra work from a plain script.
+    - An **API key** (`x-api-key: atx_live_...`) for Pro-plan accounts. Unlike the ID token, this
+      is a long-lived, revocable secret — but it is never self-serve: it can only be issued and
+      revoked from the admin panel, one key per request from a Pro user, and it rides on that
+      account's own daily limit (not a separate quota). If the linked account is ever downgraded
+      from Pro, the key stops working immediately on the next request, without needing to be
+      separately revoked.
 
     **For unlimited, key-free, script/CI-friendly usage, use [`audityxe-cli`](../cli/README.md)
     instead** — the same audit engine, running on your own machine, with no auth and no limit at
@@ -34,12 +40,15 @@ paths:
         Runs a full audit against `url` and returns the complete scored result.
 
         **Auth / rate limits:**
-        - No `Authorization` header → treated as an anonymous visitor: 1 free audit per IP per
-          calendar day (UTC).
+        - `x-api-key: atx_live_...` → a Pro-account-linked key issued from the admin panel. Uses
+          that account's own daily limit. Invalid, revoked, or no-longer-Pro keys are rejected
+          with 401. Skips the Origin/bot checks below, which exist for browser CSRF protection and
+          don't apply to a keyed, non-browser caller.
         - `Authorization: Bearer <Firebase ID token>` → uses that account's plan limit instead
           (Free/Standard/Pro — see the README).
-        - A cross-site browser request (one sending an `Origin` header that doesn't match this
-          host) is rejected with 403 — this is CSRF protection for browser clients, not a block on
+        - Neither header → treated as an anonymous visitor: 1 free audit per IP per calendar day
+          (UTC). A cross-site browser request (one sending an `Origin` header that doesn't match
+          this host) is rejected with 403 — CSRF protection for browser clients, not a block on
           server-side/script callers, which typically don't send `Origin` at all.
 
         Competitor comparison (`competitorUrl`), the real-browser PageSpeed Insights pass
@@ -50,6 +59,7 @@ paths:
       security:
         - {}
         - bearerAuth: []
+        - apiKeyAuth: []
       requestBody:
         required: true
         content:
@@ -136,7 +146,14 @@ components:
       type: http
       scheme: bearer
       bearerFormat: "Firebase ID token"
-      description: Obtained via the Firebase client SDK after signing in — not a static API key.
+      description: Obtained via the Firebase client SDK after signing in.
+    apiKeyAuth:
+      type: apiKey
+      in: header
+      name: x-api-key
+      description: >-
+        Pro-plan-linked key issued from the admin panel. Not self-serve — see
+        the README's "API keys" section.
 
   schemas:
     ErrorResponse:

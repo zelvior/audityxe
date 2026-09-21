@@ -25,6 +25,7 @@ import {
   AlertTriangle,
   Gauge,
   Database,
+  KeyRound,
 } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -33,13 +34,14 @@ import { PLANS, PlanId } from "@/lib/plans";
 import { fetchJson } from "@/lib/fetch-json";
 import PasswordInput from "@/components/PasswordInput";
 
-type Tab = "dashboard" | "codes" | "users" | "audits" | "announcement" | "activity";
+type Tab = "dashboard" | "codes" | "users" | "audits" | "announcement" | "activity" | "api-keys";
 
 const TABS: { id: Tab; label: string; icon: any }[] = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
   { id: "codes", label: "Redeem Codes", icon: Tag },
   { id: "users", label: "Users", icon: ShieldCheck },
   { id: "audits", label: "Audits", icon: Gauge },
+  { id: "api-keys", label: "API Keys", icon: KeyRound },
   { id: "announcement", label: "Announcement", icon: Megaphone },
   { id: "activity", label: "Activity", icon: History },
 ];
@@ -286,6 +288,7 @@ export default function AdminHubPage() {
         {tab === "codes" && <CodesTab getToken={getToken} passwordEntered={passwordEntered} />}
         {tab === "users" && <UsersTab getToken={getToken} passwordEntered={passwordEntered} />}
         {tab === "audits" && <AuditsTab getToken={getToken} passwordEntered={passwordEntered} />}
+        {tab === "api-keys" && <ApiKeysTab getToken={getToken} passwordEntered={passwordEntered} />}
         {tab === "announcement" && <AnnouncementTab getToken={getToken} passwordEntered={passwordEntered} />}
         {tab === "activity" && <ActivityTab getToken={getToken} passwordEntered={passwordEntered} />}
       </main>
@@ -1345,6 +1348,248 @@ function ActivityTab({ getToken, passwordEntered }: { getToken: () => Promise<st
           </p>
         </div>
       ))}
+    </div>
+  );
+}
+
+/* ══════════════════════════ API KEYS TAB ══════════════════════════ */
+interface ApiKeyRow {
+  id: string;
+  uid: string;
+  email: string | null;
+  label: string;
+  keyPreview: string;
+  createdAt: string | null;
+  createdBy: string;
+  lastUsedAt: string | null;
+  revoked: boolean;
+  revokedAt: string | null;
+}
+
+function ApiKeysTab({ getToken, passwordEntered }: { getToken: () => Promise<string | null>; passwordEntered: string }) {
+  const [keys, setKeys] = useState<ApiKeyRow[] | null>(null);
+  const [listError, setListError] = useState("");
+  const [fetching, setFetching] = useState(true);
+  const [revoking, setRevoking] = useState<string | null>(null);
+
+  const [query, setQuery] = useState("");
+  const [searching, setSearching] = useState(false);
+  const [searchResults, setSearchResults] = useState<UserListItem[] | null>(null);
+  const [issuingUid, setIssuingUid] = useState<string | null>(null);
+  const [labelDraft, setLabelDraft] = useState("");
+  const [issueError, setIssueError] = useState("");
+  const [justIssued, setJustIssued] = useState<{ rawKey: string; uid: string } | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const fetchKeys = useCallback(async () => {
+    setFetching(true);
+    setListError("");
+    try {
+      const token = await getToken();
+      const { ok, data, error } = await fetchJson<{ keys: ApiKeyRow[] }>("/api/admin/api-keys", {
+        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), "x-admin-password": passwordEntered },
+      });
+      if (!ok || !data) throw new Error(error || "Couldn't load API keys.");
+      setKeys(data.keys);
+    } catch (err) {
+      setListError(err instanceof Error ? err.message : "Something went wrong.");
+    } finally {
+      setFetching(false);
+    }
+  }, [getToken, passwordEntered]);
+
+  useEffect(() => {
+    fetchKeys();
+  }, [fetchKeys]);
+
+  const searchUsers = useCallback(async () => {
+    if (!query.trim()) {
+      setSearchResults(null);
+      return;
+    }
+    setSearching(true);
+    try {
+      const token = await getToken();
+      const { ok, data } = await fetchJson<{ users: UserListItem[] }>(`/api/admin/users?q=${encodeURIComponent(query)}`, {
+        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), "x-admin-password": passwordEntered },
+      });
+      setSearchResults(ok && data ? data.users : []);
+    } finally {
+      setSearching(false);
+    }
+  }, [query, getToken, passwordEntered]);
+
+  const issueKey = useCallback(
+    async (u: UserListItem) => {
+      setIssuingUid(u.uid);
+      setIssueError("");
+      setJustIssued(null);
+      try {
+        const token = await getToken();
+        const { ok, data, error } = await fetchJson<{ rawKey: string; key: ApiKeyRow }>("/api/admin/api-keys", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            "x-admin-password": passwordEntered,
+          },
+          body: JSON.stringify({ uid: u.uid, email: u.email, label: labelDraft.trim() || `${u.email || u.uid}'s key` }),
+        });
+        if (!ok || !data) throw new Error(error || "Couldn't create key.");
+        setJustIssued({ rawKey: data.rawKey, uid: u.uid });
+        setLabelDraft("");
+        fetchKeys();
+      } catch (err) {
+        setIssueError(err instanceof Error ? err.message : "Something went wrong.");
+      } finally {
+        setIssuingUid(null);
+      }
+    },
+    [getToken, passwordEntered, labelDraft, fetchKeys]
+  );
+
+  const revokeKey = useCallback(
+    async (id: string) => {
+      if (!confirm("Revoke this API key? This can't be undone — the account would need a new key issued.")) return;
+      setRevoking(id);
+      try {
+        const token = await getToken();
+        const { ok, error } = await fetchJson(`/api/admin/api-keys/${id}`, {
+          method: "DELETE",
+          headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), "x-admin-password": passwordEntered },
+        });
+        if (!ok) throw new Error(error || "Couldn't revoke key.");
+        fetchKeys();
+      } catch (err) {
+        alert(err instanceof Error ? err.message : "Something went wrong.");
+      } finally {
+        setRevoking(null);
+      }
+    },
+    [getToken, passwordEntered, fetchKeys]
+  );
+
+  return (
+    <div className="space-y-6">
+      <div className="glass rounded-card p-5">
+        <p className="text-sm font-semibold mb-1 flex items-center gap-2">
+          <KeyRound size={14} /> Issue a new key
+        </p>
+        <p className="text-xs text-text-secondary mb-4">
+          Search for an account, then issue. Only Pro-plan accounts are eligible — issuing fails
+          otherwise. The raw key is shown exactly once below; copy it before navigating away.
+        </p>
+        <div className="flex gap-2 mb-3">
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && searchUsers()}
+            placeholder="Search email or UID"
+            className="flex-1 rounded-card bg-[rgb(var(--color-text-primary)/0.045)] border border-border px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
+          />
+          <input
+            type="text"
+            value={labelDraft}
+            onChange={(e) => setLabelDraft(e.target.value)}
+            placeholder="Label (optional)"
+            className="w-48 rounded-card bg-[rgb(var(--color-text-primary)/0.045)] border border-border px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
+          />
+          <button onClick={searchUsers} className="px-4 py-2 rounded-card glass hover:border-[rgb(var(--color-text-primary)/0.2)] flex items-center gap-2 text-sm">
+            {searching ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />} Search
+          </button>
+        </div>
+
+        {issueError && <p className="text-xs text-rose mb-3">{issueError}</p>}
+
+        {justIssued && (
+          <div className="rounded-card border border-emerald/40 bg-emerald/10 p-3 mb-3">
+            <p className="text-xs font-semibold text-emerald mb-1">Key created — copy it now, it won't be shown again:</p>
+            <div className="flex items-center gap-2">
+              <code className="text-xs font-mono break-all">{justIssued.rawKey}</code>
+              <button
+                onClick={() => {
+                  navigator.clipboard?.writeText(justIssued.rawKey);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 1500);
+                }}
+                className="p-1.5 rounded-card glass hover:border-[rgb(var(--color-text-primary)/0.2)] shrink-0"
+                title="Copy"
+              >
+                {copied ? <Check size={13} className="text-emerald" /> : <Copy size={13} />}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {searchResults && searchResults.length === 0 && <p className="text-xs text-text-secondary">No matching users.</p>}
+        {searchResults && searchResults.length > 0 && (
+          <div className="space-y-2">
+            {searchResults.map((u) => (
+              <div key={u.uid} className="flex flex-wrap items-center justify-between gap-2 rounded-card border border-border px-3 py-2">
+                <div>
+                  <p className="text-sm">{u.email || u.uid}</p>
+                  <p className="text-xs text-text-secondary font-mono">{u.uid}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${u.plan === "pro" ? "bg-emerald/20 text-emerald" : "bg-white/10 text-text-secondary"}`}>
+                    {u.plan} plan
+                  </span>
+                  <button
+                    onClick={() => issueKey(u)}
+                    disabled={u.plan !== "pro" || issuingUid === u.uid}
+                    title={u.plan !== "pro" ? "Only Pro-plan accounts are eligible" : "Issue a key for this account"}
+                    className="px-3 py-1.5 rounded-card bg-primary text-white text-xs font-semibold disabled:opacity-40 flex items-center gap-1.5"
+                  >
+                    {issuingUid === u.uid ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />} Issue key
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div>
+        <p className="text-xs text-text-secondary mb-2 font-semibold">Issued keys</p>
+        {fetching && (
+          <div className="flex items-center gap-2 text-sm text-text-secondary">
+            <Loader2 size={14} className="animate-spin" /> Loading keys…
+          </div>
+        )}
+        {listError && !fetching && <p className="text-sm text-rose">{listError}</p>}
+        {!fetching && keys && keys.length === 0 && <p className="text-sm text-text-secondary">No keys issued yet.</p>}
+        {!fetching && keys && keys.length > 0 && (
+          <div className="space-y-2">
+            {keys.map((k) => (
+              <div key={k.id} className="glass rounded-card p-4 flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold flex items-center gap-2">
+                    {k.label}
+                    {k.revoked && <span className="text-xs px-2 py-0.5 rounded-full bg-rose/20 text-rose">Revoked</span>}
+                  </p>
+                  <p className="text-xs text-text-secondary">
+                    {k.email || k.uid} · ···{k.keyPreview} · issued by {k.createdBy}
+                  </p>
+                  <p className="text-xs text-text-secondary/70">
+                    Last used: {k.lastUsedAt ? new Date(k.lastUsedAt).toLocaleString() : "never"}
+                  </p>
+                </div>
+                {!k.revoked && (
+                  <button
+                    onClick={() => revokeKey(k.id)}
+                    disabled={revoking === k.id}
+                    className="p-2 rounded-card glass hover:border-[rgb(var(--color-text-primary)/0.2)]"
+                    title="Revoke"
+                  >
+                    {revoking === k.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} className="text-rose" />}
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

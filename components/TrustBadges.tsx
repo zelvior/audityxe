@@ -48,24 +48,20 @@ export default function TrustBadges() {
           rel="noopener noreferrer"
           className="inline-block"
         >
-          {/* Went through two versions: a hand-typed static "A+" claim
-              (could silently go stale/be wrong), then a shields.io
-              dynamic/json badge pulling a live grade from SSL Labs'
-              public API — which rendered as a broken image in
-              production. shields.io's dynamic-json fetcher appears to
-              time out or get blocked reaching api.ssllabs.com specifically
-              (SSL Labs' analyze endpoint can take 60+ seconds on an
-              uncached scan, well past what a badge-image request waits
-              for). Reverted to a plain static badge that makes no grade
-              claim at all — same "always renders, never wrong" bar as the
-              other badges here — with the actual, real, live grade one
-              click away on SSL Labs' own site. */}
+          {/* Self-hosted badge, backed by a Firestore cache refreshed
+              once a day by a cron job (see lib/security-badges.ts) —
+              replaces the old shields.io dynamic-json badge, which made
+              shields.io fetch api.ssllabs.com live on every single page
+              load and frequently rendered broken because SSL Labs'
+              analyze endpoint can take 60+ seconds on an uncached scan,
+              well past shields.io's own fetch timeout. This route never
+              calls SSL Labs directly — only reads the cached grade. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="https://img.shields.io/badge/SSL%20Labs-Run%20Live%20Test-blue?style=flat-square&logo=qualys"
-            alt="Qualys SSL Labs — run a live test for audityxe.vercel.app"
-            width={172}
-            height={20}
+            src="/api/badge/qualys"
+            alt="Qualys SSL Labs grade for audityxe.vercel.app"
+            width={300}
+            height={90}
           />
         </a>
       </div>
@@ -80,17 +76,15 @@ export default function TrustBadges() {
           rel="noopener noreferrer"
           className="inline-block"
         >
-          {/* Same fix and same reasoning as SSL Labs above — the
-              shields.io dynamic/json badge pulling from MDN's Observatory
-              API rendered broken in production, so this is back to a
-              plain static badge with no claimed grade, guaranteed to
-              render, real grade one click away. */}
+          {/* Same fix and same reasoning as SSL Labs above — self-hosted,
+              cache-backed, never calls MDN Observatory live from this
+              request path. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="https://img.shields.io/badge/HTTP%20Observatory-Run%20Live%20Scan-blue?style=flat-square&logo=mozilla"
-            alt="MDN HTTP Observatory — run a live scan for audityxe.vercel.app"
-            width={205}
-            height={20}
+            src="/api/badge/mdn"
+            alt="MDN HTTP Observatory grade for audityxe.vercel.app"
+            width={300}
+            height={90}
           />
         </a>
       </div>

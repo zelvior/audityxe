@@ -136,6 +136,10 @@ const jsonLd = {
         "https://orcid.org/0009-0009-2376-367X",
         "https://youtube.com/@zelviorhere",
         "https://linktr.ee/zelvior",
+        "https://www.npmjs.com/~zelnpm",
+        "https://viberank.dev/apps/Audityxe",
+        "https://programmerneeds.com/tools/audityxe-a2486b",
+        "https://www.producthunt.com/products/audityxe",
       ],
     },
     {

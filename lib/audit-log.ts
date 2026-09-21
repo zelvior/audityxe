@@ -1,5 +1,5 @@
 import { adminDb } from "./firebase/admin";
-import { FieldValue, Timestamp } from "firebase-admin/firestore";
+import { FieldValue, Query, QueryDocumentSnapshot, Timestamp } from "firebase-admin/firestore";
 import { incrementCounter, recordDailyEvent } from "./counters";
 
 export interface AuditLogInput {
@@ -54,7 +54,7 @@ export interface AuditListItem {
   createdAt: string | null;
 }
 
-function toItem(doc: FirebaseFirestore.QueryDocumentSnapshot): AuditListItem {
+function toItem(doc: QueryDocumentSnapshot): AuditListItem {
   const d = doc.data();
   return {
     id: doc.id,
@@ -80,7 +80,7 @@ export async function listAuditsForAdmin(opts: {
   const db = adminDb();
   const cappedLimit = Math.min(Math.max(1, opts.limit || 50), 100);
 
-  let q: FirebaseFirestore.Query = db.collection("audits").orderBy("createdAt", "desc");
+  let q: Query = db.collection("audits").orderBy("createdAt", "desc");
   if (opts.status) q = q.where("status", "==", opts.status);
   const snap = await q.limit(500).get();
 
@@ -107,7 +107,7 @@ export async function listAuditsForAdmin(opts: {
 export async function getAuditForAdmin(id: string): Promise<AuditListItem | null> {
   const snap = await adminDb().collection("audits").doc(id).get();
   if (!snap.exists) return null;
-  return toItem(snap as FirebaseFirestore.QueryDocumentSnapshot);
+  return toItem(snap as QueryDocumentSnapshot);
 }
 
 export async function deleteAuditRecord(id: string): Promise<void> {

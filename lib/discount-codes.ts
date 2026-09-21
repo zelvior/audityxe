@@ -1,5 +1,5 @@
 import { adminDb } from "./firebase/admin";
-import { FieldValue, Timestamp } from "firebase-admin/firestore";
+import { FieldValue, Timestamp, QueryDocumentSnapshot, Transaction } from "firebase-admin/firestore";
 import { PlanId } from "./plans";
 
 /**
@@ -146,7 +146,7 @@ export async function createRedeemCodeBatch(
 export async function listRedeemCodes(): Promise<RedeemCodeDoc[]> {
   const db = adminDb();
   const snap = await db.collection("redeemCodes").orderBy("createdAt", "desc").get();
-  return snap.docs.map((d) => {
+  return snap.docs.map((d: QueryDocumentSnapshot) => {
     const data = d.data();
     const expiresAt = data.expiresAt instanceof Timestamp ? data.expiresAt.toDate().toISOString() : data.expiresAt || null;
     const createdAt = data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : data.createdAt || null;
@@ -199,7 +199,7 @@ export async function redeemCode(uid: string, rawCode: string): Promise<RedeemRe
   const userRef = db.collection("users").doc(uid);
 
   try {
-    return await db.runTransaction(async (tx) => {
+    return await db.runTransaction(async (tx: Transaction) => {
       const [codeSnap, redemptionSnap] = await Promise.all([tx.get(codeRef), tx.get(redemptionRef)]);
 
       if (!codeSnap.exists) return { ok: false, error: "That code isn't valid." };

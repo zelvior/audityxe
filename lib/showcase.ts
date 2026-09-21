@@ -1,5 +1,5 @@
 import { adminDb } from "./firebase/admin";
-import { Timestamp } from "firebase-admin/firestore";
+import { Timestamp, QueryDocumentSnapshot } from "firebase-admin/firestore";
 import { assertSafeUrl } from "./url-safety";
 
 /**
@@ -84,7 +84,7 @@ export async function verifyAndSubmitToShowcase(rawHost: string): Promise<Showca
 
 export async function listShowcaseEntries(): Promise<ShowcaseEntry[]> {
   const snap = await adminDb().collection("showcase_submissions").orderBy("submittedAt", "desc").limit(60).get();
-  return snap.docs.map((d) => {
+  return snap.docs.map((d: QueryDocumentSnapshot) => {
     const data = d.data();
     const submittedAt = data.submittedAt instanceof Timestamp ? data.submittedAt.toDate().toISOString() : data.submittedAt;
     return { host: d.id, submittedAt };

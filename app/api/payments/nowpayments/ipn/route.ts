@@ -1,3 +1,4 @@
+import { Transaction } from "firebase-admin/firestore";
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase/admin";
 import { verifyIpnSignature, isPaidStatus, parseOrderId, PAID_PLANS } from "@/lib/nowpayments";
@@ -78,7 +79,7 @@ export async function POST(req: NextRequest) {
   const grant = PAID_PLANS[order.plan];
 
   try {
-    await db.runTransaction(async (tx) => {
+    await db.runTransaction(async (tx: Transaction) => {
       const existing = await tx.get(paymentRef);
       if (existing.exists && existing.data()?.credited) return; // already handled
 

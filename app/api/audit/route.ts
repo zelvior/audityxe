@@ -8,6 +8,7 @@ import { getClientIp, hashIp } from "@/lib/ip";
 import { saveLastAuditScore } from "@/lib/badge-store";
 import { getByokCredentials, getPsiByokCredentials } from "@/lib/user-settings";
 import { logAuditRecord } from "@/lib/audit-log";
+import { resolveApiKeyIdentity, ApiKeyError } from "@/lib/api-keys";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,11 +18,22 @@ const MAX_BODY_BYTES = 10 * 1024; // this endpoint only ever needs two short URL
 const MAX_URL_LENGTH = 2048;
 
 export async function POST(req: NextRequest) {
-  if (!isTrustedOrigin(req)) {
-    return NextResponse.json({ error: "Cross-site request rejected." }, { status: 403 });
-  }
-  if (looksLikeBot(req)) {
-    return NextResponse.json({ error: "Automated requests are not permitted on this endpoint." }, { status: 403 });
+  // A Pro-linked API key is a stronger, revocable credential than the
+  // Origin/UA heuristics below exist to approximate — a request that
+  // carries a valid one skips both, same as the CLI's own trust model.
+  // An invalid/revoked/downgraded key still fails closed at the
+  // resolveApiKeyIdentity() call further down, so this isn't a bypass
+  // of auth, only of the browser-CSRF heuristics that don't apply to a
+  // keyed, non-browser caller.
+  const apiKeyHeader = req.headers.get("x-api-key");
+
+  if (!apiKeyHeader) {
+    if (!isTrustedOrigin(req)) {
+      return NextResponse.json({ error: "Cross-site request rejected." }, { status: 403 });
+    }
+    if (looksLikeBot(req)) {
+      return NextResponse.json({ error: "Automated requests are not permitted on this endpoint." }, { status: 403 });
+    }
   }
 
   // Reject oversized request bodies before even parsing JSON.
@@ -30,14 +42,24 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Request body is too large." }, { status: 413 });
   }
 
-  // Every audit requires either a signed-in, email-verified account, or —
-  // for a visitor with no account at all — a single free anonymous audit
-  // per IP per day (see checkAndIncrementAnonymousUsage). No unverified
-  // account can run a real audit either way.
+  // Every audit requires one of: a Pro-linked API key, a signed-in
+  // email-verified account, or — for a visitor with no account at all —
+  // a single free anonymous audit per IP per day (see
+  // checkAndIncrementAnonymousUsage). No unverified account can run a
+  // real audit either way.
   const hasAuthHeader = !!(req.headers.get("authorization") || req.headers.get("Authorization"));
 
-  let identity: Awaited<ReturnType<typeof requireAuth>> | null = null;
-  if (hasAuthHeader) {
+  let identity: { uid: string; email: string | null } | null = null;
+  if (apiKeyHeader) {
+    try {
+      identity = await resolveApiKeyIdentity(apiKeyHeader);
+    } catch (err) {
+      if (err instanceof ApiKeyError) {
+        return NextResponse.json({ error: err.message, code: "INVALID_API_KEY" }, { status: 401 });
+      }
+      return NextResponse.json({ error: "API key validation failed." }, { status: 401 });
+    }
+  } else if (hasAuthHeader) {
     try {
       identity = await requireAuth(req, { requireEmailVerified: true });
     } catch (err) {
@@ -66,9 +88,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "The competitor URL is too long." }, { status: 400 });
   }
 
-  if (identity) {
+  // Skipped for API-key callers: an account only reaches Pro (a
+  // prerequisite for owning a key at all — see resolveApiKeyIdentity)
+  // by already existing, so there's nothing to bootstrap.
+  if (identity && !apiKeyHeader) {
     try {
-      await ensureUserDoc(identity);
+      await ensureUserDoc(identity as Awaited<ReturnType<typeof requireAuth>>);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to set up your account.";
       return NextResponse.json({ error: message }, { status: 500 });

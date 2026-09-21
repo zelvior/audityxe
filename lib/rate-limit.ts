@@ -1,6 +1,6 @@
 import { adminDb } from "./firebase/admin";
 import { DEFAULT_PLAN, PlanId, planLimit, ANON_DAILY_LIMIT } from "./plans";
-import { FieldValue, Timestamp } from "firebase-admin/firestore";
+import { DocumentData, FieldValue, Timestamp, Transaction } from "firebase-admin/firestore";
 import { recordDailyEvent, incrementCounter } from "./counters";
 import { bloomAddTokens } from "./bloom-filter";
 
@@ -63,7 +63,7 @@ export async function ensureUserDoc(identity: DecodedIdentity, displayName?: str
  * in Firestore when an admin approves a 30 or 365-day access request
  * (see README: "Approving a plan upgrade").
  */
-function effectivePlan(data: FirebaseFirestore.DocumentData | undefined): { plan: PlanId; expiresAt: Date | null; expired: boolean } {
+function effectivePlan(data: DocumentData | undefined): { plan: PlanId; expiresAt: Date | null; expired: boolean } {
   if (!data) return { plan: DEFAULT_PLAN, expiresAt: null, expired: false };
 
   const rawPlan = data.plan as PlanId | undefined;
@@ -107,7 +107,7 @@ export async function checkAndIncrementUsage(uid: string): Promise<UsageResult> 
   const usageRef = db.collection("usage").doc(uid);
   const today = todayKey();
 
-  return db.runTransaction(async (tx) => {
+  return db.runTransaction(async (tx: Transaction) => {
     const [userSnap, usageSnap] = await Promise.all([tx.get(userRef), tx.get(usageRef)]);
 
     const { plan, expiresAt, expired } = effectivePlan(userSnap.data());
@@ -200,7 +200,7 @@ export async function checkAndIncrementFeatureUsage(
   const ref = db.collection("feature_usage").doc(`${uid}_${feature}`);
   const today = todayKey();
 
-  return db.runTransaction(async (tx) => {
+  return db.runTransaction(async (tx: Transaction) => {
     const snap = await tx.get(ref);
 
     let used = 0;
@@ -243,7 +243,7 @@ export async function checkAndIncrementWeeklyFeatureUsage(
   const ref = db.collection("feature_usage_weekly").doc(`${uid}_${feature}`);
   const week = weekKey();
 
-  return db.runTransaction(async (tx) => {
+  return db.runTransaction(async (tx: Transaction) => {
     const snap = await tx.get(ref);
 
     let used = 0;
@@ -321,7 +321,7 @@ export async function checkAndIncrementAnonymousUsage(ipHash: string): Promise<A
   const today = todayKey();
   const limit = ANON_DAILY_LIMIT;
 
-  return db.runTransaction(async (tx) => {
+  return db.runTransaction(async (tx: Transaction) => {
     const snap = await tx.get(ref);
 
     let used = 0;

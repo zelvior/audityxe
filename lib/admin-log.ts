@@ -32,7 +32,7 @@ export async function listAdminLog(limit = 100): Promise<AdminLogEntry[]> {
   const db = adminDb();
   const cappedLimit = Math.min(Math.max(1, limit), 200);
   const snap = await db.collection("admin_audit_log").orderBy("at", "desc").limit(cappedLimit).get();
-  return snap.docs.map((d) => {
+  return snap.docs.map((d: FirebaseFirestore.QueryDocumentSnapshot) => {
     const data = d.data();
     return {
       id: d.id,

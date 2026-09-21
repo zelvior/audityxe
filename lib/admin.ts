@@ -54,7 +54,7 @@ async function recordFailedAttemptAndCheckBudget(uid: string): Promise<boolean> 
   const hourKey = new Date().toISOString().slice(0, 13); // YYYY-MM-DDTHH
   const ref = db.collection("admin_password_attempts").doc(uid);
 
-  return db.runTransaction(async (tx) => {
+  return db.runTransaction(async (tx: FirebaseFirestore.Transaction) => {
     const snap = await tx.get(ref);
     const data = snap.data();
     const count = data?.hour === hourKey ? (data.count as number) || 0 : 0;

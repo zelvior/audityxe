@@ -1,5 +1,5 @@
 import { adminDb } from "./firebase/admin";
-import { FieldValue } from "firebase-admin/firestore";
+import { FieldValue, DocumentSnapshot } from "firebase-admin/firestore";
 
 /**
  * All-time, all-scale counters. A single doc with FieldValue.increment is
@@ -71,7 +71,7 @@ export async function getDailyStats(days: number): Promise<DailyStatPoint[]> {
     dates.push(dayKey(d));
   }
   const snaps = await Promise.all(dates.map((d) => db.collection("dailyStats").doc(d).get()));
-  return snaps.map((snap, i) => {
+  return snaps.map((snap: DocumentSnapshot, i: number) => {
     const d = snap.data() || {};
     return {
       date: dates[i],

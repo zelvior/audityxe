@@ -115,7 +115,6 @@ export default function CreditsPage() {
         <CreditCard icon={Compass} name="Cloudflare DNS over HTTPS" role="DNSSEC, CAA, and email-authentication record lookups" href="https://developers.cloudflare.com/1.1.1.1/encryption/dns-over-https/" />
         <CreditCard icon={Compass} name="NOWPayments" role="Hosted crypto checkout and payment notifications" href="https://nowpayments.io" />
         <CreditCard icon={Compass} name="UptimeRobot" role="Public uptime monitoring badge on the status page" href="https://uptimerobot.com" />
-        <CreditCard icon={Compass} name="Shields.io" role="Status and grade badges used across the trust pages" href="https://shields.io" />
         <CreditCard icon={Compass} name="MDN HTTP Observatory" role="Independent third-party security header grading" href="https://developer.mozilla.org/en-US/observatory" />
         <CreditCard icon={Compass} name="Qualys SSL Labs" role="Independent third-party TLS configuration grading" href="https://www.ssllabs.com/ssltest/" />
       </div>

@@ -6,6 +6,25 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    version: "3.8.1",
+    date: "September 2026",
+    changes: [
+      "New: added an npm profile icon (npmjs.com/~zelnpm) alongside the other footer social icons.",
+      "New: the npm profile and the three \"Featured on\" listings (VibeRank, ProgrammerNeeds, Product Hunt) are now also in the homepage's Organization structured data (sameAs) — a real SEO/entity signal, not just a visible link.",
+      "Fixed: the Credits page still credited Shields.io for \"grade badges used across the trust pages\" after the Qualys/MDN badges were moved off shields.io entirely (see 3.8.0) — removed the stale credit.",
+    ],
+  },
+  {
+    version: "3.8.0",
+    date: "September 2026",
+    changes: [
+      "New: /api/audit now accepts a Pro-linked API key (x-api-key) as a third auth method alongside Firebase ID tokens and the anonymous daily audit — previously any request without an Authorization header was just treated as anonymous, with no durable, revocable credential at all. Keys are admin-issued only (new API Keys tab in /admin), tied to a single Pro account, hashed at rest, shown once at creation, and stop working immediately if the linked account is ever downgraded off Pro — no separate revoke needed, though that's also one click.",
+      "Fixed: the Qualys SSL Labs and MDN HTTP Observatory badges, broken since they were shields.io dynamic-json badges making shields.io fetch the live APIs on every page load (SSL Labs' analyze endpoint can take 60+ seconds uncached — well past shields.io's own fetch timeout). Replaced with self-hosted badges backed by a Firestore cache refreshed once a day by a new cron job (/api/cron/security-badges) — the badge-serving request path never calls either third party directly, only reads the cached grade, with a 6-hour HTTP cache on top.",
+      "Fixed: 18 TypeScript CI failures across lib/rate-limit.ts, lib/admin.ts, lib/audit-log.ts, lib/discount-codes.ts, lib/counters.ts, lib/showcase.ts, lib/user-moderation.ts, lib/admin-log.ts, and the NOWPayments IPN webhook — root cause was firebase-admin's newer versions dropping the global FirebaseFirestore namespace; fixed by importing Transaction/QueryDocumentSnapshot/DocumentSnapshot/DocumentData/Query explicitly from firebase-admin/firestore instead.",
+      "Changed: audityxe-cli and the VS Code extension bumped to 1.1.3, and no longer run a build step on publish (prepublishOnly removed) — both now ship pre-built.",
+    ],
+  },
+  {
     version: "3.7.0",
     date: "September 2026",
     changes: [

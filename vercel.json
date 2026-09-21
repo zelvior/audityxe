@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/cleanup-unverified",
       "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/security-badges",
+      "schedule": "0 6 * * *"
     }
   ]
 }

@@ -263,12 +263,35 @@ It's subject to the same per-plan daily limits as the website itself (see
 [Plans and limits](#plans-and-limits)) — for unlimited use, the CLI above is the right tool, since it
 runs the engine locally instead of calling this hosted endpoint.
 
+#### API keys
+
+Programmatic access to `/api/audit` is **Pro-plan only** and requires an API key — there is no
+free/anonymous/open tier for scripted callers anymore (an anonymous *browser* visitor still gets
+1 audit/day, same as before). Keys:
+
+- Are minted **only from the admin panel**, never self-serve, and only for an account already on
+  the Pro plan.
+- Are shown once at creation time (`atx_live_...`) — the raw key is never stored or retrievable
+  again after that, only a last-4 preview.
+- Ride on the linked account's own daily limit — not a separate quota. If that account is later
+  downgraded off Pro, the key stops working immediately on its next use, no separate revoke
+  needed (though revoking is also one click in the admin panel).
+
+Usage:
+
+```bash
+curl -X POST https://audityxe.vercel.app/api/audit \
+  -H "x-api-key: atx_live_..." \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://example.com"}'
+```
+
 ### VS Code extension
 
 [`vscode-extension/`](./vscode-extension) — run an audit from the Command Palette, results in an
 output panel. Also a thin wrapper around the CLI. A pre-built `.vsix` ships in the repo
-([`vscode-extension/audityxe-1.0.0.vsix`](./vscode-extension/audityxe-1.0.0.vsix)) — install it
-locally right now with `code --install-extension vscode-extension/audityxe-1.0.0.vsix`, no build
+([`vscode-extension/audityxe-1.1.3.vsix`](./vscode-extension/audityxe-1.1.3.vsix)) — install it
+locally right now with `code --install-extension vscode-extension/audityxe-1.1.3.vsix`, no build
 step needed. Not yet published to the Marketplace itself — see
 [`vscode-extension/README.md`](./vscode-extension/README.md) for the exact publish steps (needs
 your own Marketplace publisher account, which this repo can't create on your behalf).
@@ -567,12 +590,12 @@ audityxe/
 │   │   ├── activity/  announcement/  dashboard/  redeem-codes/  users/
 │   ├── api/
 │   │   ├── account/            # profile, delete, redeem-code
-│   │   ├── admin/               # activity, announcement, audits, redeem-codes, search, stats, users
+│   │   ├── admin/               # activity, announcement, api-keys/[id], audits, redeem-codes, search, stats, users
 │   │   ├── announcement/
 │   │   ├── audit/               # the main audit endpoint (+ bulk/)
-│   │   ├── badge/[domain]/
+│   │   ├── badge/[domain]/  badge/qualys/  badge/mdn/
 │   │   ├── banner-bg/
-│   │   ├── cron/cleanup-unverified/
+│   │   ├── cron/cleanup-unverified/  cron/security-badges/
 │   │   ├── payments/nowpayments/ # create, ipn, status, subscribe
 │   │   └── settings/
 │   ├── audit-verification/  badge/  bulk/  changelog/  contact/  cookies/
@@ -600,8 +623,10 @@ audityxe/
 │   ├── audit-modules.ts      # turns signals into scored modules + findings
 │   ├── audit-defender-data.ts   audit-log.ts             admin.ts / admin-log.ts
 │   ├── ai.ts                    announcement.ts          badge-store.ts
+│   ├── api-keys.ts           # Pro-linked API key issuance/validation for /api/audit
 │   ├── bloom-filter.ts          breadcrumb.ts            constants.ts
 │   ├── counters.ts              crypto.ts                currency.ts
+│   ├── crux.ts                # real-user Core Web Vitals (Chrome UX Report)
 │   ├── deep-signals.ts       # HTML/DOM signal extraction
 │   ├── discount-codes.ts     # redeem/giveaway codes only — percent-off codes removed
 │   ├── dns-email-auth.ts        dns-security.ts
@@ -611,6 +636,8 @@ audityxe/
 │   ├── nowpayments.ts        # invoice creation + IPN HMAC verification
 │   ├── ops.ts                   pagespeed.ts             pdf-export.ts
 │   ├── plans.ts                 rate-limit.ts            security.ts
+│   ├── security-badges.ts     # cached SSL Labs / MDN Observatory grades (refreshed by cron)
+│   ├── security-badge-svg.ts  # shared SVG renderer for those two badges
 │   ├── seo.ts                   site-context.ts
 │   ├── site-crawl.ts         # multi-page crawl, link graph, JS-render heuristic
 │   ├── tls-check.ts          # live TLS handshake inspection

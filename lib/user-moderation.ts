@@ -1,5 +1,5 @@
 import { adminDb, adminAuth } from "./firebase/admin";
-import { FieldValue, Timestamp } from "firebase-admin/firestore";
+import { DocumentData, DocumentSnapshot, FieldValue, QueryDocumentSnapshot, Timestamp } from "firebase-admin/firestore";
 import { PlanId, PLANS } from "./plans";
 import { getGlobalCounters, getDailyStats, DailyStatPoint } from "./counters";
 import { getAuditCounts } from "./audit-log";
@@ -30,7 +30,7 @@ function sanitizeReason(raw: unknown): string | null {
 /** Reads the current moderation state for a uid. Never throws — an
  * unreadable/missing doc is treated as "active" so a Firestore hiccup
  * never accidentally locks someone in or out. */
-export function moderationFromUserData(data: FirebaseFirestore.DocumentData | undefined): ModerationInfo {
+export function moderationFromUserData(data: DocumentData | undefined): ModerationInfo {
   if (!data?.moderation) return EMPTY;
   const m = data.moderation;
   const status: ModerationStatus = ["active", "suspended", "banned"].includes(m.status) ? m.status : "active";
@@ -274,7 +274,7 @@ export async function searchUsersBloom(query: string): Promise<UserListItem[]> {
   const results: UserListItem[] = [];
   const seen = new Set<string>();
 
-  const pushDoc = (doc: FirebaseFirestore.QueryDocumentSnapshot | FirebaseFirestore.DocumentSnapshot) => {
+  const pushDoc = (doc: QueryDocumentSnapshot | DocumentSnapshot) => {
     if (!doc.exists || seen.has(doc.id)) return;
     seen.add(doc.id);
     const data = doc.data()!;

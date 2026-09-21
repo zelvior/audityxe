@@ -22,6 +22,19 @@ function OrcidIcon({ size = 15 }: { size?: number }) {
   );
 }
 
+// The real npm mark (red square, white "npm" wordmark) — lucide-react
+// has no npm icon, and a generic package-box icon wouldn't be
+// recognizable as npm specifically, so this is reproduced directly,
+// same approach as the ORCID mark above.
+function NpmIcon({ size = 15 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 256 256" aria-hidden="true">
+      <rect width="256" height="256" fill="#CB3837" />
+      <path fill="#fff" d="M39 39h178v178H140v-142H93v142H39V39z" />
+    </svg>
+  );
+}
+
 // Points at our own /donate page by default, which embeds the
 // NOWPayments donation widget and also offers non-financial ways to
 // help. NEXT_PUBLIC_DONATION_URL can override it with an external link
@@ -30,6 +43,7 @@ const DONATION_URL = process.env.NEXT_PUBLIC_DONATION_URL || "/donate";
 const DONATION_IS_EXTERNAL = DONATION_URL.startsWith("http");
 
 const SOCIAL_LINKS = [
+  { href: "https://www.npmjs.com/~zelnpm", label: "npm", icon: NpmIcon },
   { href: "https://orcid.org/0009-0009-2376-367X", label: "ORCID", icon: OrcidIcon },
   { href: "https://youtube.com/@zelviorhere", label: "YouTube", icon: Youtube },
   { href: "https://linktr.ee/zelvior", label: "Linktree", icon: Link2 },

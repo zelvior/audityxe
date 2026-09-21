@@ -6,11 +6,11 @@ the editor.
 
 ## Install right now (pre-built)
 
-A ready-to-install package is included in this folder: **`audityxe-1.0.0.vsix`**. No build step
+A ready-to-install package is included in this folder: **`audityxe-1.1.3.vsix`**. No build step
 needed.
 
 ```bash
-code --install-extension vscode-extension/audityxe-1.0.0.vsix
+code --install-extension vscode-extension/audityxe-1.1.3.vsix
 ```
 
 Or in VS Code: **Extensions panel → `...` menu → Install from VSIX...** → pick the file.
@@ -50,7 +50,7 @@ it out.
 
 ```bash
 npm install --global @vscode/vsce
-vsce package   # produces audityxe-1.0.0.vsix — same output already included in this folder
+vsce package   # produces audityxe-1.1.3.vsix — same output already included in this folder
 ```
 
 ### Publishing to the Marketplace (not done yet)
