@@ -6,6 +6,14 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    version: "3.9.1",
+    date: "September 2026",
+    changes: [
+      "New: optional dynamic controls added across every admin panel tab — Users gets a Newest/Oldest sort alongside the plan filter; Audits gets a sort (newest/oldest/score) plus a min-score slider; Codes gets an Active/Disabled/Unredeemed filter; Activity gets Today/7d/30d/All-time quick-filter chips alongside the action filter; API Keys gets an Active/Revoked filter and a Newest/Recently-used sort; Dashboard gets a \"Copy as JSON\" button for the full stats object.",
+      "New: the Announcement tab now shows a full live banner preview (exact styling, icon, and ticking countdown) above the form, not just a bare countdown readout — matches exactly what visitors will see before you publish.",
+    ],
+  },
+  {
     version: "3.9.0",
     date: "September 2026",
     changes: [

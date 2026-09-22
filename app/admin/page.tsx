@@ -29,6 +29,7 @@ import {
   Download,
   Filter,
   RefreshCw,
+  Info,
 } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -437,6 +438,17 @@ function DashboardTab({ getToken, passwordEntered }: { getToken: () => Promise<s
           {fetching ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />} Refresh
         </button>
       </div>
+      <div className="flex justify-end -mt-4">
+        <button
+          onClick={() => {
+            navigator.clipboard?.writeText(JSON.stringify(stats, null, 2));
+          }}
+          className="px-3 py-1.5 rounded-card glass hover:border-[rgb(var(--color-text-primary)/0.2)] flex items-center gap-1.5 text-xs font-semibold"
+          title="Copy the full stats object as JSON"
+        >
+          <Copy size={12} /> Copy as JSON
+        </button>
+      </div>
       <div>
         <p className="text-xs text-text-secondary mb-2 font-semibold">Users</p>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -534,6 +546,7 @@ function CodesTab({ getToken, passwordEntered }: { getToken: () => Promise<strin
   const [fetching, setFetching] = useState(true);
   const [listError, setListError] = useState("");
   const [copiedCode, setCopiedCode] = useState("");
+  const [codeFilter, setCodeFilter] = useState<"all" | "active" | "disabled" | "unredeemed">("all");
 
   const [customCode, setCustomCode] = useState("");
   const [plan, setPlan] = useState<PlanId>("pro");
@@ -816,14 +829,30 @@ function CodesTab({ getToken, passwordEntered }: { getToken: () => Promise<strin
       {listError && !fetching && <p className="text-sm text-rose">{listError}</p>}
       {!fetching && codes && codes.length === 0 && <p className="text-sm text-text-secondary">No codes yet.</p>}
 
-      {!fetching && codes && codes.length > 0 && (
+      {!fetching && codes && codes.length > 0 && (() => {
+        const visibleCodes = codes.filter((c) => {
+          if (codeFilter === "active") return c.active;
+          if (codeFilter === "disabled") return !c.active;
+          if (codeFilter === "unredeemed") return c.redemptions < c.maxRedemptions;
+          return true;
+        });
+        return (
         <>
-          <div className="flex justify-end mb-3">
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <div className="flex items-center gap-1.5 px-3 py-2 rounded-card glass text-xs">
+              <Filter size={13} className="text-text-secondary" />
+              <select value={codeFilter} onChange={(e) => setCodeFilter(e.target.value as typeof codeFilter)} className="bg-transparent focus:outline-none">
+                <option value="all">All codes</option>
+                <option value="active">Active only</option>
+                <option value="disabled">Disabled only</option>
+                <option value="unredeemed">Unredeemed only</option>
+              </select>
+            </div>
             <ExportCsvButton
               onExport={() =>
                 downloadCsv(
                   `audityxe-codes-${new Date().toISOString().slice(0, 10)}.csv`,
-                  codes.map((c) => ({
+                  visibleCodes.map((c) => ({
                     code: c.code,
                     active: c.active,
                     plan: c.plan,
@@ -838,8 +867,9 @@ function CodesTab({ getToken, passwordEntered }: { getToken: () => Promise<strin
               }
             />
           </div>
+          {visibleCodes.length === 0 && <p className="text-sm text-text-secondary mb-3">No codes match this filter.</p>}
         <div className="space-y-3">
-          {codes.map((c) => (
+          {visibleCodes.map((c) => (
             <div key={c.code} className="glass rounded-card p-4 flex flex-wrap items-center gap-3 justify-between">
               <div className="flex items-center gap-2">
                 <button
@@ -871,7 +901,8 @@ function CodesTab({ getToken, passwordEntered }: { getToken: () => Promise<strin
           ))}
         </div>
         </>
-      )}
+        );
+      })()}
     </div>
   );
 }
@@ -946,7 +977,15 @@ function UsersTab({ getToken, passwordEntered }: { getToken: () => Promise<strin
   );
 
   const [planFilter, setPlanFilter] = useState<"all" | "free" | "standard" | "pro">("all");
-  const visibleUsers = useMemo(() => (users || []).filter((u) => planFilter === "all" || u.plan === planFilter), [users, planFilter]);
+  const [sortBy, setSortBy] = useState<"newest" | "oldest">("newest");
+  const visibleUsers = useMemo(() => {
+    const filtered = (users || []).filter((u) => planFilter === "all" || u.plan === planFilter);
+    return [...filtered].sort((a, b) => {
+      const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return sortBy === "newest" ? tb - ta : ta - tb;
+    });
+  }, [users, planFilter, sortBy]);
 
   return (
     <div>
@@ -973,6 +1012,16 @@ function UsersTab({ getToken, passwordEntered }: { getToken: () => Promise<strin
             <option value="free">Free</option>
             <option value="standard">Standard</option>
             <option value="pro">Pro</option>
+          </select>
+        </div>
+        <div className="flex items-center gap-1.5 px-3 py-2 rounded-card glass text-xs">
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+            className="bg-transparent focus:outline-none"
+          >
+            <option value="newest">Newest first</option>
+            <option value="oldest">Oldest first</option>
           </select>
         </div>
         {users && users.length > 0 && (
@@ -1178,6 +1227,8 @@ function AuditsTab({ getToken, passwordEntered }: { getToken: () => Promise<stri
   const [fetching, setFetching] = useState(true);
   const [listError, setListError] = useState("");
   const [actionId, setActionId] = useState<string | null>(null);
+  const [minScore, setMinScore] = useState(0);
+  const [sortBy, setSortBy] = useState<"newest" | "oldest" | "score-asc" | "score-desc">("newest");
 
   const fetchAudits = useCallback(
     async (q: string, s: string) => {
@@ -1242,9 +1293,20 @@ function AuditsTab({ getToken, passwordEntered }: { getToken: () => Promise<stri
     [getToken, passwordEntered, fetchAudits, query, status]
   );
 
+  const visibleAudits = useMemo(() => {
+    const filtered = (audits || []).filter((a) => (a.score ?? 0) >= minScore);
+    return [...filtered].sort((a, b) => {
+      if (sortBy === "score-asc") return (a.score ?? -1) - (b.score ?? -1);
+      if (sortBy === "score-desc") return (b.score ?? -1) - (a.score ?? -1);
+      const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return sortBy === "newest" ? tb - ta : ta - tb;
+    });
+  }, [audits, minScore, sortBy]);
+
   return (
     <div>
-      <div className="flex flex-wrap gap-2 mb-6">
+      <div className="flex flex-wrap gap-2 mb-3">
         <input
           type="text"
           value={query}
@@ -1274,7 +1336,7 @@ function AuditsTab({ getToken, passwordEntered }: { getToken: () => Promise<stri
             onExport={() =>
               downloadCsv(
                 `audityxe-audits-${new Date().toISOString().slice(0, 10)}.csv`,
-                audits.map((a) => ({
+                visibleAudits.map((a) => ({
                   url: a.url,
                   email: a.email || "",
                   uid: a.uid || "",
@@ -1290,17 +1352,41 @@ function AuditsTab({ getToken, passwordEntered }: { getToken: () => Promise<stri
         )}
       </div>
 
+      <div className="flex flex-wrap items-center gap-3 mb-6">
+        <div className="flex items-center gap-1.5 px-3 py-2 rounded-card glass text-xs">
+          <select value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)} className="bg-transparent focus:outline-none">
+            <option value="newest">Newest first</option>
+            <option value="oldest">Oldest first</option>
+            <option value="score-desc">Highest score first</option>
+            <option value="score-asc">Lowest score first</option>
+          </select>
+        </div>
+        <div className="flex items-center gap-2 px-3 py-2 rounded-card glass text-xs">
+          <span className="text-text-secondary">Min score</span>
+          <input
+            type="range"
+            min={0}
+            max={10}
+            step={1}
+            value={minScore}
+            onChange={(e) => setMinScore(Number(e.target.value))}
+            className="w-24 accent-primary"
+          />
+          <span className="font-mono font-semibold w-4">{minScore}</span>
+        </div>
+      </div>
+
       {fetching && (
         <div className="flex items-center gap-2 text-sm text-text-secondary">
           <Loader2 size={14} className="animate-spin" /> Loading audits…
         </div>
       )}
       {listError && !fetching && <p className="text-sm text-rose">{listError}</p>}
-      {!fetching && audits && audits.length === 0 && <p className="text-sm text-text-secondary">No matching audits.</p>}
+      {!fetching && audits && visibleAudits.length === 0 && <p className="text-sm text-text-secondary">No matching audits.</p>}
 
-      {!fetching && audits && audits.length > 0 && (
+      {!fetching && audits && visibleAudits.length > 0 && (
         <div className="space-y-3">
-          {audits.map((a) => (
+          {visibleAudits.map((a) => (
             <div key={a.id} className="glass rounded-card p-4">
               <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
                 <div className="min-w-0">
@@ -1445,11 +1531,27 @@ function AnnouncementTab({ getToken, passwordEntered }: { getToken: () => Promis
 
   if (loadingState) return <Loader2 size={16} className="animate-spin text-text-secondary" />;
 
-  const endsAtIso = endsAt ? new Date(endsAt).toISOString() : null;
-  const previewRemaining = endsAtIso ? new Date(endsAtIso).getTime() - previewNow : 0;
-
   return (
     <div className="glass rounded-card p-5 sm:p-6 max-w-lg">
+      <p className="text-xs text-text-secondary mb-1.5 font-semibold">Live preview</p>
+      <div
+        className={`mb-5 flex items-center justify-center gap-2 px-4 py-2 rounded-card text-xs sm:text-sm text-center ${
+          message.trim()
+            ? level === "warning"
+              ? "bg-amber/15 text-amber border border-amber/30"
+              : "bg-primary/15 text-primary border border-primary/30"
+            : "bg-white/5 text-text-secondary/50 border border-border"
+        }`}
+      >
+        {level === "warning" ? <AlertTriangle size={14} className="shrink-0" /> : <Info size={14} className="shrink-0" />}
+        <span>{message.trim() || "Your message will appear here as you type"}</span>
+        {showCountdown && endsAt && (
+          <span className="font-mono font-semibold opacity-80 shrink-0">
+            · {formatCountdownPreview(new Date(endsAt).getTime() - previewNow)} left
+          </span>
+        )}
+      </div>
+
       <label className="text-xs text-text-secondary block mb-1">Message</label>
       <textarea
         value={message}
@@ -1511,12 +1613,6 @@ function AnnouncementTab({ getToken, passwordEntered }: { getToken: () => Promis
       </label>
       {!endsAt && <p className="text-xs text-text-secondary/40 mb-4">Set an "Ends" time to enable this.</p>}
 
-      {showCountdown && endsAtIso && (
-        <div className="mt-2 mb-4 rounded-card border border-border px-3 py-2 text-xs text-text-secondary">
-          Live preview: <span className="font-mono font-semibold text-text-primary">{formatCountdownPreview(previewRemaining)} left</span>
-        </div>
-      )}
-
       {saveError && <p className="text-xs text-rose mb-3">{saveError}</p>}
       {saved && <p className="text-xs text-emerald mb-3">Saved.</p>}
 
@@ -1544,6 +1640,7 @@ function ActivityTab({ getToken, passwordEntered }: { getToken: () => Promise<st
   const [fetching, setFetching] = useState(true);
   const [error, setError] = useState("");
   const [actionFilter, setActionFilter] = useState<string>("all");
+  const [dateRange, setDateRange] = useState<"all" | "today" | "7d" | "30d">("all");
 
   useEffect(() => {
     (async () => {
@@ -1564,10 +1661,15 @@ function ActivityTab({ getToken, passwordEntered }: { getToken: () => Promise<st
   }, [getToken, passwordEntered]);
 
   const actionTypes = useMemo(() => Array.from(new Set((entries || []).map((e) => e.action))).sort(), [entries]);
-  const visibleEntries = useMemo(
-    () => (entries || []).filter((e) => actionFilter === "all" || e.action === actionFilter),
-    [entries, actionFilter]
-  );
+  const visibleEntries = useMemo(() => {
+    const cutoff =
+      dateRange === "today" ? new Date().setHours(0, 0, 0, 0) : dateRange === "7d" ? Date.now() - 7 * 86400000 : dateRange === "30d" ? Date.now() - 30 * 86400000 : 0;
+    return (entries || []).filter((e) => {
+      if (actionFilter !== "all" && e.action !== actionFilter) return false;
+      if (cutoff && (!e.at || new Date(e.at).getTime() < cutoff)) return false;
+      return true;
+    });
+  }, [entries, actionFilter, dateRange]);
 
   if (fetching) return <Loader2 size={16} className="animate-spin text-text-secondary" />;
   if (error) return <p className="text-sm text-rose">{error}</p>;
@@ -1590,6 +1692,17 @@ function ActivityTab({ getToken, passwordEntered }: { getToken: () => Promise<st
               </option>
             ))}
           </select>
+        </div>
+        <div className="flex items-center gap-1 px-1 py-1 rounded-card glass text-xs">
+          {(["all", "today", "7d", "30d"] as const).map((r) => (
+            <button
+              key={r}
+              onClick={() => setDateRange(r)}
+              className={`px-2 py-1 rounded-[6px] ${dateRange === r ? "bg-primary text-white" : "text-text-secondary hover:text-text-primary"}`}
+            >
+              {r === "all" ? "All time" : r === "today" ? "Today" : r === "7d" ? "7 days" : "30 days"}
+            </button>
+          ))}
         </div>
         <ExportCsvButton
           onExport={() =>
@@ -1647,6 +1760,8 @@ function ApiKeysTab({ getToken, passwordEntered }: { getToken: () => Promise<str
   const [listError, setListError] = useState("");
   const [fetching, setFetching] = useState(true);
   const [revoking, setRevoking] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "revoked">("all");
+  const [sortBy, setSortBy] = useState<"newest" | "last-used">("newest");
 
   const [query, setQuery] = useState("");
   const [searching, setSearching] = useState(false);
@@ -1827,7 +1942,27 @@ function ApiKeysTab({ getToken, passwordEntered }: { getToken: () => Promise<str
       </div>
 
       <div>
-        <p className="text-xs text-text-secondary mb-2 font-semibold">Issued keys</p>
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+          <p className="text-xs text-text-secondary font-semibold">Issued keys</p>
+          {keys && keys.length > 0 && (
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-card glass text-xs">
+                <Filter size={12} className="text-text-secondary" />
+                <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)} className="bg-transparent focus:outline-none">
+                  <option value="all">All</option>
+                  <option value="active">Active only</option>
+                  <option value="revoked">Revoked only</option>
+                </select>
+              </div>
+              <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-card glass text-xs">
+                <select value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)} className="bg-transparent focus:outline-none">
+                  <option value="newest">Newest first</option>
+                  <option value="last-used">Recently used first</option>
+                </select>
+              </div>
+            </div>
+          )}
+        </div>
         {fetching && (
           <div className="flex items-center gap-2 text-sm text-text-secondary">
             <Loader2 size={14} className="animate-spin" /> Loading keys…
@@ -1835,9 +1970,23 @@ function ApiKeysTab({ getToken, passwordEntered }: { getToken: () => Promise<str
         )}
         {listError && !fetching && <p className="text-sm text-rose">{listError}</p>}
         {!fetching && keys && keys.length === 0 && <p className="text-sm text-text-secondary">No keys issued yet.</p>}
-        {!fetching && keys && keys.length > 0 && (
+        {!fetching && keys && keys.length > 0 && (() => {
+          const visibleKeys = [...keys]
+            .filter((k) => statusFilter === "all" || (statusFilter === "revoked" ? k.revoked : !k.revoked))
+            .sort((a, b) => {
+              if (sortBy === "last-used") {
+                const ta = a.lastUsedAt ? new Date(a.lastUsedAt).getTime() : 0;
+                const tb = b.lastUsedAt ? new Date(b.lastUsedAt).getTime() : 0;
+                return tb - ta;
+              }
+              const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+              const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+              return tb - ta;
+            });
+          if (visibleKeys.length === 0) return <p className="text-sm text-text-secondary">No keys match this filter.</p>;
+          return (
           <div className="space-y-2">
-            {keys.map((k) => (
+            {visibleKeys.map((k) => (
               <div key={k.id} className="glass rounded-card p-4 flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <p className="text-sm font-semibold flex items-center gap-2">
@@ -1864,7 +2013,8 @@ function ApiKeysTab({ getToken, passwordEntered }: { getToken: () => Promise<str
               </div>
             ))}
           </div>
-        )}
+          );
+        })()}
       </div>
     </div>
   );
