@@ -32,8 +32,9 @@ export async function POST(req: NextRequest) {
     const active = !!body?.active;
     const startsAt = typeof body?.startsAt === "string" && body.startsAt ? body.startsAt : null;
     const endsAt = typeof body?.endsAt === "string" && body.endsAt ? body.endsAt : null;
+    const showCountdown = !!body?.showCountdown;
 
-    await setAnnouncement(message, level, active, startsAt, endsAt);
+    await setAnnouncement(message, level, active, startsAt, endsAt, showCountdown);
     await logAdminAction(identity.email || "unknown", active ? "set_announcement" : "clear_announcement", null, message.slice(0, 100));
 
     return NextResponse.json({ ok: true });

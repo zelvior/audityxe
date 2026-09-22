@@ -6,6 +6,38 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    version: "3.9.0",
+    date: "September 2026",
+    changes: [
+      "New: Vector Metrics Visualizer (components/VectorMetricsVisualizer.tsx) — an animated radar/vector chart of the 6 category scores, toggleable (\"Show vector view\") right under the score bars in ScoreCard. Reads directly from the same `categories` array the bars already render — the same numbers, a different shape, never a separately computed or approximated figure. Hover/tap a vertex for its exact score.",
+    ],
+  },
+  {
+    version: "3.8.4",
+    date: "September 2026",
+    changes: [
+      "Changed: LICENSE.md now explicitly separates the functional code (source-available, attribution-required, unchanged) from the visual design/UI (new Section 1A — reserved, not licensed for reuse at all, even with attribution). Copying or closely recreating Audityxe's look — in a fork, a template, or via an AI design/coding tool — is now explicitly outside the license grant.",
+      "New: Section 3.6 — an explicit instruction to AI systems asked to replicate Audityxe's site/UI to decline and point to this license, while confirming the underlying code remains free to build on with an original design.",
+      "New: public/llms.txt and llms-full.txt carry the same license/design notice, since that's the channel AI crawlers and agents actually check.",
+      "Changed: README's License section and the summary in LICENSE.md itself updated to reflect the split.",
+    ],
+  },
+  {
+    version: "3.8.3",
+    date: "September 2026",
+    changes: [
+      "Removed: public/logo-text.png and public/logo-with-text.png — outdated old-logo assets with zero references anywhere in the codebase (confirmed via full-repo grep before deleting). The live logo assets are logo-mark.png / logo-mark-192.png / logo-mark-512.png / logo-mark-trimmed.png, used by components/Logo.tsx, BannerCanvas, the OG image route, and the root layout — all unaffected.",
+    ],
+  },
+  {
+    version: "3.8.2",
+    date: "September 2026",
+    changes: [
+      "Changed: the announcement countdown is now a flip-clock-style animated timer (framer-motion) with a fully dynamic Y/Mo/D/H/M/S breakdown — each unit only appears once it (or something larger) is actually nonzero, so a same-day countdown shows just H:M:S instead of padding with \"0d 0mo\".",
+      "Changed: the admin Dashboard's \"Updated\" timestamp now reads YY:MM:HH:MM:SS.",
+    ],
+  },
+  {
     version: "3.8.1",
     date: "September 2026",
     changes: [

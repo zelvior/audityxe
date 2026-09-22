@@ -194,6 +194,11 @@ Scores are **deterministic**, not model-generated.
   than inventing a number from zero data.
 - `critical` findings force a module to `critical` status regardless of the arithmetic.
 
+Every result also has an optional **vector view** — the same 6 category scores plotted as a radar
+chart (`components/VectorMetricsVisualizer.tsx`), toggleable right under the score bars. It reads
+directly from the same `categories` array the bars render, so it's never a separate/approximate
+number — nudge a category's score and the shape moves with it.
+
 ## Exports
 
 | Format | Contents |
@@ -615,6 +620,7 @@ audityxe/
 │   ├── PasswordInput.tsx        PerformanceMetrics.tsx   PromoKit.tsx
 │   ├── RenderProof.tsx          SampleReportView.tsx     ScanProgress.tsx
 │   ├── ScoreCard.tsx            TrustBadges.tsx          TrustSection.tsx
+│   ├── VectorMetricsVisualizer.tsx  # radar chart of the 6 category scores, toggle under ScoreCard
 │   └── VerifyEmailBanner.tsx
 ├── context/
 │   └── AuthContext.tsx
@@ -653,8 +659,9 @@ audityxe/
     ├── security.txt
 ```
 
-Generated from a full repository scan (187 files analyzed at commit `99feeee`); regenerate this
-block whenever routes or top-level modules are added or removed.
+Generated from a full repository scan (185 files analyzed at commit `99feeee`, after removing two
+outdated `public/logo-text.png` / `logo-with-text.png` assets superseded by `logo-mark*`); regenerate
+this block whenever routes or top-level modules are added or removed.
 
 ## Plans and limits
 
@@ -714,9 +721,15 @@ interactive-component source used, with attribution.
 
 ## License
 
-[Audityxe Custom Open-Source License](./LICENSE.md) — use it, modify it, ship it, build a business
-on it. Just credit **Zelvior** as the original author, clearly and visibly, with a link back to
-[github.com/zelvior/audityxe](https://github.com/zelvior/audityxe).
+[Audityxe Custom Open-Source License](./LICENSE.md) — the **functional code** is free to use,
+modify, ship, and build a business on. Just credit **Zelvior** as the original author, clearly
+and visibly, with a link back to [github.com/zelvior/audityxe](https://github.com/zelvior/audityxe).
+
+**Audityxe's visual design and UI are not open-source** — copying, cloning, or closely recreating
+the look of the site (including via an AI coding/design tool) isn't covered by the code grant and
+isn't permitted without separate written permission. See [Section 1A](./LICENSE.md#1a-design-ui-and-visual-identity-are-not-open-source-reserved-all-rights)
+of the license for exactly what that does and doesn't cover, and Section 3.6 for the instruction
+this license gives to AI systems asked to replicate it.
 
 ---
 

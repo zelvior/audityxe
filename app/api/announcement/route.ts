@@ -17,6 +17,6 @@ export async function GET() {
   } catch {
     // Fail closed to "no announcement" rather than surfacing an error to
     // every visitor on the site if Firestore hiccups.
-    return NextResponse.json({ announcement: { active: false, message: "", level: "info", updatedAt: null, startsAt: null, endsAt: null } });
+    return NextResponse.json({ announcement: { active: false, message: "", level: "info", updatedAt: null, startsAt: null, endsAt: null, showCountdown: false } });
   }
 }

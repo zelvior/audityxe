@@ -14,6 +14,10 @@ export interface Announcement {
   /** ISO datetime the banner should stop showing on its own, without
    * needing a manual "take down". Null = no auto-expiry. */
   endsAt: string | null;
+  /** Optional — renders a live "Xh Ym Zs left" countdown next to the
+   * message, ticking down to endsAt. Meaningless (and ignored) without
+   * an endsAt set, since there's nothing to count down to. */
+  showCountdown: boolean;
 }
 
 const DOC_PATH = ["site_config", "announcement"] as const;
@@ -34,7 +38,7 @@ export async function getAnnouncement(): Promise<Announcement> {
   const db = adminDb();
   const snap = await db.collection(DOC_PATH[0]).doc(DOC_PATH[1]).get();
   const data = snap.data();
-  if (!data) return { active: false, message: "", level: "info", updatedAt: null, startsAt: null, endsAt: null };
+  if (!data) return { active: false, message: "", level: "info", updatedAt: null, startsAt: null, endsAt: null, showCountdown: false };
   return {
     active: !!data.active,
     message: typeof data.message === "string" ? data.message : "",
@@ -42,6 +46,7 @@ export async function getAnnouncement(): Promise<Announcement> {
     updatedAt: data.updatedAt?.toDate?.()?.toISOString?.() || null,
     startsAt: typeof data.startsAt === "string" ? data.startsAt : null,
     endsAt: typeof data.endsAt === "string" ? data.endsAt : null,
+    showCountdown: !!data.showCountdown,
   };
 }
 
@@ -50,7 +55,8 @@ export async function setAnnouncement(
   level: AnnouncementLevel,
   active: boolean,
   startsAt: string | null = null,
-  endsAt: string | null = null
+  endsAt: string | null = null,
+  showCountdown: boolean = false
 ): Promise<void> {
   const cleaned = message.replace(/[\x00-\x1F\x7F]/g, "").trim().slice(0, 280);
   if (active && !cleaned) throw new Error("Message can't be empty while the announcement is active.");
@@ -75,5 +81,10 @@ export async function setAnnouncement(
       updatedAt: FieldValue.serverTimestamp(),
       startsAt: startsAtNorm,
       endsAt: endsAtNorm,
+      // A countdown with nothing to count down to is meaningless — never
+      // persisted as true without an end time, regardless of what the
+      // admin form sent, so a stale endsAt can never leave a countdown
+      // silently on.
+      showCountdown: showCountdown && !!endsAtNorm,
     });
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
   Loader2,
@@ -26,6 +26,9 @@ import {
   Gauge,
   Database,
   KeyRound,
+  Download,
+  Filter,
+  RefreshCw,
 } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -33,6 +36,52 @@ import { useAuth } from "@/context/AuthContext";
 import { PLANS, PlanId } from "@/lib/plans";
 import { fetchJson } from "@/lib/fetch-json";
 import PasswordInput from "@/components/PasswordInput";
+
+/** Shared by every tab below that offers a CSV export — quotes/escapes
+ * per RFC 4180 and triggers a client-side download, no server round
+ * trip needed since the data's already loaded in the tab. */
+function downloadCsv(filename: string, rows: Record<string, string | number | boolean | null>[]) {
+  if (rows.length === 0) return;
+  const headers = Object.keys(rows[0]);
+  const escape = (v: unknown) => {
+    const s = v === null || v === undefined ? "" : String(v);
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const csv = [headers.join(","), ...rows.map((r) => headers.map((h) => escape(r[h])).join(","))].join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/** As requested: "YY:MM:HH:MM:SS" — 2-digit year, 2-digit month, then
+ * hour:minute:second, colon-separated throughout (note this isn't a
+ * standard date format — there's no day component — but it's exactly
+ * the field order/format asked for). */
+function formatYyMmHhMmSs(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const yy = pad(d.getFullYear() % 100);
+  const mm = pad(d.getMonth() + 1);
+  const hh = pad(d.getHours());
+  const min = pad(d.getMinutes());
+  const ss = pad(d.getSeconds());
+  return `${yy}:${mm}:${hh}:${min}:${ss}`;
+}
+
+function ExportCsvButton({ onExport, label = "Export CSV" }: { onExport: () => void; label?: string }) {
+  return (
+    <button
+      onClick={onExport}
+      className="px-3 py-2 rounded-card glass hover:border-[rgb(var(--color-text-primary)/0.2)] flex items-center gap-1.5 text-xs font-semibold shrink-0"
+      title="Download the current list as a CSV file"
+    >
+      <Download size={13} /> {label}
+    </button>
+  );
+}
 
 type Tab = "dashboard" | "codes" | "users" | "audits" | "announcement" | "activity" | "api-keys";
 
@@ -113,6 +162,9 @@ interface Announcement {
   active: boolean;
   message: string;
   level: "info" | "warning";
+  startsAt?: string | null;
+  endsAt?: string | null;
+  showCountdown?: boolean;
 }
 interface LogEntry {
   id: string;
@@ -322,28 +374,33 @@ function DashboardTab({ getToken, passwordEntered }: { getToken: () => Promise<s
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [fetching, setFetching] = useState(true);
   const [error, setError] = useState("");
+  const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
 
   const [searchQ, setSearchQ] = useState("");
   const [searching, setSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<UserListItem[] | null>(null);
 
-  useEffect(() => {
-    (async () => {
-      setFetching(true);
-      try {
-        const token = await getToken();
-        const { ok, data, error } = await fetchJson<{ stats: AdminStats }>("/api/admin/stats", {
-          headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), "x-admin-password": passwordEntered },
-        });
-        if (!ok || !data) throw new Error(error || "Couldn't load stats.");
-        setStats(data.stats);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Something went wrong.");
-      } finally {
-        setFetching(false);
-      }
-    })();
+  const fetchStats = useCallback(async () => {
+    setFetching(true);
+    setError("");
+    try {
+      const token = await getToken();
+      const { ok, data, error } = await fetchJson<{ stats: AdminStats }>("/api/admin/stats", {
+        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), "x-admin-password": passwordEntered },
+      });
+      if (!ok || !data) throw new Error(error || "Couldn't load stats.");
+      setStats(data.stats);
+      setLastRefreshed(new Date());
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong.");
+    } finally {
+      setFetching(false);
+    }
   }, [getToken, passwordEntered]);
+
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
 
   const runBloomSearch = useCallback(async () => {
     if (!searchQ.trim()) {
@@ -368,6 +425,18 @@ function DashboardTab({ getToken, passwordEntered }: { getToken: () => Promise<s
 
   return (
     <div className="space-y-6">
+      <div className="flex items-center justify-between gap-2 -mt-1">
+        <p className="text-xs text-text-secondary">
+          {lastRefreshed ? `Updated ${formatYyMmHhMmSs(lastRefreshed)}` : ""}
+        </p>
+        <button
+          onClick={fetchStats}
+          disabled={fetching}
+          className="px-3 py-1.5 rounded-card glass hover:border-[rgb(var(--color-text-primary)/0.2)] flex items-center gap-1.5 text-xs font-semibold disabled:opacity-50"
+        >
+          {fetching ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />} Refresh
+        </button>
+      </div>
       <div>
         <p className="text-xs text-text-secondary mb-2 font-semibold">Users</p>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -748,6 +817,27 @@ function CodesTab({ getToken, passwordEntered }: { getToken: () => Promise<strin
       {!fetching && codes && codes.length === 0 && <p className="text-sm text-text-secondary">No codes yet.</p>}
 
       {!fetching && codes && codes.length > 0 && (
+        <>
+          <div className="flex justify-end mb-3">
+            <ExportCsvButton
+              onExport={() =>
+                downloadCsv(
+                  `audityxe-codes-${new Date().toISOString().slice(0, 10)}.csv`,
+                  codes.map((c) => ({
+                    code: c.code,
+                    active: c.active,
+                    plan: c.plan,
+                    durationDays: c.durationDays,
+                    redemptions: c.redemptions,
+                    maxRedemptions: c.maxRedemptions,
+                    expiresAt: c.expiresAt || "",
+                    note: c.note || "",
+                    createdAt: c.createdAt || "",
+                  }))
+                )
+              }
+            />
+          </div>
         <div className="space-y-3">
           {codes.map((c) => (
             <div key={c.code} className="glass rounded-card p-4 flex flex-wrap items-center gap-3 justify-between">
@@ -780,6 +870,7 @@ function CodesTab({ getToken, passwordEntered }: { getToken: () => Promise<strin
             </div>
           ))}
         </div>
+        </>
       )}
     </div>
   );
@@ -854,9 +945,12 @@ function UsersTab({ getToken, passwordEntered }: { getToken: () => Promise<strin
     [getToken, passwordEntered, fetchUsers, query]
   );
 
+  const [planFilter, setPlanFilter] = useState<"all" | "free" | "standard" | "pro">("all");
+  const visibleUsers = useMemo(() => (users || []).filter((u) => planFilter === "all" || u.plan === planFilter), [users, planFilter]);
+
   return (
     <div>
-      <div className="flex gap-2 mb-6">
+      <div className="flex flex-wrap gap-2 mb-6">
         <input
           type="text"
           value={query}
@@ -868,6 +962,36 @@ function UsersTab({ getToken, passwordEntered }: { getToken: () => Promise<strin
         <button onClick={() => fetchUsers(query)} className="px-4 py-2 rounded-card glass hover:border-[rgb(var(--color-text-primary)/0.2)] flex items-center gap-2 text-sm">
           <Search size={14} /> Search
         </button>
+        <div className="flex items-center gap-1.5 px-3 py-2 rounded-card glass text-xs">
+          <Filter size={13} className="text-text-secondary" />
+          <select
+            value={planFilter}
+            onChange={(e) => setPlanFilter(e.target.value as typeof planFilter)}
+            className="bg-transparent focus:outline-none"
+          >
+            <option value="all">All plans</option>
+            <option value="free">Free</option>
+            <option value="standard">Standard</option>
+            <option value="pro">Pro</option>
+          </select>
+        </div>
+        {users && users.length > 0 && (
+          <ExportCsvButton
+            onExport={() =>
+              downloadCsv(
+                `audityxe-users-${new Date().toISOString().slice(0, 10)}.csv`,
+                visibleUsers.map((u) => ({
+                  uid: u.uid,
+                  email: u.email || "",
+                  displayName: u.displayName || "",
+                  plan: u.plan,
+                  moderationStatus: u.moderation.status,
+                  createdAt: u.createdAt || "",
+                }))
+              )
+            }
+          />
+        )}
       </div>
 
       {fetching && (
@@ -876,11 +1000,11 @@ function UsersTab({ getToken, passwordEntered }: { getToken: () => Promise<strin
         </div>
       )}
       {listError && !fetching && <p className="text-sm text-rose">{listError}</p>}
-      {!fetching && users && users.length === 0 && <p className="text-sm text-text-secondary">No matching users.</p>}
+      {!fetching && users && visibleUsers.length === 0 && <p className="text-sm text-text-secondary">No matching users.</p>}
 
-      {!fetching && users && users.length > 0 && (
+      {!fetching && users && visibleUsers.length > 0 && (
         <div className="space-y-3">
-          {users.map((u) => (
+          {visibleUsers.map((u) => (
             <div key={u.uid} className="glass rounded-card p-4">
               <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
                 <div>
@@ -1145,6 +1269,25 @@ function AuditsTab({ getToken, passwordEntered }: { getToken: () => Promise<stri
         <button onClick={() => fetchAudits(query, status)} className="px-4 py-2 rounded-card glass hover:border-[rgb(var(--color-text-primary)/0.2)] flex items-center gap-2 text-sm">
           <Search size={14} /> Search
         </button>
+        {audits && audits.length > 0 && (
+          <ExportCsvButton
+            onExport={() =>
+              downloadCsv(
+                `audityxe-audits-${new Date().toISOString().slice(0, 10)}.csv`,
+                audits.map((a) => ({
+                  url: a.url,
+                  email: a.email || "",
+                  uid: a.uid || "",
+                  plan: a.plan,
+                  score: a.score ?? "",
+                  status: a.status,
+                  error: a.error || "",
+                  createdAt: a.createdAt || "",
+                }))
+              )
+            }
+          />
+        )}
       </div>
 
       {fetching && (
@@ -1200,14 +1343,39 @@ function AuditsTab({ getToken, passwordEntered }: { getToken: () => Promise<stri
 }
 
 /* ══════════════════════════ ANNOUNCEMENT TAB ══════════════════════════ */
+function toLocalInputValue(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function formatCountdownPreview(msRemaining: number): string {
+  if (msRemaining <= 0) return "0s";
+  const totalSeconds = Math.floor(msRemaining / 1000);
+  const days = Math.floor(totalSeconds / 86400);
+  const hours = Math.floor((totalSeconds % 86400) / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  if (days > 0) return `${days}d ${hours}h`;
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  if (minutes > 0) return `${minutes}m ${seconds}s`;
+  return `${seconds}s`;
+}
+
 function AnnouncementTab({ getToken, passwordEntered }: { getToken: () => Promise<string | null>; passwordEntered: string }) {
   const [message, setMessage] = useState("");
   const [level, setLevel] = useState<"info" | "warning">("info");
   const [active, setActive] = useState(false);
+  const [startsAt, setStartsAt] = useState(""); // datetime-local string, local tz
+  const [endsAt, setEndsAt] = useState("");
+  const [showCountdown, setShowCountdown] = useState(false);
   const [loadingState, setLoadingState] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [saved, setSaved] = useState(false);
+  const [previewNow, setPreviewNow] = useState(() => Date.now());
 
   useEffect(() => {
     (async () => {
@@ -1221,12 +1389,23 @@ function AnnouncementTab({ getToken, passwordEntered }: { getToken: () => Promis
           setMessage(data.announcement.message);
           setLevel(data.announcement.level);
           setActive(data.announcement.active);
+          setStartsAt(toLocalInputValue(data.announcement.startsAt));
+          setEndsAt(toLocalInputValue(data.announcement.endsAt));
+          setShowCountdown(!!data.announcement.showCountdown);
         }
       } finally {
         setLoadingState(false);
       }
     })();
   }, [getToken, passwordEntered]);
+
+  // Ticks the live preview below the form — only runs while a countdown
+  // is actually toggled on, so it's not burning a timer for nothing.
+  useEffect(() => {
+    if (!showCountdown || !endsAt) return;
+    const id = setInterval(() => setPreviewNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [showCountdown, endsAt]);
 
   const save = useCallback(
     async (nextActive: boolean) => {
@@ -1242,7 +1421,14 @@ function AnnouncementTab({ getToken, passwordEntered }: { getToken: () => Promis
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
             "x-admin-password": passwordEntered,
           },
-          body: JSON.stringify({ message, level, active: nextActive }),
+          body: JSON.stringify({
+            message,
+            level,
+            active: nextActive,
+            startsAt: startsAt ? new Date(startsAt).toISOString() : null,
+            endsAt: endsAt ? new Date(endsAt).toISOString() : null,
+            showCountdown,
+          }),
         });
         if (!ok) throw new Error(error || "Failed to save.");
         setActive(nextActive);
@@ -1254,10 +1440,13 @@ function AnnouncementTab({ getToken, passwordEntered }: { getToken: () => Promis
         setSaving(false);
       }
     },
-    [getToken, passwordEntered, message, level]
+    [getToken, passwordEntered, message, level, startsAt, endsAt, showCountdown]
   );
 
   if (loadingState) return <Loader2 size={16} className="animate-spin text-text-secondary" />;
+
+  const endsAtIso = endsAt ? new Date(endsAt).toISOString() : null;
+  const previewRemaining = endsAtIso ? new Date(endsAtIso).getTime() - previewNow : 0;
 
   return (
     <div className="glass rounded-card p-5 sm:p-6 max-w-lg">
@@ -1281,6 +1470,52 @@ function AnnouncementTab({ getToken, passwordEntered }: { getToken: () => Promis
         <option value="info">Info (brand color)</option>
         <option value="warning">Warning (amber)</option>
       </select>
+
+      <div className="grid grid-cols-2 gap-3 mb-4">
+        <div>
+          <label className="text-xs text-text-secondary block mb-1">Starts (optional)</label>
+          <input
+            type="datetime-local"
+            value={startsAt}
+            onChange={(e) => setStartsAt(e.target.value)}
+            className="w-full rounded-card bg-[rgb(var(--color-text-primary)/0.045)] border border-border px-2.5 py-2 text-xs focus:outline-none focus:border-primary/50"
+          />
+        </div>
+        <div>
+          <label className="text-xs text-text-secondary block mb-1">Ends (optional)</label>
+          <input
+            type="datetime-local"
+            value={endsAt}
+            onChange={(e) => {
+              setEndsAt(e.target.value);
+              if (!e.target.value) setShowCountdown(false);
+            }}
+            className="w-full rounded-card bg-[rgb(var(--color-text-primary)/0.045)] border border-border px-2.5 py-2 text-xs focus:outline-none focus:border-primary/50"
+          />
+        </div>
+      </div>
+      <p className="text-xs text-text-secondary/60 mb-4">
+        Both empty = shows as soon as you publish, stays up until you take it down. Auto-expiry at
+        "Ends" happens on its own — visitors after that time never see it, no manual take-down needed.
+      </p>
+
+      <label className={`flex items-center gap-2 mb-1 text-xs ${endsAt ? "text-text-secondary" : "text-text-secondary/40"}`}>
+        <input
+          type="checkbox"
+          checked={showCountdown}
+          disabled={!endsAt}
+          onChange={(e) => setShowCountdown(e.target.checked)}
+          className="rounded"
+        />
+        Show a live countdown timer next to the message (ticks down to "Ends")
+      </label>
+      {!endsAt && <p className="text-xs text-text-secondary/40 mb-4">Set an "Ends" time to enable this.</p>}
+
+      {showCountdown && endsAtIso && (
+        <div className="mt-2 mb-4 rounded-card border border-border px-3 py-2 text-xs text-text-secondary">
+          Live preview: <span className="font-mono font-semibold text-text-primary">{formatCountdownPreview(previewRemaining)} left</span>
+        </div>
+      )}
 
       {saveError && <p className="text-xs text-rose mb-3">{saveError}</p>}
       {saved && <p className="text-xs text-emerald mb-3">Saved.</p>}
@@ -1308,6 +1543,7 @@ function ActivityTab({ getToken, passwordEntered }: { getToken: () => Promise<st
   const [entries, setEntries] = useState<LogEntry[] | null>(null);
   const [fetching, setFetching] = useState(true);
   const [error, setError] = useState("");
+  const [actionFilter, setActionFilter] = useState<string>("all");
 
   useEffect(() => {
     (async () => {
@@ -1327,27 +1563,67 @@ function ActivityTab({ getToken, passwordEntered }: { getToken: () => Promise<st
     })();
   }, [getToken, passwordEntered]);
 
+  const actionTypes = useMemo(() => Array.from(new Set((entries || []).map((e) => e.action))).sort(), [entries]);
+  const visibleEntries = useMemo(
+    () => (entries || []).filter((e) => actionFilter === "all" || e.action === actionFilter),
+    [entries, actionFilter]
+  );
+
   if (fetching) return <Loader2 size={16} className="animate-spin text-text-secondary" />;
   if (error) return <p className="text-sm text-rose">{error}</p>;
   if (!entries || entries.length === 0) return <p className="text-sm text-text-secondary">No admin actions logged yet.</p>;
 
   return (
-    <div className="space-y-2">
-      {entries.map((e) => (
-        <div key={e.id} className="glass rounded-card p-3 text-sm">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <span>
-              <span className="font-semibold">{ACTION_LABELS[e.action] || e.action}</span>
-              {e.target && <span className="text-text-secondary"> — {e.target}</span>}
-            </span>
-            <span className="text-xs text-text-secondary">{e.at ? new Date(e.at).toLocaleString() : ""}</span>
-          </div>
-          <p className="text-xs text-text-secondary mt-1">
-            by {e.actorEmail}
-            {e.details && ` · ${e.details}`}
-          </p>
+    <div>
+      <div className="flex flex-wrap gap-2 mb-4">
+        <div className="flex items-center gap-1.5 px-3 py-2 rounded-card glass text-xs">
+          <Filter size={13} className="text-text-secondary" />
+          <select
+            value={actionFilter}
+            onChange={(e) => setActionFilter(e.target.value)}
+            className="bg-transparent focus:outline-none"
+          >
+            <option value="all">All actions</option>
+            {actionTypes.map((a) => (
+              <option key={a} value={a}>
+                {ACTION_LABELS[a] || a}
+              </option>
+            ))}
+          </select>
         </div>
-      ))}
+        <ExportCsvButton
+          onExport={() =>
+            downloadCsv(
+              `audityxe-activity-${new Date().toISOString().slice(0, 10)}.csv`,
+              visibleEntries.map((e) => ({
+                at: e.at || "",
+                actorEmail: e.actorEmail,
+                action: e.action,
+                target: e.target || "",
+                details: e.details || "",
+              }))
+            )
+          }
+        />
+      </div>
+      {visibleEntries.length === 0 && <p className="text-sm text-text-secondary">No matching entries.</p>}
+      <div className="space-y-2">
+        {visibleEntries.map((e) => (
+          <div key={e.id} className="glass rounded-card p-3 text-sm">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span>
+                <span className="font-semibold">{ACTION_LABELS[e.action] || e.action}</span>
+                {e.target && <span className="text-text-secondary"> — {e.target}</span>}
+              </span>
+              <span className="text-xs text-text-secondary">{e.at ? new Date(e.at).toLocaleString() : ""}</span>
+            </div>
+            <p className="text-xs text-text-secondary mt-1">
+              by {e.actorEmail}
+              {e.details && ` · ${e.details}`}
+            </p>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

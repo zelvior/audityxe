@@ -1,8 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { AuditResult } from "@/lib/types";
 import AuditActionBar from "./AuditActionBar";
+import VectorMetricsVisualizer from "./VectorMetricsVisualizer";
 
 function colorFor(score: number) {
   if (score >= 8) return { bar: "bg-emerald", text: "text-emerald", ring: "rgb(var(--color-emerald))" };
@@ -11,6 +13,7 @@ function colorFor(score: number) {
 }
 
 export default function ScoreCard({ result }: { result: AuditResult }) {
+  const [showVectorView, setShowVectorView] = useState(false);
   const overallColor = colorFor(result.overall);
   const circumference = 2 * Math.PI * 54;
   const dash = (result.overall / 10) * circumference;
@@ -77,6 +80,21 @@ export default function ScoreCard({ result }: { result: AuditResult }) {
               </div>
             );
           })}
+        </div>
+
+        <div className="mt-5">
+          <button
+            onClick={() => setShowVectorView((v) => !v)}
+            className="text-xs font-mono text-text-secondary hover:text-text-primary flex items-center gap-1.5"
+          >
+            <span className={`transition-transform inline-block ${showVectorView ? "rotate-90" : ""}`}>›</span>
+            {showVectorView ? "Hide vector view" : "Show vector view"}
+          </button>
+          {showVectorView && (
+            <div className="mt-3">
+              <VectorMetricsVisualizer categories={result.categories} />
+            </div>
+          )}
         </div>
 
         {result.siteContext && (
