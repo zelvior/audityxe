@@ -1,5 +1,5 @@
 import { adminDb } from "./firebase/admin";
-import { FieldValue, Timestamp } from "firebase-admin/firestore";
+import { FieldValue } from "firebase-admin/firestore";
 
 /**
  * Root cause of the previously broken Qualys/MDN badges: they were
@@ -31,9 +31,10 @@ const TARGET_HOST = "audityxe.vercel.app";
 const COLLECTION = "security_badges";
 
 export interface SslLabsGrade {
-  grade: string; // e.g. "A+", "A", "B"
+  grade: string; // worst grade across all live endpoints — see refreshSslLabsGrade
   provider: "ssllabs";
   checkedAt: string;
+  endpoints: { ip: string; grade: string }[]; // per-endpoint breakdown, for "show my rank/scores"
 }
 
 export interface MdnObservatoryGrade {
@@ -44,7 +45,12 @@ export interface MdnObservatoryGrade {
 }
 
 function tsToIso(v: unknown): string | null {
-  if (v instanceof Timestamp) return v.toDate().toISOString();
+  // Duck-typed rather than `instanceof Timestamp` — see lib/api-keys.ts
+  // for why: a duplicate-resolved firebase-admin package can make
+  // `instanceof` fail against a structurally-identical instance.
+  if (v && typeof v === "object" && typeof (v as { toDate?: unknown }).toDate === "function") {
+    return (v as { toDate: () => Date }).toDate().toISOString();
+  }
   return null;
 }
 
@@ -55,7 +61,10 @@ export async function getCachedSslLabsGrade(): Promise<SslLabsGrade | null> {
   const data = snap.data()!;
   const checkedAt = tsToIso(data.checkedAt);
   if (!data.grade || !checkedAt) return null;
-  return { grade: data.grade, provider: "ssllabs", checkedAt };
+  const endpoints = Array.isArray(data.endpoints)
+    ? data.endpoints.filter((e: unknown): e is { ip: string; grade: string } => !!e && typeof e === "object" && "ip" in e && "grade" in e)
+    : [];
+  return { grade: data.grade, provider: "ssllabs", checkedAt, endpoints };
 }
 
 export async function getCachedMdnObservatoryGrade(): Promise<MdnObservatoryGrade | null> {
@@ -80,6 +89,14 @@ async function fetchWithTimeout(url: string, init: RequestInit = {}): Promise<Re
   }
 }
 
+// Best → worst. SSL Labs also uses "T" (trust issues) and "M" (certificate
+// name mismatch), which are worse than a plain "F" in practice — ranked
+// accordingly so the worst-case selection below treats them as such.
+const GRADE_RANK = ["A+", "A", "A-", "B", "C", "D", "E", "F", "T", "M"];
+function worstGrade(grades: string[]): string {
+  return grades.reduce((worst, g) => (GRADE_RANK.indexOf(g) > GRADE_RANK.indexOf(worst) ? g : worst), grades[0]);
+}
+
 /** Called only from the daily cron job — never from a badge request. */
 export async function refreshSslLabsGrade(): Promise<{ ok: boolean; grade?: string; error?: string }> {
   try {
@@ -96,13 +113,21 @@ export async function refreshSslLabsGrade(): Promise<{ ok: boolean; grade?: stri
     if (data.status !== "READY") {
       return { ok: false, error: `Scan not ready (status: ${data.status})` };
     }
-    const grade = data.endpoints?.[0]?.grade;
-    if (!grade || typeof grade !== "string") {
-      return { ok: false, error: "No grade in SSL Labs response." };
+    const readyEndpoints: { ip: string; grade: string }[] = (data.endpoints || [])
+      .filter((e: { statusMessage?: string; grade?: string }) => e.statusMessage === "Ready" && typeof e.grade === "string")
+      .map((e: { ipAddress: string; grade: string }) => ({ ip: e.ipAddress, grade: e.grade }));
+    if (readyEndpoints.length === 0) {
+      return { ok: false, error: "No ready endpoints with a grade in SSL Labs response." };
     }
+    // A site is only as strong as its weakest server — matches how
+    // SSL Labs' own summary page and every other grade aggregator
+    // treats a multi-endpoint host, and is the accurate answer rather
+    // than an arbitrary "just show endpoint 0" pick.
+    const grade = worstGrade(readyEndpoints.map((e) => e.grade));
     const db = adminDb();
     await db.collection(COLLECTION).doc("ssllabs").set({
       grade,
+      endpoints: readyEndpoints,
       checkedAt: FieldValue.serverTimestamp(),
     });
     return { ok: true, grade };

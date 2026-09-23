@@ -6,6 +6,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    version: "3.10.0",
+    date: "September 2026",
+    changes: [
+      "Fixed: 5 CI TypeScript errors — lib/admin-log.ts and lib/admin.ts still had two bare `FirebaseFirestore.X` type references left over from an earlier partial fix (they happened to compile locally but failed in CI's fresh `npm ci`, since the ambient global namespace isn't reliably available); lib/rate-limit.ts had one more untyped `tx` param an earlier find-replace missed; lib/api-keys.ts and lib/security-badges.ts used `instanceof Timestamp` to narrow an `unknown` value, which is fragile against a duplicate-resolved firebase-admin package — replaced with a duck-typed `toDate` check. Verified with a full `rm -rf node_modules && npm ci && npx tsc --noEmit`, not just the existing local install.",
+      "Fixed: a genuine production build failure — /api/badge/qualys and /api/badge/mdn were missing `export const dynamic = \"force-dynamic\"`, so Next.js tried to statically prerender them at build time (and would fail without Firebase creds present at build time). Added to both, plus the pre-existing /api/badge/[domain] route for consistency. Verified with a full `npm run build`, not just tsc.",
+      "New: the API Docs page (/api-docs) now documents the x-api-key auth method (added two rounds ago but never reflected here — a real inconsistency) alongside Bearer tokens and anonymous access, plus a \"Requesting an API key\" section with a one-click mailto link (preset subject + body) to zelvior@proton.me, noting the Pro-plan requirement.",
+      "Fixed: the Qualys SSL Labs badge previously showed only the first endpoint's grade even when a host has multiple (audityxe.vercel.app currently has 2, graded A+ and A) — now takes the worst grade across all ready endpoints (the accurate, conventional way to report a multi-endpoint host's overall grade) and shows the per-endpoint breakdown on the badge itself.",
+      "Changed: both security badges (Qualys, MDN) redrawn at a 4x-scaled internal SVG canvas with a refined layout, gradient background, and drop-shadow on the grade ring — renders sharp at any rasterization/display density.",
+      "Fixed: real-user Core Web Vitals (lib/crux.ts) were being fetched and attached to every audit result but never rendered anywhere in the UI — new components/CruxFieldData.tsx surfaces them on the report, right under the score card. Also added a distinct `not_enabled` reason (vs. a generic `request_failed`) for the specific, common, verifiable failure mode where a key has PageSpeed Insights enabled but not the separate Chrome UX Report API toggle, and the actual Google error is now logged server-side instead of being swallowed.",
+      "Changed: homepage hero — added the new top-of-page background image (blends via its own built-in alpha-transparent edges, not a separate mask; dimmed further in dark mode), switched from a left-aligned two-column layout to a single centered column at every breakpoint, and trimmed hero copy (subtitle, crawl-mode captions moved to tooltips, plan-checkbox label) for a cleaner look.",
+    ],
+  },
+  {
     version: "3.9.1",
     date: "September 2026",
     changes: [

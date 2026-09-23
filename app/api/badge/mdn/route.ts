@@ -3,6 +3,7 @@ import { getCachedMdnObservatoryGrade } from "@/lib/security-badges";
 import { gradeBadgeSvg, pendingBadgeSvg } from "@/lib/security-badge-svg";
 
 export const runtime = "nodejs"; // needs the Firebase Admin SDK, not edge-compatible
+export const dynamic = "force-dynamic"; // never statically prerendered — always a fresh Firestore-cache read, and must not attempt to run at build time with no Firebase creds available
 
 /** Serves the cached grade written by app/api/cron/security-badges —
  * never calls observatory-api.mdn.mozilla.net itself. See

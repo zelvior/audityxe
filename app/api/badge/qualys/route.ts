@@ -3,6 +3,7 @@ import { getCachedSslLabsGrade } from "@/lib/security-badges";
 import { gradeBadgeSvg, pendingBadgeSvg } from "@/lib/security-badge-svg";
 
 export const runtime = "nodejs"; // needs the Firebase Admin SDK, not edge-compatible
+export const dynamic = "force-dynamic"; // never statically prerendered — always a fresh Firestore-cache read, and must not attempt to run at build time with no Firebase creds available
 
 /** Serves the cached grade written by app/api/cron/security-badges —
  * never calls api.ssllabs.com itself. See lib/security-badges.ts for
@@ -10,7 +11,7 @@ export const runtime = "nodejs"; // needs the Firebase Admin SDK, not edge-compa
 export async function GET() {
   const cached = await getCachedSslLabsGrade();
   const svg = cached
-    ? gradeBadgeSvg({ label: "Qualys SSL Labs", grade: cached.grade, checkedAt: cached.checkedAt })
+    ? gradeBadgeSvg({ label: "Qualys SSL Labs", grade: cached.grade, endpoints: cached.endpoints, checkedAt: cached.checkedAt })
     : pendingBadgeSvg("Qualys SSL Labs");
 
   return new NextResponse(svg, {

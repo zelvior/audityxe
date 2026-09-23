@@ -122,7 +122,32 @@ export async function fetchCruxSummary(targetUrl: string, byokApiKey?: string | 
       return { available: false, reason: "no_data", origin, collectionPeriod: null, metrics: [] };
     }
     if (!res.ok) {
-      return { available: false, reason: "request_failed", origin, collectionPeriod: null, metrics: [] };
+      // Surface Google's actual error rather than swallowing it into a
+      // single opaque "request_failed" — that's what made this
+      // previously undiagnosable. The one specific, verifiable, and
+      // common cause: the Chrome UX Report API is a *separate* API
+      // toggle from PageSpeed Insights on Google Cloud Console, even
+      // on the same key/project — a key that only has PSI enabled
+      // fails here with exactly this shape (403, PERMISSION_DENIED /
+      // SERVICE_DISABLED), and this is the one case worth its own
+      // reason so it's fixable instead of just "failed".
+      let googleMessage = "";
+      try {
+        const body = await res.json();
+        googleMessage = body?.error?.message || body?.error?.status || "";
+      } catch {
+        // Body wasn't JSON (or was empty) — fall through with res.status only.
+      }
+      console.error(`[crux] ${res.status} for origin ${origin}${googleMessage ? `: ${googleMessage}` : ""}`);
+      const notEnabled =
+        res.status === 403 && /disabled|not been used|permission/i.test(googleMessage);
+      return {
+        available: false,
+        reason: notEnabled ? "not_enabled" : "request_failed",
+        origin,
+        collectionPeriod: null,
+        metrics: [],
+      };
     }
 
     const data: CruxApiResponse = await res.json();

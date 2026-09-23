@@ -1,6 +1,6 @@
 import { randomBytes, createHash } from "crypto";
 import { adminDb } from "./firebase/admin";
-import { FieldValue, Timestamp, QueryDocumentSnapshot } from "firebase-admin/firestore";
+import { FieldValue, QueryDocumentSnapshot } from "firebase-admin/firestore";
 import { getUserPlan } from "./rate-limit";
 
 /**
@@ -55,7 +55,15 @@ function generateRawKey(): string {
 }
 
 function tsToIso(v: unknown): string | null {
-  if (v instanceof Timestamp) return v.toDate().toISOString();
+  // Duck-typed rather than `instanceof Timestamp`: if two copies of
+  // firebase-admin end up resolved (a real possibility depending on how
+  // a CI's fresh `npm ci` dedupes vs. a local install), an instance from
+  // one copy won't satisfy `instanceof` against the other copy's class,
+  // even though it's functionally identical. Checking for a callable
+  // `toDate` is what actually matters here and works regardless.
+  if (v && typeof v === "object" && typeof (v as { toDate?: unknown }).toDate === "function") {
+    return (v as { toDate: () => Date }).toDate().toISOString();
+  }
   return null;
 }
 

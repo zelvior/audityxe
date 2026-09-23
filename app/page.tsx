@@ -160,23 +160,47 @@ export default function Home() {
 
   return (
     <main>
-      <Header />
-      <Onboarding />
-      <Hero
-        onAnalyze={handleAnalyze}
-        disabled={phase === "scanning"}
-        isAuthed={!!user && !needsEmailVerification}
-        hasAccount={!!user}
-        prefillUrl={prefillUrl}
-        authLoading={authLoading}
-        canCompare={canCompare}
-        userPlan={userPlan}
-        hasPsiByokKey={hasPsiByokKey}
-        wantsPageSpeed={wantsPageSpeed}
-        onWantsPageSpeedChange={setWantsPageSpeed}
-        crawlMode={crawlMode}
-        onCrawlModeChange={setCrawlMode}
-      />
+      <div className="relative">
+        {/* Full-bleed hero background — the image already carries real
+            alpha transparency at its own top/bottom edges (not a hard
+            rectangle), so it blends into the page background color on
+            its own rather than needing a separate fade mask on top.
+            Faded further in dark mode since it was designed against
+            the light theme's cream background and would otherwise read
+            as a stark light patch against the near-black dark bg. */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 top-0 h-[420px] sm:h-[520px] lg:h-[620px] -z-10 overflow-hidden"
+        >
+          <picture>
+            <source srcSet="/hero-background.webp" type="image/webp" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/hero-background.png"
+              alt=""
+              className="w-full h-full object-cover object-top opacity-90 dark:opacity-25"
+            />
+          </picture>
+        </div>
+
+        <Header />
+        <Onboarding />
+        <Hero
+          onAnalyze={handleAnalyze}
+          disabled={phase === "scanning"}
+          isAuthed={!!user && !needsEmailVerification}
+          hasAccount={!!user}
+          prefillUrl={prefillUrl}
+          authLoading={authLoading}
+          canCompare={canCompare}
+          userPlan={userPlan}
+          hasPsiByokKey={hasPsiByokKey}
+          wantsPageSpeed={wantsPageSpeed}
+          onWantsPageSpeedChange={setWantsPageSpeed}
+          crawlMode={crawlMode}
+          onCrawlModeChange={setCrawlMode}
+        />
+      </div>
 
       {user && needsEmailVerification && <VerifyEmailBanner />}
       {phase === "idle" && <TrustSection />}

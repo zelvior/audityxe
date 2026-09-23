@@ -3,7 +3,7 @@ import { NextRequest } from "next/server";
 import { DecodedIdentity } from "./rate-limit";
 import { AuthError } from "./auth-server";
 import { adminDb } from "./firebase/admin";
-import { FieldValue } from "firebase-admin/firestore";
+import { FieldValue, Transaction } from "firebase-admin/firestore";
 
 /**
  * Comma-separated allowlist of admin emails — read strictly from
@@ -54,7 +54,7 @@ async function recordFailedAttemptAndCheckBudget(uid: string): Promise<boolean> 
   const hourKey = new Date().toISOString().slice(0, 13); // YYYY-MM-DDTHH
   const ref = db.collection("admin_password_attempts").doc(uid);
 
-  return db.runTransaction(async (tx: FirebaseFirestore.Transaction) => {
+  return db.runTransaction(async (tx: Transaction) => {
     const snap = await tx.get(ref);
     const data = snap.data();
     const count = data?.hour === hourKey ? (data.count as number) || 0 : 0;

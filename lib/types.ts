@@ -83,7 +83,7 @@ export interface CruxMetric {
 
 export interface CruxSummary {
   available: boolean;
-  reason: "not_configured" | "invalid_url" | "no_data" | "request_failed" | null;
+  reason: "not_configured" | "invalid_url" | "no_data" | "not_enabled" | "request_failed" | null;
   origin: string | null;
   collectionPeriod: { firstDate: string | null; lastDate: string | null } | null;
   metrics: CruxMetric[];

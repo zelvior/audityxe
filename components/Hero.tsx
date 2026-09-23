@@ -56,8 +56,7 @@ export default function Hero({
 
   return (
     <section className="relative pt-16 sm:pt-24 pb-12 sm:pb-16 px-4 sm:px-6">
-      <div className="max-w-6xl mx-auto grid lg:grid-cols-[1.05fr_0.95fr] items-center gap-8 lg:gap-6">
-      <div className="text-center lg:text-left">
+      <div className="max-w-2xl mx-auto text-center">
         {/* Plain h1, no entrance animation — this is the page's primary
             heading, and shipping it at opacity:0 in the initial HTML
             (as framer-motion's fade-in would) reads as invisible content
@@ -73,11 +72,10 @@ export default function Hero({
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="mt-4 sm:mt-5 text-text-secondary text-sm sm:text-base md:text-lg max-w-xl mx-auto lg:mx-0 px-2"
+          className="mt-4 sm:mt-5 text-text-secondary text-sm sm:text-base md:text-lg max-w-xl mx-auto px-2"
         >
-          <span className="font-semibold text-text-primary">Build better. Launch faster.</span> Drop any URL
-          in and get a brutally specific score, exact code fixes, and exactly what to ship in under
-          a minute.
+          <span className="font-semibold text-text-primary">Build better. Launch faster.</span> Drop
+          a URL, get a real score and exact fixes in under a minute.
         </motion.p>
 
         <motion.form
@@ -122,21 +120,21 @@ export default function Hero({
 
         {!hasAccount && !authLoading && (
           <p className="mt-3 text-xs text-text-secondary">
-            1 free audit without an account.{" "}
+            1 free audit, no account needed.{" "}
             <button type="button" onClick={() => router.push("/login?redirect=/")} className="text-primary hover:underline">
               Sign up
             </button>{" "}
-            for 2 audits a day, no card needed.
+            for more, free.
           </p>
         )}
 
-        <div className="mt-3 text-left">
+        <div className="mt-3 flex justify-center">
           {!showCompetitor ? (
             <button
               type="button"
               onClick={() => setShowCompetitor(true)}
               disabled={!canCompare}
-              className="inline-flex items-center gap-1.5 text-xs font-mono text-text-secondary hover:text-primary transition mt-2 ml-1 disabled:opacity-40 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-1.5 text-xs font-mono text-text-secondary hover:text-primary transition mt-2 disabled:opacity-40 disabled:cursor-not-allowed"
               title={canCompare ? undefined : "Competitor comparison is available on Standard and Pro plans"}
             >
               <Plus size={13} /> Compare with Competitor
@@ -148,7 +146,7 @@ export default function Hero({
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: "auto" }}
                 exit={{ opacity: 0, height: 0 }}
-                className="mt-2 flex items-center gap-2"
+                className="mt-2 flex items-center gap-2 w-full max-w-md"
               >
                 <input
                   type="text"
@@ -176,25 +174,26 @@ export default function Hero({
         </div>
 
         {userPlan === "pro" && (
-          <label className="mt-3 ml-1 flex items-center gap-2 text-xs text-text-secondary cursor-pointer select-none w-fit">
+          <label className="mt-3 flex items-center justify-center gap-2 text-xs text-text-secondary cursor-pointer select-none">
             <input
               type="checkbox"
               checked={wantsPageSpeed}
               onChange={(e) => onWantsPageSpeedChange(e.target.checked)}
               className="accent-primary w-3.5 h-3.5"
             />
-            Run a real-browser PageSpeed Insights (Lighthouse) pass
-            {hasPsiByokKey ? " — unlimited with your own API key" : " — limited to your weekly quota"}
+            Real-browser PageSpeed (Lighthouse) pass
+            {hasPsiByokKey ? " — unlimited with your key" : " — weekly quota applies"}
           </label>
         )}
 
-        <div className="mt-3 ml-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-text-secondary" role="radiogroup" aria-label="Site crawl depth">
+        <div className="mt-3 flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1 text-xs text-text-secondary" role="radiogroup" aria-label="Site crawl depth">
           <span className="mr-1">Site crawl:</span>
           <button
             type="button"
             role="radio"
             aria-checked={crawlMode === "fast"}
             onClick={() => onCrawlModeChange("fast")}
+            title="Homepage sample, fastest"
             className={`px-2.5 py-1 rounded-full border transition ${
               crawlMode === "fast"
                 ? "bg-primary/10 border-primary/40 text-primary font-semibold"
@@ -208,6 +207,7 @@ export default function Hero({
             role="radio"
             aria-checked={crawlMode === "deep"}
             onClick={() => onCrawlModeChange("deep")}
+            title="Up to 25 pages, 3 hops, slower"
             className={`px-2.5 py-1 rounded-full border transition ${
               crawlMode === "deep"
                 ? "bg-primary/10 border-primary/40 text-primary font-semibold"
@@ -216,17 +216,11 @@ export default function Hero({
           >
             Deep
           </button>
-          <span className="text-text-secondary/70 ml-0.5">
-            {crawlMode === "deep"
-              ? "— up to 25 pages, 3 hops, slower"
-              : "— homepage sample, fastest"}
-          </span>
         </div>
-      </div>
 
-      <div className="hidden lg:block">
-        <AuditDefenderGame />
-      </div>
+        <div className="mt-8 hidden sm:flex justify-center">
+          <AuditDefenderGame />
+        </div>
       </div>
     </section>
   );

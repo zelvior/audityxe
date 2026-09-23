@@ -282,7 +282,7 @@ export async function refundWeeklyFeatureUsage(uid: string, feature: string): Pr
   const ref = db.collection("feature_usage_weekly").doc(`${uid}_${feature}`);
   const week = weekKey();
   try {
-    await db.runTransaction(async (tx) => {
+    await db.runTransaction(async (tx: Transaction) => {
       const snap = await tx.get(ref);
       if (!snap.exists) return;
       const data = snap.data()!;

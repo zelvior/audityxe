@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { AuditResult } from "@/lib/types";
 import AuditActionBar from "./AuditActionBar";
 import VectorMetricsVisualizer from "./VectorMetricsVisualizer";
+import CruxFieldData from "./CruxFieldData";
 
 function colorFor(score: number) {
   if (score >= 8) return { bar: "bg-emerald", text: "text-emerald", ring: "rgb(var(--color-emerald))" };
@@ -96,6 +97,12 @@ export default function ScoreCard({ result }: { result: AuditResult }) {
             </div>
           )}
         </div>
+
+        {(result.crux.available || result.crux.reason === "no_data") && (
+          <div className="mt-5">
+            <CruxFieldData crux={result.crux} />
+          </div>
+        )}
 
         {result.siteContext && (
           <p className="text-[11px] text-text-secondary/70 mb-4">

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { canonicalMeta } from "@/lib/seo";
 import Link from "next/link";
-import { ArrowLeft, Terminal } from "lucide-react";
+import { ArrowLeft, Terminal, KeyRound, Mail } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
@@ -59,24 +59,58 @@ export default function ApiDocsPage() {
           </p>
 
           <h3 className="font-display font-semibold text-base mb-2 mt-6">Authentication</h3>
-          <ul className="list-disc pl-5 space-y-1.5 text-sm text-text-secondary mb-6">
+          <ul className="list-disc pl-5 space-y-1.5 text-sm text-text-secondary mb-4">
             <li>
-              No <code>Authorization</code> header — treated as an anonymous visitor: 1 free audit
-              per IP per calendar day (UTC).
+              No <code>Authorization</code> or <code>x-api-key</code> header — treated as an
+              anonymous visitor: 1 free audit per IP per calendar day (UTC).
             </li>
             <li>
               <code>Authorization: Bearer &lt;Firebase ID token&gt;</code> — uses that account's
               plan limit instead. This is a Firebase ID token obtained by signing in through the
-              Firebase client SDK, not a conventional static API key — there's no separate
-              key-issuance flow. Tokens expire in about an hour and need refreshing through
-              Firebase, which is straightforward from a browser but extra work from a plain script.
+              Firebase client SDK, not a static API key. Tokens expire in about an hour and need
+              refreshing through Firebase, which is straightforward from a browser but extra work
+              from a plain script.
             </li>
             <li>
-              A cross-site browser request is rejected with <code>403</code> — CSRF protection for
-              browser clients specifically, not a block on server-side/script callers, which
-              typically don't send an <code>Origin</code> header at all.
+              <code>x-api-key: atx_live_...</code> — a long-lived, revocable key for{" "}
+              <strong>Pro-plan accounts</strong>, purpose-built for scripts/CI where refreshing a
+              Firebase token every hour isn't practical. Uses that account's own daily limit, not a
+              separate quota — and skips the cross-site Origin/bot checks below, since those exist
+              for browser CSRF protection and don't apply to a keyed, non-browser caller. Keys
+              aren't self-serve — see "Requesting an API key" below.
+            </li>
+            <li>
+              A cross-site browser request (no <code>x-api-key</code> present) is rejected with{" "}
+              <code>403</code> — CSRF protection for browser clients specifically, not a block on
+              server-side/script callers, which typically don't send an <code>Origin</code> header
+              at all.
             </li>
           </ul>
+
+          <div className="glass rounded-card p-4 sm:p-5 mb-6 border border-primary/20">
+            <h4 className="font-display font-semibold text-sm mb-1.5 flex items-center gap-2">
+              <KeyRound size={15} className="text-primary" /> Requesting an API key
+            </h4>
+            <p className="text-sm text-text-secondary mb-3">
+              API keys are issued manually from the admin panel — there's no self-serve signup —
+              and only to accounts already on the <strong>Pro plan</strong>. If that's you, email a
+              request and we'll get one issued.
+            </p>
+            <a
+              href={`mailto:zelvior@proton.me?subject=${encodeURIComponent(
+                "Audityxe API key request"
+              )}&body=${encodeURIComponent(
+                "Hi,\n\nI'd like to request an Audityxe API key for /api/audit.\n\nAccount email (must be on the Pro plan): \nIntended use: \n\nThanks!"
+              )}`}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-card bg-primary text-white text-sm font-semibold hover:opacity-90"
+            >
+              <Mail size={15} /> Email zelvior@proton.me to request a key
+            </a>
+            <p className="text-xs text-text-secondary/70 mt-2">
+              Opens your email client with the subject and a starter message already filled in —
+              just add your account email and what you're building.
+            </p>
+          </div>
 
           <h3 className="font-display font-semibold text-base mb-2">Request body</h3>
           <div className="glass rounded-card p-4 mb-6 overflow-x-auto">
@@ -91,13 +125,17 @@ export default function ApiDocsPage() {
           </div>
 
           <h3 className="font-display font-semibold text-base mb-2">Example</h3>
-          <div className="glass rounded-card p-4 mb-6 overflow-x-auto">
+          <div className="glass rounded-card p-4 mb-2 overflow-x-auto">
             <pre className="text-xs font-mono text-text-secondary whitespace-pre">
 {`curl -X POST https://audityxe.vercel.app/api/audit \\
   -H "Content-Type: application/json" \\
   -d '{"url": "https://example.com"}'`}
             </pre>
           </div>
+          <p className="text-xs text-text-secondary/70 mb-6">
+            With a Pro API key instead of the anonymous 1/day limit, add{" "}
+            <code>-H "x-api-key: atx_live_..."</code>.
+          </p>
 
           <h3 className="font-display font-semibold text-base mb-2">Response</h3>
           <p className="text-sm text-text-secondary mb-2">
@@ -129,7 +167,10 @@ export default function ApiDocsPage() {
                 </tr>
                 <tr className="border-b border-border/60">
                   <td className="py-1.5 pr-4 font-mono text-text-secondary">401</td>
-                  <td className="py-1.5 text-text-secondary">Invalid or expired Firebase ID token</td>
+                  <td className="py-1.5 text-text-secondary">
+                    Invalid/expired Firebase ID token, or an invalid, revoked, or no-longer-Pro API
+                    key
+                  </td>
                 </tr>
                 <tr className="border-b border-border/60">
                   <td className="py-1.5 pr-4 font-mono text-text-secondary">403</td>

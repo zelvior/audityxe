@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getLastAuditScore } from "@/lib/badge-store";
 
 export const runtime = "nodejs"; // needs the Firebase Admin SDK, not edge-compatible
+export const dynamic = "force-dynamic";
 
 // Loose hostname shape check — this never fetches the domain, only
 // renders it as text into an SVG, so this is XSS/injection hardening,
