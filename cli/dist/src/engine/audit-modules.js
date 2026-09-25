@@ -1058,10 +1058,13 @@ function buildAuditModules(ctx) {
             : pass("HTTP→HTTPS upgrade", "Resolves to an https:// URL."));
     }
     modules.push(makeModule("cookies-redirects", "Cookies & Redirects", "Cookie security flags on the initial response and the redirect path taken to reach the final URL.", [...cookieFindings, ...redirectFindings]));
-    /* 19. AI Crawler Readiness (GEO) — Generative Engine Optimization:
+    /* 19. AI Answer Engine Readiness (AEO/GEO): two distinct questions —
      * whether AI answer engines (ChatGPT, Claude, Perplexity, Google's
-     * AI Overviews) can actually read and cite this site, which is a
-     * distinct question from classic SEO crawlability. ───────────────── */
+     * AI Overviews) can crawl this site at all (classic GEO/crawlability,
+     * a different question from search-engine SEO), and whether its
+     * content is actually *shaped* to be lifted as a direct, citable
+     * answer (AEO — FAQ/HowTo/Speakable schema, question-phrased
+     * headings, a direct-answer opening paragraph). ─────────────────── */
     {
         const rb = s.robotsTxt;
         const llms = s.llmsTxt;
@@ -1103,7 +1106,27 @@ function buildAuditModules(ctx) {
         geoFindings.push(ls.aiTrainingOptOut
             ? pass("AI-training opt-out signal", "A noai/noimageai directive is present — this site has explicitly opted out of AI-training use of its content (separate from being crawlable for AI-search citations, which is unaffected).")
             : pass("AI-training opt-out signal", "No noai/noimageai opt-out directive found — not required, just noted for sites that want one."));
-        modules.push(makeModule("ai-crawler-readiness", "AI Crawler Readiness (GEO)", "Whether AI answer engines like ChatGPT, Claude, and Perplexity can crawl and cite this site — a distinct question from classic search-engine SEO.", geoFindings));
+        // ── Answer-readiness (AEO): being crawlable isn't the same as being
+        // *citable* — this half checks whether the content is actually
+        // shaped so an AI answer engine can lift a direct answer from it.
+        const sd = d.structuredData;
+        const ar = d.answerReadiness;
+        geoFindings.push(sd.hasFaqPage
+            ? pass("FAQPage schema", "FAQPage structured data found — one of the clearest, most directly-citable formats for an AI answer engine or a search featured snippet.")
+            : warn("FAQPage schema", "No FAQPage structured data found. If this page already has an FAQ-style section, marking it up with FAQPage schema is one of the highest-leverage single changes for AI-answer citability.", undefined, "low"));
+        if (sd.hasHowTo) {
+            geoFindings.push(pass("HowTo schema", "HowTo structured data found — well-suited to step-by-step answer extraction."));
+        }
+        if (sd.hasSpeakable) {
+            geoFindings.push(pass("Speakable schema", "Speakable structured data found — marks specific sections as suited for text-to-speech/voice-assistant readout."));
+        }
+        geoFindings.push(ar.questionHeadingCount > 0
+            ? pass("Question-phrased headings", `${ar.questionHeadingCount} heading${ar.questionHeadingCount > 1 ? "s" : ""} phrased as a direct question (e.g. "${ar.questionHeadingSamples[0]}") — exactly the shape AI Overviews and answer engines pull from.`, ar.questionHeadingSamples.join(" · ") || undefined)
+            : warn("Question-phrased headings", "No headings are phrased as a direct question. Rephrasing a section heading as the question it answers (\"How does X work?\" rather than \"How It Works\") makes it far more likely to be lifted verbatim as an AI-generated answer.", undefined, "low"));
+        geoFindings.push(ar.hasDirectAnswerLead
+            ? pass("Direct-answer opening", "The page's first heading is immediately followed by a concise, self-contained paragraph — easy for an answer engine to extract without synthesis.")
+            : warn("Direct-answer opening", "The first heading isn't followed by a short, self-contained paragraph. Leading with a 1–2 sentence direct answer right after the main heading (before diving into detail) is the single most citable structure for AI answer engines.", undefined, "low"));
+        modules.push(makeModule("ai-crawler-readiness", "AI Answer Engine Readiness (AEO/GEO)", "Two distinct questions: can AI answer engines like ChatGPT, Claude, and Perplexity crawl this site at all (GEO), and is its content actually shaped so they can lift a direct, citable answer from it (AEO)?", geoFindings));
     }
     return modules;
 }

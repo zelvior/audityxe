@@ -1648,8 +1648,11 @@ const MAX_URL_LENGTH = 2048;
 const OVERALL_AUDIT_TIMEOUT_MS = 30000;
 // Deep crawl mode runs a real multi-hop request queue (site-crawl-deep.ts),
 // which needs more wall-clock room than the shared 30s budget every other
-// module races against — bumped for deep-mode requests only, and still
-// comfortably under the route's own maxDuration=90 (see app/api/audit/route.ts).
+// module races against — bumped for deep-mode requests only. The CLI has
+// no serverless maxDuration ceiling (it runs on the user's own machine),
+// but these constants are still kept in sync with the web app's copy
+// (lib/analyze.ts) rather than opening them up further, so behavior is
+// consistent whichever surface someone runs an audit from.
 const DEEP_OVERALL_AUDIT_TIMEOUT_MS = 60000;
 // A competitor comparison audits a second full site sequentially after
 // the primary one finishes (see the `competitor` block in
@@ -1658,11 +1661,22 @@ const DEEP_OVERALL_AUDIT_TIMEOUT_MS = 60000;
 // (auditOne's own internal try/catch silently drops the competitor
 // result on timeout rather than failing the whole request, which made
 // this look like an intermittent bug rather than what it actually was:
-// not enough time budgeted for the extra work). Deep crawl AND a
-// competitor together is the most demanding combination, so it gets
-// the largest budget — still with real margin under maxDuration=90.
+// not enough time budgeted for the extra work).
 const COMPETITOR_OVERALL_AUDIT_TIMEOUT_MS = 60000;
 const COMPETITOR_DEEP_OVERALL_AUDIT_TIMEOUT_MS = 75000;
+// A real-browser PageSpeed Insights (Lighthouse) pass runs IN PARALLEL
+// with the rest of the primary audit, not after it — but PSI's own
+// internal timeout (pagespeed.ts) is 75s on its own, which this matrix
+// previously didn't budget for at all. That's the confirmed root cause
+// of "deep crawl + Lighthouse" (and, less visibly, PSI on its own)
+// reliably hitting the generic overall-timeout message: the shared
+// ceiling was smaller than PSI's own allowed runtime. Kept in sync
+// with lib/analyze.ts's numbers even though the CLI has no maxDuration
+// cap of its own to respect.
+const PSI_OVERALL_AUDIT_TIMEOUT_MS = 82000;
+const DEEP_PSI_OVERALL_AUDIT_TIMEOUT_MS = 85000;
+const COMPETITOR_PSI_OVERALL_AUDIT_TIMEOUT_MS = 88000;
+const COMPETITOR_DEEP_PSI_OVERALL_AUDIT_TIMEOUT_MS = 88000;
 
 function withOverallTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
   let timer: ReturnType<typeof setTimeout>;
@@ -1712,13 +1726,23 @@ export async function runAudit(
 
   const isDeep = options.crawlMode === "deep";
   const hasCompetitor = !!(competitorRawUrl && competitorRawUrl.trim());
-  const timeoutMs = isDeep && hasCompetitor
-    ? COMPETITOR_DEEP_OVERALL_AUDIT_TIMEOUT_MS
-    : isDeep
-      ? DEEP_OVERALL_AUDIT_TIMEOUT_MS
-      : hasCompetitor
-        ? COMPETITOR_OVERALL_AUDIT_TIMEOUT_MS
-        : OVERALL_AUDIT_TIMEOUT_MS;
+  const wantsPsi = !!options.includePageSpeed;
+
+  const timeoutMs = hasCompetitor && isDeep && wantsPsi
+    ? COMPETITOR_DEEP_PSI_OVERALL_AUDIT_TIMEOUT_MS
+    : isDeep && wantsPsi
+      ? DEEP_PSI_OVERALL_AUDIT_TIMEOUT_MS
+      : hasCompetitor && wantsPsi
+        ? COMPETITOR_PSI_OVERALL_AUDIT_TIMEOUT_MS
+        : hasCompetitor && isDeep
+          ? COMPETITOR_DEEP_OVERALL_AUDIT_TIMEOUT_MS
+          : wantsPsi
+            ? PSI_OVERALL_AUDIT_TIMEOUT_MS
+            : isDeep
+              ? DEEP_OVERALL_AUDIT_TIMEOUT_MS
+              : hasCompetitor
+                ? COMPETITOR_OVERALL_AUDIT_TIMEOUT_MS
+                : OVERALL_AUDIT_TIMEOUT_MS;
 
   return withOverallTimeout(
     runAuditInner(rawUrl, competitorRawUrl, options),

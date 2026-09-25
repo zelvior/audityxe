@@ -43,6 +43,7 @@ export default function Home() {
   }, []);
   const [phase, setPhase] = useState<Phase>("idle");
   const [activeStep, setActiveStep] = useState(0);
+  const [scanningUrl, setScanningUrl] = useState("");
   const [result, setResult] = useState<AuditResult | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
   const [rateLimited, setRateLimited] = useState<{ plan: PlanId; limit: number } | null>(null);
@@ -90,6 +91,7 @@ export default function Home() {
 
     setPhase("scanning");
     setActiveStep(0);
+    setScanningUrl(url.trim());
     setResult(null);
     setErrorMsg("");
     setRateLimited(null);
@@ -161,16 +163,25 @@ export default function Home() {
   return (
     <main>
       <div className="relative">
-        {/* Full-bleed hero background — the image already carries real
-            alpha transparency at its own top/bottom edges (not a hard
-            rectangle), so it blends into the page background color on
-            its own rather than needing a separate fade mask on top.
-            Faded further in dark mode since it was designed against
-            the light theme's cream background and would otherwise read
-            as a stark light patch against the near-black dark bg. */}
+        {/* Full-bleed hero background. The source image DOES carry real
+            alpha transparency at its own edges — but its fade-to-clear
+            only really kicks in in roughly its last 5–8% of height, and
+            object-cover here crops the tall source image down to a much
+            shorter box, cutting it off well before that built-in fade
+            ever completes. Net effect without a mask: a hard, visible
+            edge exactly at the container boundary instead of a blend —
+            so the fade is applied explicitly here via mask-image
+            instead of relying on the source alone. Also dimmed further
+            in dark mode, since the image was designed against the
+            light theme's cream background and would otherwise read as
+            a stark light patch against the near-black dark bg. */}
         <div
           aria-hidden="true"
           className="pointer-events-none absolute inset-x-0 top-0 h-[420px] sm:h-[520px] lg:h-[620px] -z-10 overflow-hidden"
+          style={{
+            maskImage: "linear-gradient(to bottom, black 0%, black 55%, transparent 96%)",
+            WebkitMaskImage: "linear-gradient(to bottom, black 0%, black 55%, transparent 96%)",
+          }}
         >
           <picture>
             <source srcSet="/hero-background.webp" type="image/webp" />
@@ -181,6 +192,10 @@ export default function Home() {
               className="w-full h-full object-cover object-top opacity-90 dark:opacity-25"
             />
           </picture>
+          {/* Extra top-down scrim so header/hero text stays legible over
+              the image regardless of where its brighter mountain peaks
+              happen to land, without flattening the image's own colors. */}
+          <div className="absolute inset-0 bg-gradient-to-b from-[rgb(var(--color-bg))]/10 via-transparent to-[rgb(var(--color-bg))]" />
         </div>
 
         <Header />
@@ -208,7 +223,7 @@ export default function Home() {
       <AnimatePresence mode="wait">
         {phase === "scanning" && (
           <motion.div key="scan" exit={{ opacity: 0 }}>
-            <ScanProgress activeStep={activeStep} isLongRun={(wantsPageSpeed && userPlan === "pro") || crawlMode === "deep"} />
+            <ScanProgress activeStep={activeStep} isLongRun={(wantsPageSpeed && userPlan === "pro") || crawlMode === "deep"} scanningUrl={scanningUrl} />
           </motion.div>
         )}
 

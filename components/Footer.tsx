@@ -203,6 +203,7 @@ export default function Footer() {
                 frontLabel="Star on GitHub"
                 backLabel="Thanks! ⭐"
                 href="https://github.com/zelvior/audityxe"
+                className="inline-flex"
               />
               {/* Sponsor button, styled after GitHub's own — outlined
                   rather than filled so it reads as a genuine optional

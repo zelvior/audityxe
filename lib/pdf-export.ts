@@ -443,6 +443,45 @@ export function generateAuditPdf(result: AuditResult) {
     }
   }
 
+  // Standalone Chrome UX Report lookup (lib/crux.ts) — distinct from
+  // the PSI-embedded field data above, and NOT gated behind a
+  // Lighthouse pass: this is fetched for every audit regardless of
+  // plan, so it's the only source of real-user Core Web Vitals a
+  // Free/Standard-plan report has at all (the block above only exists
+  // when a Pro-plan Lighthouse pass was actually run). Previously
+  // computed on every audit but never included in this export at all.
+  if (result.crux.available && result.crux.metrics.length > 0) {
+    const cy = lastAutoTableY(doc) + 10;
+    doc.setFontSize(8.5);
+    doc.setTextColor(MUTED);
+    doc.text(
+      `Real-world Core Web Vitals (CrUX, past 28 days) \u2014 from actual Chrome users who visited\n${result.crux.origin ?? result.url}, not a simulated run.`,
+      MARGIN,
+      cy
+    );
+    autoTable(doc, {
+      startY: cy + 8,
+      margin: { left: MARGIN, right: MARGIN },
+      head: [["Metric", "Value (p75)", "Verdict"]],
+      body: result.crux.metrics.map((m) => [
+        m.label,
+        m.unit === "ms" ? `${Math.round(m.p75)} ms` : String(m.p75.toFixed(2)),
+        m.verdict === "good" ? "Good" : m.verdict === "needs-improvement" ? "Needs improvement" : "Poor",
+      ]),
+      styles: { fontSize: 9, cellPadding: 2 },
+      headStyles: { fillColor: [241, 233, 216], textColor: [32, 27, 20] },
+    });
+  } else if (result.crux.reason === "no_data") {
+    const cy = lastAutoTableY(doc) + 10;
+    doc.setFontSize(8);
+    doc.setTextColor(MUTED);
+    doc.text(
+      "No real-world (CrUX) field data is available for this origin \u2014 not enough recorded Chrome traffic\nfor Google to report on.",
+      MARGIN,
+      cy
+    );
+  }
+
   /* ── Fixes ──────────────────────────────────────────────────── */
   if (result.fixes.length) {
     doc.addPage();

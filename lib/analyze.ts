@@ -1658,11 +1658,36 @@ const DEEP_OVERALL_AUDIT_TIMEOUT_MS = 60000;
 // (auditOne's own internal try/catch silently drops the competitor
 // result on timeout rather than failing the whole request, which made
 // this look like an intermittent bug rather than what it actually was:
-// not enough time budgeted for the extra work). Deep crawl AND a
-// competitor together is the most demanding combination, so it gets
-// the largest budget — still with real margin under maxDuration=90.
+// not enough time budgeted for the extra work).
 const COMPETITOR_OVERALL_AUDIT_TIMEOUT_MS = 60000;
 const COMPETITOR_DEEP_OVERALL_AUDIT_TIMEOUT_MS = 75000;
+// A real-browser PageSpeed Insights (Lighthouse) pass runs IN PARALLEL
+// with the rest of the primary audit (see the big Promise.all in
+// runAuditInner), not after it — but PSI's own Lighthouse run can take
+// up to ~60s on its own even by itself (see ScanProgress.tsx's own
+// "can take up to a minute" copy), which the timeout matrix below
+// previously didn't budget for at all. That gap is the confirmed root
+// cause of "deep crawl + Lighthouse" reliably hitting the generic
+// overall-timeout message: deep crawl alone already uses most/all of
+// its 60s budget, and racing a *second*, independently up-to-60s task
+// against that same shared ceiling was never going to fit. Each combo
+// below is sized for max(the slow paths involved) plus real margin,
+// while staying under the route's own maxDuration=90 hard ceiling.
+const PSI_OVERALL_AUDIT_TIMEOUT_MS = 82000;
+const DEEP_PSI_OVERALL_AUDIT_TIMEOUT_MS = 85000;
+const COMPETITOR_PSI_OVERALL_AUDIT_TIMEOUT_MS = 88000;
+// Deep crawl + PSI + a competitor is the single most demanding
+// combination this product offers, and honestly: it's close to the
+// edge of what maxDuration=90 can guarantee. PSI's own internal
+// timeout (lib/pagespeed.ts) is 75s by itself, and a competitor
+// comparison runs as a genuinely separate, sequential second audit
+// after the primary one — so a pathological case (a slow primary site
+// that uses most of its 75s PSI allowance, followed by an also-slow
+// competitor site) can still occasionally hit this ceiling. That's a
+// real platform constraint, not a bug in this matrix: the fix for that
+// residual tail case is raising maxDuration (a Vercel plan-tier
+// decision), not shaving this number down further.
+const COMPETITOR_DEEP_PSI_OVERALL_AUDIT_TIMEOUT_MS = 88000;
 
 function withOverallTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
   let timer: ReturnType<typeof setTimeout>;
@@ -1712,13 +1737,23 @@ export async function runAudit(
 
   const isDeep = options.crawlMode === "deep";
   const hasCompetitor = !!(competitorRawUrl && competitorRawUrl.trim());
-  const timeoutMs = isDeep && hasCompetitor
-    ? COMPETITOR_DEEP_OVERALL_AUDIT_TIMEOUT_MS
-    : isDeep
-      ? DEEP_OVERALL_AUDIT_TIMEOUT_MS
-      : hasCompetitor
-        ? COMPETITOR_OVERALL_AUDIT_TIMEOUT_MS
-        : OVERALL_AUDIT_TIMEOUT_MS;
+  const wantsPsi = !!options.includePageSpeed;
+
+  const timeoutMs = hasCompetitor && isDeep && wantsPsi
+    ? COMPETITOR_DEEP_PSI_OVERALL_AUDIT_TIMEOUT_MS
+    : isDeep && wantsPsi
+      ? DEEP_PSI_OVERALL_AUDIT_TIMEOUT_MS
+      : hasCompetitor && wantsPsi
+        ? COMPETITOR_PSI_OVERALL_AUDIT_TIMEOUT_MS
+        : hasCompetitor && isDeep
+          ? COMPETITOR_DEEP_OVERALL_AUDIT_TIMEOUT_MS
+          : wantsPsi
+            ? PSI_OVERALL_AUDIT_TIMEOUT_MS
+            : isDeep
+              ? DEEP_OVERALL_AUDIT_TIMEOUT_MS
+              : hasCompetitor
+                ? COMPETITOR_OVERALL_AUDIT_TIMEOUT_MS
+                : OVERALL_AUDIT_TIMEOUT_MS;
 
   return withOverallTimeout(
     runAuditInner(rawUrl, competitorRawUrl, options),

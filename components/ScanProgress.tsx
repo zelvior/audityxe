@@ -4,11 +4,23 @@ import { motion } from "framer-motion";
 import { Check, Loader2 } from "lucide-react";
 import { SCAN_STEPS } from "@/lib/constants";
 import IsometricLoader from "@/components/IsometricLoader";
+import LiveScanPreview from "@/components/LiveScanPreview";
 
-export default function ScanProgress({ activeStep, isLongRun = false }: { activeStep: number; isLongRun?: boolean }) {
+export default function ScanProgress({
+  activeStep,
+  isLongRun = false,
+  scanningUrl = "",
+}: {
+  activeStep: number;
+  isLongRun?: boolean;
+  scanningUrl?: string;
+}) {
   return (
     <section className="px-4 sm:px-6 py-10 sm:py-16">
-      <div className="max-w-xl mx-auto glass rounded-card p-5 sm:p-8 relative overflow-hidden">
+      <div className="max-w-3xl mx-auto space-y-4">
+        {scanningUrl && <LiveScanPreview url={scanningUrl} />}
+
+        <div className="glass rounded-card p-5 sm:p-8 relative overflow-hidden">
         <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-primary/20 to-transparent pointer-events-none" />
         <div className="absolute left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/60 to-transparent animate-scan" />
 
@@ -64,6 +76,7 @@ export default function ScanProgress({ activeStep, isLongRun = false }: { active
             minute on its own. This isn't stuck, Google's servers are still working on it.
           </motion.p>
         )}
+        </div>
       </div>
     </section>
   );

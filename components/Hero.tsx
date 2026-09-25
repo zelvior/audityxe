@@ -4,7 +4,6 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Plus, X, Lock, Loader2 } from "lucide-react";
-import AuditDefenderGame from "./AuditDefenderGame";
 import { PlanId } from "@/lib/plans";
 
 interface HeroProps {
@@ -216,10 +215,6 @@ export default function Hero({
           >
             Deep
           </button>
-        </div>
-
-        <div className="mt-8 hidden sm:flex justify-center">
-          <AuditDefenderGame />
         </div>
       </div>
     </section>

@@ -126,10 +126,29 @@ export interface StructuredDataSignals {
   hasProduct: boolean;
   hasArticle: boolean;
   hasFaqPage: boolean;
+  hasHowTo: boolean;
+  hasSpeakable: boolean;
   hasLocalBusiness: boolean;
   hasWebSite: boolean;
   hasReview: boolean;
   missingRequiredFieldsByType: Record<string, string[]>;
+}
+
+/** Signals for whether this page's content is actually structured to be
+ * lifted as a direct answer by an AI answer engine or a featured
+ * snippet — distinct from whether the page is crawlable at all (see
+ * StructuredDataSignals/robots.txt/llms.txt for that side). */
+export interface AnswerReadinessSignals {
+  /** Headings phrased as a question ("How does X work?", "What is
+   * Y?") — the single strongest on-page (non-schema) signal that a
+   * section is answer-shaped, since it's exactly the pattern AI
+   * Overviews / featured snippets and chat answer engines pull from. */
+  questionHeadingCount: number;
+  questionHeadingSamples: string[];
+  /** A concise (roughly 40–320 char) paragraph sitting directly after
+   * the page's first heading — the classic "definition-first" pattern
+   * that makes a page's opening easy to lift as a direct answer. */
+  hasDirectAnswerLead: boolean;
 }
 
 export interface ImageOptimizationSignals {
@@ -207,6 +226,7 @@ export interface DeepSignals {
   socialMeta: SocialMetaSignals;
   monetization: MonetizationSignals;
   structuredData: StructuredDataSignals;
+  answerReadiness: AnswerReadinessSignals;
   images: ImageOptimizationSignals;
   mobile: MobileSignals;
   vibeCoded: VibeCodedSignals;
@@ -706,6 +726,7 @@ export function extractDeepSignals(html: string, serverHeaderValue?: string | nu
     }
   }
 
+  const rawLdText = ldBlocks.map(([, raw]) => raw).join("\n");
   const structuredData: StructuredDataSignals = {
     blockCount: ldBlocks.length,
     parseErrorCount,
@@ -715,10 +736,34 @@ export function extractDeepSignals(html: string, serverHeaderValue?: string | nu
     hasProduct: types.includes("Product"),
     hasArticle: types.includes("Article") || types.includes("NewsArticle") || types.includes("BlogPosting"),
     hasFaqPage: types.includes("FAQPage"),
+    hasHowTo: types.includes("HowTo"),
+    hasSpeakable: /"speakable"\s*:/.test(rawLdText),
     hasLocalBusiness: types.includes("LocalBusiness"),
     hasWebSite: types.includes("WebSite"),
     hasReview: types.includes("Review") || types.includes("AggregateRating"),
     missingRequiredFieldsByType,
+  };
+
+  /* ── Answer readiness (AEO) ───────────────────────────────── */
+  const stripTags = (s: string) => s.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+  const h2h3Texts = [...bodyHtml.matchAll(/<(h2|h3)\b[^>]*>([\s\S]*?)<\/\1>/gi)].map((m) => stripTags(m[2]));
+  const questionHeadings = h2h3Texts.filter((t) => t.endsWith("?") && t.length > 5);
+
+  let hasDirectAnswerLead = false;
+  const firstHeadingMatch = bodyHtml.match(/<h[12]\b[^>]*>[\s\S]*?<\/h[12]>/i);
+  if (firstHeadingMatch) {
+    const afterHeading = bodyHtml.slice(bodyHtml.indexOf(firstHeadingMatch[0]) + firstHeadingMatch[0].length);
+    const nextParagraph = afterHeading.match(/^\s*(?:<(?!h[1-6]\b)[^>]+>\s*)*?<p\b[^>]*>([\s\S]*?)<\/p>/i);
+    if (nextParagraph) {
+      const leadLength = stripTags(nextParagraph[1]).length;
+      hasDirectAnswerLead = leadLength >= 40 && leadLength <= 320;
+    }
+  }
+
+  const answerReadiness: AnswerReadinessSignals = {
+    questionHeadingCount: questionHeadings.length,
+    questionHeadingSamples: questionHeadings.slice(0, 3),
+    hasDirectAnswerLead,
   };
 
   /* ── Images ───────────────────────────────────────────────── */
@@ -961,6 +1006,7 @@ export function extractDeepSignals(html: string, serverHeaderValue?: string | nu
     socialMeta,
     monetization,
     structuredData,
+    answerReadiness,
     images,
     mobile,
     vibeCoded,

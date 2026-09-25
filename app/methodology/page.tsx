@@ -60,14 +60,14 @@ export default function MethodologyPage() {
               PageSpeed pass adds separately, below); this first pass reads what any server or bot
               would actually receive.
             </p>
-            <p>From that single live fetch, the pipeline runs dozens of distinct checks across six scored categories, plus additional deep-audit modules (AI Crawler Readiness among them) shown separately from the six category scores:</p>
+            <p>From that single live fetch, the pipeline runs dozens of distinct checks across six scored categories, plus additional deep-audit modules (AI Answer Engine Readiness among them) shown separately from the six category scores:</p>
             <ul className="list-disc pl-5 space-y-1.5">
               <li><strong>Technical &amp; Metadata Health</strong> — title tag, meta description, canonical tag, viewport meta, charset, doctype.</li>
               <li><strong>SEO Foundations</strong> — heading hierarchy (one H1, logical H2/H3 order), structured data (JSON-LD), robots.txt and sitemap.xml fetched live and checked for real matches, Open Graph and Twitter Card tags.</li>
               <li><strong>Security</strong> — HTTPS enforcement, HSTS, Content-Security-Policy, X-Frame-Options, X-Content-Type-Options, and other response headers read directly off the live HTTP response.</li>
               <li><strong>Accessibility</strong> — image alt text coverage, form label association, color-contrast heuristics, keyboard focus visibility (flags CSS that suppresses the focus outline with no visible replacement), heading structure re-checked from an accessibility angle.</li>
               <li><strong>UX &amp; Technical Hygiene</strong> — mobile viewport configuration, tap-target sizing signals, a sampled pass over on-page links and images to flag ones that 404 or fail to load, ads.txt presence where relevant.</li>
-              <li><strong>AI Crawler Readiness (GEO)</strong> — a deep-audit module, not one of the six scored categories: whether AI answer engines like ChatGPT, Claude, and Perplexity can actually crawl and cite the site, via named AI-bot rules in robots.txt, whether an <code>llms.txt</code> is present, whether the X-Robots-Tag HTTP header blocks indexing independently of the HTML meta tag, and whether a noai/noimageai AI-training opt-out signal is set.</li>
+              <li><strong>AI Answer Engine Readiness (AEO/GEO)</strong> — a deep-audit module, not one of the six scored categories: two distinct questions — whether AI answer engines like ChatGPT, Claude, and Perplexity can actually crawl the site at all (named AI-bot rules in robots.txt, whether an <code>llms.txt</code> is present, whether the X-Robots-Tag HTTP header blocks indexing independently of the HTML meta tag, a noai/noimageai opt-out signal), and separately whether the content is actually shaped to be lifted as a direct, citable answer (FAQPage/HowTo/Speakable schema, question-phrased headings, a direct-answer opening paragraph).</li>
               <li><strong>Performance</strong> (Pro only) — a real browser-rendered pass via Google PageSpeed Insights, covering Core Web Vitals (LCP, CLS, TBT, FCP, Speed Index) rather than estimating from static HTML.</li>
             </ul>
             <p>

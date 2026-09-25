@@ -6,6 +6,21 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    version: "3.11.0",
+    date: "September 2026",
+    changes: [
+      "Fixed: production build failure (\"Cannot find module '@google-cloud/firestore'\") — it's only an optionalDependency of firebase-admin, and CI's environment was skipping it. Added as an explicit direct dependency. Verified with a full `rm -rf node_modules && npm ci && npx next build`, not just tsc.",
+      "Removed: the homepage mini-game (AuditDefenderGame) — no longer shown or imported anywhere; the component file itself was deleted since nothing referenced it afterward.",
+      "Fixed: the homepage background image had a hard visible cutoff at the bottom instead of a smooth blend — the container's display height was cropping the source image before its own built-in alpha fade ever completed. Now uses an explicit CSS mask-image fade plus a scrim for text legibility.",
+      "Fixed: the GitHub \"Star\" and \"Sponsor\" footer buttons were visibly misaligned — a classic inline-element baseline gap: HoverRevealButton's <a> wrapped an inline-flex span with no vertical-align set, adding a few px of whitespace the Sponsor button's own explicit h-[44px] anchor didn't have.",
+      "Fixed: \"deep crawl + real-browser PageSpeed (Lighthouse)\" reliably hit the generic overall-timeout message. Root cause: the timeout-selection matrix in lib/analyze.ts never accounted for a requested Lighthouse pass at all — PSI's own internal timeout is 75s, but the shared budget for a non-deep, non-competitor audit was only 30s, and even deep-mode's 60s didn't leave room for a PSI pass running in parallel with it. Added PSI-aware budget tiers (all kept under the route's maxDuration=90 hard ceiling), and ported the identical fix to the CLI's own copy of the engine, which had the same bug.",
+      "New: components/LiveScanPreview.tsx — a real, view-only iframe of the actual site being audited, shown during the scan (replaces the old text-only step list as the primary visual; the step list remains alongside it). Sandboxed with allow-scripts only (deliberately without allow-same-origin, which together is the classic sandbox-escape combination — relevant here specifically if someone audits audityxe.vercel.app itself) and pointer-events-none (view-only, never interactive). Sites that block being framed (X-Frame-Options/CSP frame-ancestors — common and legitimate) get a clear, honest fallback message after a grace period rather than an indefinite blank box; there's no reliable way to detect that specific failure from JS, so a timeout is the honest signal available.",
+      "Fixed: real-user Core Web Vitals (result.crux) were fetched on every single audit but were missing from both the JSON export and the PDF report — added a dedicated `crux` field to the JSON payload and a new, plan-independent \"Real-world Core Web Vitals\" section to the PDF (the existing PSI-embedded field-data section only ever appears for a Pro-plan Lighthouse pass, so this was previously the *only* real-user data source Free/Standard reports had, and it wasn't in the report at all).",
+      "New: lib/fetch-json.ts now centralizes every frontend call to our own API through a single API_BASE_URL (same-origin by default, overridable via NEXT_PUBLIC_API_BASE_URL for a staging deployment), and rejects any full URL that doesn't resolve to a trusted host rather than fetching it — defense in depth for future call sites, since every current one already used a relative path.",
+      "New: deep-audit AEO (Answer Engine Optimization) signals — FAQPage/HowTo/Speakable schema detection, question-phrased-heading detection, and a \"direct-answer opening paragraph\" heuristic — added to the existing GEO module (renamed \"AI Answer Engine Readiness (AEO/GEO)\") in both lib/audit-modules.ts and the CLI's identical copy, so CLI/VS Code audits carry the same AEO checks as the web app. Findings flow through the JSON/PDF exports and the sample report automatically, since both already iterate `result.modules` generically rather than special-casing modules by name.",
+    ],
+  },
+  {
     version: "3.10.0",
     date: "September 2026",
     changes: [

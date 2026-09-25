@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.main = main;
 const analyze_1 = require("./engine/analyze");
 const history_1 = require("./history");
-const VERSION = "1.0.0";
+const VERSION = "1.1.3";
 const HELP = `
 audityxe — free, unlimited, local-first website audit
 

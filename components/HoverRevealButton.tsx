@@ -30,6 +30,7 @@ export default function HoverRevealButton({
       <style jsx>{`
         .hv-reveal-btn {
           display: inline-flex;
+          vertical-align: middle;
           height: 44px;
           min-width: 148px;
           border-radius: 10px;

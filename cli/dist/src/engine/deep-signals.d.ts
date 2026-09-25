@@ -118,10 +118,28 @@ export interface StructuredDataSignals {
     hasProduct: boolean;
     hasArticle: boolean;
     hasFaqPage: boolean;
+    hasHowTo: boolean;
+    hasSpeakable: boolean;
     hasLocalBusiness: boolean;
     hasWebSite: boolean;
     hasReview: boolean;
     missingRequiredFieldsByType: Record<string, string[]>;
+}
+/** Signals for whether this page's content is actually structured to be
+ * lifted as a direct answer by an AI answer engine or a featured
+ * snippet — distinct from whether the page is crawlable at all (see
+ * StructuredDataSignals/robots.txt/llms.txt for that side). */
+export interface AnswerReadinessSignals {
+    /** Headings phrased as a question ("How does X work?", "What is
+     * Y?") — the single strongest on-page (non-schema) signal that a
+     * section is answer-shaped, since it's exactly the pattern AI
+     * Overviews / featured snippets and chat answer engines pull from. */
+    questionHeadingCount: number;
+    questionHeadingSamples: string[];
+    /** A concise (roughly 40–320 char) paragraph sitting directly after
+     * the page's first heading — the classic "definition-first" pattern
+     * that makes a page's opening easy to lift as a direct answer. */
+    hasDirectAnswerLead: boolean;
 }
 export interface ImageOptimizationSignals {
     total: number;
@@ -193,6 +211,7 @@ export interface DeepSignals {
     socialMeta: SocialMetaSignals;
     monetization: MonetizationSignals;
     structuredData: StructuredDataSignals;
+    answerReadiness: AnswerReadinessSignals;
     images: ImageOptimizationSignals;
     mobile: MobileSignals;
     vibeCoded: VibeCodedSignals;

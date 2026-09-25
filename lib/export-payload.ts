@@ -79,6 +79,18 @@ export function buildAuditExportPayload(result: AuditResult) {
       finalScreenshotAvailable: !!(result.pageSpeed?.finalScreenshotDataUrl || result.pageSpeed?.finalScreenshotDesktopDataUrl),
       finalScreenshotDesktopAvailable: !!result.pageSpeed?.finalScreenshotDesktopDataUrl,
     },
+    // The standalone Chrome UX Report lookup (lib/crux.ts) — distinct
+    // from performance.fieldData above, which is PSI's own embedded
+    // (and less complete) field-data snapshot. This is the fuller,
+    // per-metric real-user data shown in the UI as "Real-world Core
+    // Web Vitals" (components/CruxFieldData.tsx).
+    crux: {
+      available: result.crux.available,
+      reason: result.crux.reason,
+      origin: result.crux.origin,
+      collectionPeriod: result.crux.collectionPeriod,
+      metrics: result.crux.metrics,
+    },
     promo: {
       locked: result.promoLocked ?? false,
       lockReason: result.promoLockReason ?? null,

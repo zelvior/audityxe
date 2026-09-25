@@ -100,16 +100,25 @@ Every check below runs for free, with no paid third-party API, on every audit.
 </details>
 
 <details>
-<summary><strong>AI Crawler Readiness (GEO)</strong></summary>
+<summary><strong>AI Answer Engine Readiness (AEO/GEO)</strong></summary>
 
-Generative Engine Optimization — whether AI answer engines can read and cite the site, which is a
-*different question* from classic SEO:
+Two distinct questions: can AI answer engines crawl the site at all (GEO), and separately, is its
+content actually *shaped* to be lifted as a direct, citable answer (AEO)? Different from classic SEO
+either way:
 
+**Crawl access (GEO):**
 - Named AI crawler blocking in `robots.txt` (GPTBot, ChatGPT-User, ClaudeBot, Claude-Web, anthropic-ai, PerplexityBot, Google-Extended, CCBot, Bytespider, Applebot-Extended)
 - `llms.txt` presence and whether it has real content
 - **`X-Robots-Tag` HTTP header** indexing blocks — invisible to any checker that only reads HTML
 - Conflicts between the header-level and meta-tag-level robots directives
 - `noai` / `noimageai` AI-training opt-out signals
+
+**Content shape (AEO):**
+- `FAQPage`, `HowTo`, and `Speakable` structured data — the most directly citable schema types
+- Headings phrased as a direct question ("How does X work?") vs. a label ("How It Works") — the
+  question form is what answer engines actually pull from
+- A concise, self-contained paragraph immediately after the page's first heading — the
+  definition-first pattern that's easy to extract without synthesis
 </details>
 
 <details>

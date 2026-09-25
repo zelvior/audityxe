@@ -455,6 +455,7 @@ function extractDeepSignals(html, serverHeaderValue, xRobotsTagValue) {
             parseErrorCount++;
         }
     }
+    const rawLdText = ldBlocks.map(([, raw]) => raw).join("\n");
     const structuredData = {
         blockCount: ldBlocks.length,
         parseErrorCount,
@@ -464,10 +465,31 @@ function extractDeepSignals(html, serverHeaderValue, xRobotsTagValue) {
         hasProduct: types.includes("Product"),
         hasArticle: types.includes("Article") || types.includes("NewsArticle") || types.includes("BlogPosting"),
         hasFaqPage: types.includes("FAQPage"),
+        hasHowTo: types.includes("HowTo"),
+        hasSpeakable: /"speakable"\s*:/.test(rawLdText),
         hasLocalBusiness: types.includes("LocalBusiness"),
         hasWebSite: types.includes("WebSite"),
         hasReview: types.includes("Review") || types.includes("AggregateRating"),
         missingRequiredFieldsByType,
+    };
+    /* ── Answer readiness (AEO) ───────────────────────────────── */
+    const stripTags = (s) => s.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+    const h2h3Texts = [...bodyHtml.matchAll(/<(h2|h3)\b[^>]*>([\s\S]*?)<\/\1>/gi)].map((m) => stripTags(m[2]));
+    const questionHeadings = h2h3Texts.filter((t) => t.endsWith("?") && t.length > 5);
+    let hasDirectAnswerLead = false;
+    const firstHeadingMatch = bodyHtml.match(/<h[12]\b[^>]*>[\s\S]*?<\/h[12]>/i);
+    if (firstHeadingMatch) {
+        const afterHeading = bodyHtml.slice(bodyHtml.indexOf(firstHeadingMatch[0]) + firstHeadingMatch[0].length);
+        const nextParagraph = afterHeading.match(/^\s*(?:<(?!h[1-6]\b)[^>]+>\s*)*?<p\b[^>]*>([\s\S]*?)<\/p>/i);
+        if (nextParagraph) {
+            const leadLength = stripTags(nextParagraph[1]).length;
+            hasDirectAnswerLead = leadLength >= 40 && leadLength <= 320;
+        }
+    }
+    const answerReadiness = {
+        questionHeadingCount: questionHeadings.length,
+        questionHeadingSamples: questionHeadings.slice(0, 3),
+        hasDirectAnswerLead,
     };
     /* ── Images ───────────────────────────────────────────────── */
     const imgTags = [...html.matchAll(/<img\b[^>]*>/gi)].map((m) => m[0]);
@@ -669,6 +691,7 @@ function extractDeepSignals(html, serverHeaderValue, xRobotsTagValue) {
         socialMeta,
         monetization,
         structuredData,
+        answerReadiness,
         images,
         mobile,
         vibeCoded,
