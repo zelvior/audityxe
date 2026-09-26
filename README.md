@@ -417,6 +417,7 @@ Summary:
 | `CRON_SECRET` | ➖ | Protects `/api/cron/*` endpoints |
 | `GOOGLE_SITE_VERIFICATION` | ➖ | Search Console verification |
 | `AUDITYXE_KILL_SWITCH` / `*_MESSAGE` | ➖ | Emergency maintenance mode without redeploying code |
+| `AUDITYXE_HOTFIX_MESSAGE` | ➖ | Zero-deploy dismissible banner (e.g. "Audits are running slow — we're on it") — served via `/api/announcement`, overrides the DB-driven announcement while set |
 
 ## PageSpeed Insights (Lighthouse) setup
 

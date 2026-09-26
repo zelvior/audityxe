@@ -45,6 +45,7 @@ export const PLANS: Record<PlanId, Plan> = {
       "All 6 scoring categories",
       "Full multi-area deep audit breakdown",
       "Priority fixes with code snippets and real evidence",
+      "Real browser-rendered Lighthouse & CrUX — bring your own free Google Cloud key",
     ],
   },
   standard: {
@@ -77,7 +78,7 @@ export const PLANS: Record<PlanId, Plan> = {
     features: [
       "8 audits per day",
       "Everything in Standard",
-      "Real browser-rendered performance & accessibility audit (PageSpeed Insights)",
+      "1 free Lighthouse run/week on our shared key — no Google Cloud setup needed",
       "X + LinkedIn promo copy + shareable banner — bring your own AI key",
       "Bulk audit — up to 20 client URLs in one request",
       "CSV export for client reporting",

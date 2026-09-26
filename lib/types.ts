@@ -190,7 +190,7 @@ export interface AuditResult {
   /** Why PageSpeed/Lighthouse data wasn't included, when it wasn't —
    * lets the UI (and exports) explain the gap instead of just showing
    * an empty performance section. */
-  pageSpeedLockReason?: "not_confirmed" | "weekly_limit";
+  pageSpeedLockReason?: "not_confirmed" | "weekly_limit" | "byok_required";
   _usage?: { used: number; limit: number; remaining: number; plan: string };
   competitor?: {
     url: string;

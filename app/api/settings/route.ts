@@ -9,6 +9,9 @@ import {
   savePsiByokKey,
   removePsiByokKey,
   getPsiByokInfo,
+  saveCruxByokKey,
+  removeCruxByokKey,
+  getCruxByokInfo,
 } from "@/lib/user-settings";
 
 export const runtime = "nodejs";
@@ -22,12 +25,13 @@ export async function GET(req: NextRequest) {
   try {
     const identity = await requireAuth(req);
     await ensureUserDoc(identity);
-    const [byok, psiByok, plan] = await Promise.all([
+    const [byok, psiByok, cruxByok, plan] = await Promise.all([
       getByokInfo(identity.uid),
       getPsiByokInfo(identity.uid),
+      getCruxByokInfo(identity.uid),
       getUserPlan(identity.uid),
     ]);
-    return NextResponse.json({ byok, psiByok, plan });
+    return NextResponse.json({ byok, psiByok, cruxByok, plan });
   } catch (err) {
     if (err instanceof AuthError) {
       return NextResponse.json({ error: err.message, code: err.code }, { status: err.status });
@@ -52,6 +56,7 @@ export async function PATCH(req: NextRequest) {
       aiBaseUrl?: string;
       aiModel?: string;
       psiApiKey?: string | null;
+      cruxApiKey?: string | null;
     };
     try {
       body = await req.json();
@@ -96,14 +101,9 @@ export async function PATCH(req: NextRequest) {
     }
 
     if (body.psiApiKey !== undefined) {
-      const plan = await getUserPlan(identity.uid);
-      if (plan !== "pro") {
-        return NextResponse.json(
-          { error: "Bringing your own PageSpeed key is a Pro-plan feature.", code: "PLAN_REQUIRED" },
-          { status: 403 }
-        );
-      }
-
+      // BYOK Lighthouse/PageSpeed is available on every plan now — Pro
+      // just also gets a small shared-key weekly allowance on top (see
+      // /api/audit). No plan gate here.
       if (body.psiApiKey === null || body.psiApiKey === "") {
         await removePsiByokKey(identity.uid);
       } else {
@@ -149,8 +149,57 @@ export async function PATCH(req: NextRequest) {
       }
     }
 
-    const [byok, psiByok] = await Promise.all([getByokInfo(identity.uid), getPsiByokInfo(identity.uid)]);
-    return NextResponse.json({ ok: true, byok, psiByok });
+    if (body.cruxApiKey !== undefined) {
+      // Optional, separate key for CrUX only — most people never touch
+      // this and just reuse their Google Cloud API Key above for both.
+      if (body.cruxApiKey === null || body.cruxApiKey === "") {
+        await removeCruxByokKey(identity.uid);
+      } else {
+        if (typeof body.cruxApiKey !== "string" || body.cruxApiKey.length < 10 || body.cruxApiKey.length > 300) {
+          return NextResponse.json({ error: "That doesn't look like a valid API key." }, { status: 400 });
+        }
+        const trimmedCruxKey = body.cruxApiKey.trim();
+        try {
+          const testController = new AbortController();
+          const testTimer = setTimeout(() => testController.abort(), 15000);
+          const testRes = await fetch(
+            `https://chromeuxreport.googleapis.com/v1/records:queryRecord?key=${encodeURIComponent(trimmedCruxKey)}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ origin: "https://example.com" }),
+              signal: testController.signal,
+            }
+          ).finally(() => clearTimeout(testTimer));
+          // 404 = key is valid but example.com has no CrUX data — that's a
+          // successful auth check, not a key failure. Anything else 4xx/5xx
+          // means the key itself (or the CrUX API toggle) is the problem.
+          if (!testRes.ok && testRes.status !== 404) {
+            let reason = `Chrome UX Report rejected this key (HTTP ${testRes.status}).`;
+            try {
+              const errBody = await testRes.json();
+              if (typeof errBody?.error?.message === "string") reason = errBody.error.message;
+            } catch {
+              // non-JSON error body — keep the generic reason
+            }
+            if (testRes.status === 403) {
+              reason += " Make sure the \"Chrome UX Report API\" is enabled for this key's Google Cloud project (it's a separate toggle from the PageSpeed Insights API) — see the CrUX setup steps in Settings.";
+            }
+            return NextResponse.json({ error: reason }, { status: 400 });
+          }
+        } catch (err) {
+          const isAbort = err instanceof Error && err.name === "AbortError";
+          return NextResponse.json(
+            { error: isAbort ? "Timed out testing this key against Chrome UX Report — please try again." : "Couldn't reach Chrome UX Report to test this key. Please try again." },
+            { status: 502 }
+          );
+        }
+        await saveCruxByokKey(identity.uid, trimmedCruxKey);
+      }
+    }
+
+    const [byok, psiByok, cruxByok] = await Promise.all([getByokInfo(identity.uid), getPsiByokInfo(identity.uid), getCruxByokInfo(identity.uid)]);
+    return NextResponse.json({ ok: true, byok, psiByok, cruxByok });
   } catch (err) {
     if (err instanceof AuthError) {
       return NextResponse.json({ error: err.message, code: err.code }, { status: err.status });

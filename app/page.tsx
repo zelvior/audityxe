@@ -87,7 +87,7 @@ export default function Home() {
   async function handleAnalyze(url: string, competitorUrl?: string) {
     if (needsEmailVerification) return;
 
-    const confirmPageSpeed = userPlan === "pro" ? wantsPageSpeed : false;
+    const confirmPageSpeed = wantsPageSpeed;
 
     setPhase("scanning");
     setActiveStep(0);
@@ -223,7 +223,7 @@ export default function Home() {
       <AnimatePresence mode="wait">
         {phase === "scanning" && (
           <motion.div key="scan" exit={{ opacity: 0 }}>
-            <ScanProgress activeStep={activeStep} isLongRun={(wantsPageSpeed && userPlan === "pro") || crawlMode === "deep"} scanningUrl={scanningUrl} />
+            <ScanProgress activeStep={activeStep} isLongRun={wantsPageSpeed || crawlMode === "deep"} scanningUrl={scanningUrl} />
           </motion.div>
         )}
 

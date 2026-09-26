@@ -393,6 +393,8 @@ export default function PricingPage() {
                       ["Written verdict + promo copy", true, true, true],
                       ["Daily audits", String(PLANS.free.dailyAudits), String(PLANS.standard.dailyAudits), String(PLANS.pro.dailyAudits)],
                       ["Competitor comparison", PLANS.free.competitorAudits, PLANS.standard.competitorAudits, PLANS.pro.competitorAudits],
+                      ["Lighthouse & CrUX (bring your own free Google Cloud key)", true, true, true],
+                      ["Shared Lighthouse key — no key setup needed (1 run/week)", false, false, true],
                       ["Bulk audit (up to 20 URLs)", false, false, true],
                     ].map(([feature, free, standard, pro], i) => (
                       <tr key={i} className="border-b border-border/50 last:border-0">

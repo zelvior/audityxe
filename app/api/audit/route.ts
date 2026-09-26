@@ -6,7 +6,7 @@ import { PLANS, ANON_DAILY_LIMIT } from "@/lib/plans";
 import { isTrustedOrigin, looksLikeBot } from "@/lib/security";
 import { getClientIp, hashIp } from "@/lib/ip";
 import { saveLastAuditScore } from "@/lib/badge-store";
-import { getByokCredentials, getPsiByokCredentials } from "@/lib/user-settings";
+import { getByokCredentials, getPsiByokCredentials, getCruxByokCredentials } from "@/lib/user-settings";
 import { logAuditRecord } from "@/lib/audit-log";
 import { resolveApiKeyIdentity, ApiKeyError } from "@/lib/api-keys";
 
@@ -182,31 +182,40 @@ export async function POST(req: NextRequest) {
 
   // PageSpeed Insights runs a real Lighthouse pass and is comparatively
   // expensive, so it's opt-in per request (client must explicitly confirm).
-  // On the shared site key it's capped to 1/week per person, to protect
-  // Google's free quota for everyone. A person using their own PSI API key
-  // pays for (and is limited by) their own Google Cloud quota, not ours —
-  // so BYOK PSI has no weekly cap from Audityxe's side at all, rather than
-  // just a higher one.
+  // Lighthouse is BYOK for every plan now — Audityxe can't fund the shared
+  // Google Cloud quota this large, so anyone can unlock it for free by
+  // adding their own Google Cloud API key in Settings. Pro also gets a
+  // small shared-key allowance (1/week) as a plan perk for people who
+  // haven't set up a key yet; Free/Standard without a key are pointed at
+  // BYOK setup or the sponsor page instead of the shared key.
   let includePageSpeed = false;
-  let pageSpeedLockReason: "not_confirmed" | "weekly_limit" | undefined;
+  let pageSpeedLockReason: "not_confirmed" | "weekly_limit" | "byok_required" | undefined;
   let psiByokKey: string | null = null;
   let consumedSharedPsiQuota = false;
-  if (plan === "pro" && identity && body.confirmPageSpeed) {
+  if (identity && body.confirmPageSpeed) {
     psiByokKey = await getPsiByokCredentials(identity.uid);
     if (psiByokKey) {
       includePageSpeed = true;
-    } else {
+    } else if (plan === "pro") {
       const psiUsage = await checkAndIncrementWeeklyFeatureUsage(identity.uid, "pagespeed", 1);
       includePageSpeed = psiUsage.allowed;
       consumedSharedPsiQuota = psiUsage.allowed;
       if (!psiUsage.allowed) pageSpeedLockReason = "weekly_limit";
+    } else {
+      pageSpeedLockReason = "byok_required";
     }
-  } else if (plan === "pro" && !body.confirmPageSpeed) {
+  } else if (identity && !body.confirmPageSpeed) {
     pageSpeedLockReason = "not_confirmed";
+  } else if (!identity) {
+    pageSpeedLockReason = "byok_required";
   }
+  // CrUX is independent of the Lighthouse confirm/quota flow above (it's a
+  // cheap dataset lookup, not a full browser run) and reuses whichever key
+  // the user has on file (separate CrUX key if set, else the PSI key).
+  const cruxByokKey = identity ? await getCruxByokCredentials(identity.uid) : null;
 
   try {
-    const result = await runAudit(url, competitorUrl, { includePromo, promoLockReason, includePageSpeed, byok, psiByokKey, crawlMode });
+    const result = await runAudit(url, competitorUrl, { includePromo, promoLockReason, includePageSpeed, byok, psiByokKey, cruxByokKey, crawlMode });
 
     // The weekly shared-key slot was reserved before the PSI call ran
     // (has to be, to keep the check+increment atomic) — if that call

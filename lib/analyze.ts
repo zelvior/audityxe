@@ -1710,8 +1710,13 @@ export interface AuditOptions {
    * template even if includePromo is true. */
   byok?: { apiKey: string; baseUrl?: string | null; model?: string | null };
   /** User's own PageSpeed Insights (Google Cloud) API key — raises PSI's
-   * own quota; independent of the AI byok above. */
+   * own quota; independent of the AI byok above. Also serves as the
+   * default CrUX key unless cruxByokKey below is set separately. */
   psiByokKey?: string | null;
+  /** Optional separate Google Cloud key for CrUX only, for users who want
+   * two distinct keys for PSI vs. CrUX instead of one shared key. Falls
+   * back to psiByokKey when not set. */
+  cruxByokKey?: string | null;
   /** "fast" (default) crawls a bounded sample from the homepage's own
    * links + sitemap seeds. "deep" runs a real multi-hop request queue
    * (site-crawl-deep.ts) — slower, but reaches pages fast mode can't.
@@ -1801,7 +1806,7 @@ async function runAuditInner(
     // a full Lighthouse run) and reuses the same BYOK/shared key. It
     // degrades to a clean "not configured" or "no data" result on its
     // own, same as PSI, so there's no hard dependency being added here.
-    fetchCruxSummary(primary.finalUrl, options.psiByokKey),
+    fetchCruxSummary(primary.finalUrl, options.cruxByokKey ?? options.psiByokKey),
     checkEmailAuthDns(new URL(primary.finalUrl).hostname),
     checkServerHardening(primary.origin),
     checkDnsSecurity(new URL(primary.finalUrl).hostname),

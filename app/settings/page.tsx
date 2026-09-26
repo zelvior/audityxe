@@ -18,6 +18,7 @@ import {
   Sparkles,
   Gauge,
   ChevronDown,
+  Heart,
 } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -129,6 +130,9 @@ export default function SettingsPage() {
         setByokModelInput(data.byok?.model ?? "");
         setPsiByokConfigured(!!data.psiByok?.configured);
         setPsiByokMasked(data.psiByok?.maskedKey ?? null);
+        setCruxByokConfigured(!!data.cruxByok?.configured);
+        setCruxByokMasked(data.cruxByok?.maskedKey ?? null);
+        setUseSeparateCruxKey(!!data.cruxByok?.configured);
       } catch {
         // non-fatal — BYOK section just shows its empty state
       } finally {
@@ -199,6 +203,67 @@ export default function SettingsPage() {
   const [psiByokSaved, setPsiByokSaved] = useState(false);
   const [psiByokError, setPsiByokError] = useState("");
   const [psiStepsOpen, setPsiStepsOpen] = useState(false);
+
+  // Optional, separate Google Cloud API key for CrUX only — off by
+  // default, since one key normally serves both PSI and CrUX.
+  const [cruxByokConfigured, setCruxByokConfigured] = useState(false);
+  const [cruxByokMasked, setCruxByokMasked] = useState<string | null>(null);
+  const [cruxByokKeyInput, setCruxByokKeyInput] = useState("");
+  const [cruxByokSaving, setCruxByokSaving] = useState(false);
+  const [cruxByokSaved, setCruxByokSaved] = useState(false);
+  const [cruxByokError, setCruxByokError] = useState("");
+  const [useSeparateCruxKey, setUseSeparateCruxKey] = useState(false);
+
+  async function handleSaveCruxByok(e: React.FormEvent) {
+    e.preventDefault();
+    if (!cruxByokKeyInput.trim()) return;
+    setCruxByokSaving(true);
+    setCruxByokError("");
+    setCruxByokSaved(false);
+    try {
+      const token = await getToken();
+      if (!token) throw new Error("Your session has expired. Please sign in again.");
+      const res = await fetch("/api/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ cruxApiKey: cruxByokKeyInput.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to save your CrUX key.");
+      setCruxByokConfigured(true);
+      setCruxByokMasked(data.cruxByok?.maskedKey ?? null);
+      setCruxByokKeyInput("");
+      setCruxByokSaved(true);
+      setTimeout(() => setCruxByokSaved(false), 2000);
+    } catch (err) {
+      setCruxByokError(err instanceof Error ? err.message : "Failed to save your CrUX key.");
+    } finally {
+      setCruxByokSaving(false);
+    }
+  }
+
+  async function handleRemoveCruxByok() {
+    setCruxByokSaving(true);
+    setCruxByokError("");
+    try {
+      const token = await getToken();
+      if (!token) throw new Error("Your session has expired. Please sign in again.");
+      const res = await fetch("/api/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ cruxApiKey: null }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to remove your CrUX key.");
+      setCruxByokConfigured(false);
+      setCruxByokMasked(null);
+      setUseSeparateCruxKey(false);
+    } catch (err) {
+      setCruxByokError(err instanceof Error ? err.message : "Failed to remove your CrUX key.");
+    } finally {
+      setCruxByokSaving(false);
+    }
+  }
 
   async function handleSavePsiByok(e: React.FormEvent) {
     e.preventDefault();
@@ -481,20 +546,15 @@ export default function SettingsPage() {
             )}
           </SectionCard>
 
-          {/* PSI BYOK — Pro-only PageSpeed Insights key for higher quota */}
+          {/* Google Cloud API Key — BYOK for both PageSpeed Insights
+              (Lighthouse) and Chrome UX Report (CrUX), available on every
+              plan since Audityxe can't fund a shared quota this size. */}
           <SectionCard
             icon={<Gauge size={15} className="text-primary" />}
-            title="PageSpeed Insights API Key"
-            description="Add your own free Google Cloud PageSpeed Insights API key to remove your weekly PSI audit cap entirely — Audityxe's shared key stays capped to 1/week to protect Google's free quota for everyone, but your own key runs on your own Google Cloud quota instead."
+            title="Google Cloud API Key"
+            description="One free Google Cloud API key powers both Lighthouse (PageSpeed Insights) and CrUX field data for your audits — Audityxe is BYOK for these two checks on every plan. Pro also gets a small shared-key allowance (1 Lighthouse run/week) if you haven't set up your own key yet; every other plan needs a key here to unlock Lighthouse and CrUX at all."
           >
-            {!byokLoading && plan !== "pro" ? (
-              <div className="flex items-center justify-between gap-3 bg-surface2 border border-border rounded-input px-3.5 py-3">
-                <p className="text-xs text-text-secondary">Available on the Pro plan.</p>
-                <Link href="/pricing" className="text-xs font-semibold text-primary hover:underline shrink-0">
-                  Upgrade
-                </Link>
-              </div>
-            ) : byokLoading ? (
+            {byokLoading ? (
               <div className="flex items-center gap-2 text-xs text-text-secondary">
                 <Loader2 size={13} className="animate-spin" /> Loading…
               </div>
@@ -554,7 +614,7 @@ export default function SettingsPage() {
                     Google's official setup guide
                   </a>
                   . Your key is encrypted before storage and only ever used server-side for your
-                  own PSI requests.
+                  own PSI and CrUX requests.
                 </p>
 
                 <button
@@ -580,7 +640,7 @@ export default function SettingsPage() {
                         console.cloud.google.com
                       </a>{" "}
                       and sign in with any Google account (a personal Gmail account is fine — this
-                      does not require a paid Google Cloud plan; PSI has a free tier).
+                      does not require a paid Google Cloud plan; both APIs below have a free tier).
                     </li>
                     <li>
                       At the very top of the page, next to the "Google Cloud" logo, there's a
@@ -589,7 +649,7 @@ export default function SettingsPage() {
                     </li>
                     <li>
                       In the dialog that opens, click <strong>"New Project"</strong> in the
-                      top-right corner. Type any name (e.g. "PageSpeed Key"), leave the other
+                      top-right corner. Type any name (e.g. "Audityxe Key"), leave the other
                       fields as-is, and click <strong>"Create"</strong>. Wait a few seconds for it
                       to finish, then make sure that new project is selected in the top dropdown
                       (if not, click the dropdown again and select it).
@@ -617,6 +677,22 @@ export default function SettingsPage() {
                     <li>
                       On the page that opens, click the blue <strong>"Enable"</strong> button.
                       Wait a few seconds — it'll switch to showing "API enabled" once done.
+                    </li>
+                    <li>
+                      <strong>Now enable CrUX too, on the same project:</strong> go back to the
+                      API Library (or use{" "}
+                      <a
+                        href="https://console.cloud.google.com/apis/library/chromeuxreport.googleapis.com"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline font-semibold"
+                      >
+                        this direct link
+                      </a>
+                      ), search for <strong>Chrome UX Report API</strong>, and click the result
+                      (a separate API from PageSpeed Insights above — you need both enabled for
+                      one key to power both PSI and CrUX). Click <strong>"Enable"</strong> the
+                      same way.
                     </li>
                     <li>
                       Click the hamburger menu (☰) again → <strong>"APIs & Services"</strong> →{" "}
@@ -648,14 +724,15 @@ export default function SettingsPage() {
                       <strong>not</strong> choose "HTTP referrers" (browser-only calls, won't work
                       here) or "IP addresses" (Audityxe's server may run on rotating IPs
                       depending on hosting, so an IP restriction can break unpredictably too — the
-                      key only reaching Google's PageSpeed Insights API is protection enough on
-                      its own). Click <strong>"Save"</strong> at the bottom if you changed
-                      anything.
+                      key only reaching Google's PageSpeed Insights and CrUX APIs is protection
+                      enough on its own). Click <strong>"Save"</strong> at the bottom if you
+                      changed anything.
                     </li>
                     <li>
                       Paste the copied key into the "API key" field above on this page and click{" "}
                       <strong>"Save key"</strong>. Audityxe tests it against the real API
-                      immediately and tells you right away if something's wrong.
+                      immediately and tells you right away if something's wrong. One key now runs
+                      both Lighthouse and CrUX for your audits.
                     </li>
                   </ol>
                 )}
@@ -663,13 +740,16 @@ export default function SettingsPage() {
                 <div className="flex items-start gap-2 text-[11px] text-amber bg-amber/10 border border-amber/20 rounded-input px-3 py-2.5 mt-2">
                   <AlertCircle size={13} className="shrink-0 mt-0.5" />
                   <p>
-                    Under <strong>"Application restrictions"</strong> (step 9 above), choose{" "}
+                    Under <strong>"Application restrictions"</strong> (step 10 above), choose{" "}
                     <strong>"None"</strong> — not <strong>"HTTP referrers"</strong> and not{" "}
-                    <strong>"IP addresses"</strong>. Audityxe calls this API from our server, not
+                    <strong>"IP addresses"</strong>. Audityxe calls these APIs from our server, not
                     your browser, so a referrer restriction is rejected every single time (that's
                     enforced by Google, not something we can work around). An IP restriction can
                     also fail unpredictably since server hosting commonly uses non-fixed outbound
-                    IPs.
+                    IPs. And make sure both the <strong>PageSpeed Insights API</strong> and the{" "}
+                    <strong>Chrome UX Report API</strong> are enabled on the same project (step 6)
+                    — they're separate toggles, and a key with only one enabled will work for
+                    Lighthouse but silently show "not enabled" for CrUX, or vice versa.
                   </p>
                 </div>
                 <a
@@ -680,8 +760,95 @@ export default function SettingsPage() {
                 >
                   Open Google Cloud Console → Credentials
                 </a>
+
+                {/* Optional second key, for people who explicitly want
+                    PSI and CrUX on two separate Google Cloud API keys
+                    instead of sharing one. */}
+                <div className="mt-5 pt-4 border-t border-border/60">
+                  <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={useSeparateCruxKey}
+                      onChange={(e) => {
+                        setUseSeparateCruxKey(e.target.checked);
+                        if (!e.target.checked && cruxByokConfigured) handleRemoveCruxByok();
+                      }}
+                      className="accent-primary"
+                    />
+                    Use a different key for CrUX
+                  </label>
+                  <p className="text-[11px] text-text-secondary mt-1.5 mb-3">
+                    Optional. Leave this off to use the same Google Cloud API Key above for CrUX —
+                    that's what almost everyone should do. Only turn this on if you specifically
+                    want PageSpeed Insights and CrUX billed/quota-tracked on two separate keys.
+                  </p>
+
+                  {useSeparateCruxKey && (
+                    <>
+                      {cruxByokConfigured && (
+                        <div className="flex items-center justify-between gap-3 bg-surface2 border border-border rounded-input px-3.5 py-3 mb-3">
+                          <p className="text-xs text-text-secondary font-mono">Key on file: {cruxByokMasked}</p>
+                          <button
+                            onClick={handleRemoveCruxByok}
+                            disabled={cruxByokSaving}
+                            className="text-xs font-semibold text-rose hover:underline shrink-0 disabled:opacity-50"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      )}
+                      <form onSubmit={handleSaveCruxByok} className="flex flex-col gap-3">
+                        <div>
+                          <label htmlFor="cruxByokKey" className="block text-xs font-mono text-text-secondary mb-1.5">
+                            {cruxByokConfigured ? "Replace CrUX API key" : "CrUX API key"}
+                          </label>
+                          <PasswordInput
+                            id="cruxByokKey"
+                            value={cruxByokKeyInput}
+                            onChange={(e) => setCruxByokKeyInput(e.target.value)}
+                            placeholder="AIza…"
+                            autoComplete="off"
+                            className="w-full bg-surface2 border border-border rounded-input px-3.5 py-2.5 text-sm font-mono outline-none focus-visible:border-primary"
+                          />
+                        </div>
+                        {cruxByokError && (
+                          <div className="flex items-start gap-2 text-xs text-rose">
+                            <AlertCircle size={13} className="shrink-0 mt-0.5" /> {cruxByokError}
+                          </div>
+                        )}
+                        <button
+                          type="submit"
+                          disabled={cruxByokSaving || !cruxByokKeyInput.trim()}
+                          className="self-start flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-btn bg-secondary hover:brightness-110 transition disabled:opacity-50"
+                        >
+                          {cruxByokSaving ? <Loader2 size={13} className="animate-spin" /> : cruxByokSaved ? <Check size={13} /> : null}
+                          {cruxByokSaved ? "Saved" : "Save CrUX key"}
+                        </button>
+                      </form>
+                    </>
+                  )}
+                </div>
               </>
             )}
+          </SectionCard>
+
+          {/* Sponsor / donate — funds the shared Lighthouse quota for
+              everyone who hasn't set up their own key yet. */}
+          <SectionCard icon={<Heart size={15} className="text-rose fill-rose" />} title="Support Audityxe">
+            <div className="flex items-start gap-3 bg-rose/5 border border-rose/20 rounded-input px-4 py-3.5">
+              <Heart size={16} className="text-rose fill-rose shrink-0 mt-0.5" />
+              <p className="text-xs text-text-secondary leading-relaxed">
+                Real talk: we're a small, self-funded project, and Google Cloud quota for
+                Lighthouse isn't free at any real scale — that's why Lighthouse is bring-your-own-key
+                for everyone right now. If you'd rather not set up a Google Cloud key and want us
+                to keep a free shared Lighthouse allowance running for everyone instead, a
+                donation genuinely helps keep the lights on.{" "}
+                <Link href="/donate" className="font-semibold text-rose hover:underline">
+                  Visit the Sponsor page
+                </Link>{" "}
+                — we appreciate it more than we can say. 💛
+              </p>
+            </div>
           </SectionCard>
 
           <SectionCard

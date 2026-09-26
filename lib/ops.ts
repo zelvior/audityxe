@@ -6,8 +6,11 @@
  * reads this at request time.
  *
  * HOTFIX_BANNER: set AUDITYXE_HOTFIX_MESSAGE to push a dismissible banner
- * to every client without a deploy (e.g. "Audits are running slow — we're
- * on it"). Read client-side via /api/hotfix.
+ * to every client without a deploy or Firestore write (e.g. "Audits are
+ * running slow — we're on it"). Takes priority over the DB-driven
+ * announcement and is served through the same /api/announcement route
+ * consumed by components/AnnouncementBanner.tsx, so it reuses that
+ * banner's UI (dismiss button, styling) with zero extra client code.
  */
 export function isKillSwitchActive(): boolean {
   return process.env.AUDITYXE_KILL_SWITCH === "1";
