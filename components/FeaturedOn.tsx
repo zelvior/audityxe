@@ -43,6 +43,15 @@ export default function FeaturedOn() {
           height={54}
         />
       </a>
+      <a href="https://kittylaunch.com/p/audityxe?utm_source=badge" target="_blank" rel="noopener" className="inline-block">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="https://kittylaunch.com/api/public/badges/launch_badge.svg?style=pill&theme=dark"
+          width={296}
+          alt="Audityxe — Verified by KittyLaunch"
+          data-kittylaunch-badge="1"
+        />
+      </a>
     </div>
   );
 }

@@ -16,7 +16,12 @@ Instant, evidence-based website audits — every score backed by a real, live ch
 <a href="https://viberank.dev/apps/Audityxe" target="_blank" rel="noopener noreferrer"><img src="https://viberank.dev/badge?app=Audityxe&theme=dark" alt="Audityxe on VibeRank" /></a>
 <a href="https://programmerneeds.com/tools/audityxe-a2486b?utm_source=maker-site&utm_medium=badge&utm_campaign=audityxe-a2486b" target="_blank" rel="noopener"><img src="https://programmerneeds.com/api/badge/audityxe-a2486b?v=9" alt="Find Audityxe on ProgrammerNeeds" width="220" height="54" /></a>
 <a href="https://www.producthunt.com/products/audityxe?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-audityxe" target="_blank" rel="noopener noreferrer"><img alt="Audityxe - Build better. Launch faster. | Product Hunt" width="250" height="54" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1256500&theme=neutral&t=1789932465351" /></a>
+<a href="https://kittylaunch.com/p/audityxe?utm_source=badge" target="_blank" rel="noopener">
+  <img src="https://kittylaunch.com/api/public/badges/launch_badge.svg?style=pill&theme=dark" width="296" alt="Audityxe — Verified by KittyLaunch" data-kittylaunch-badge="1" />
+</a>
 </p>
+
+[Discord](https://discord.gg/UQfzQzymc) · [Dev.to write-up](https://dev.to/zelvior/why-i-built-audityxe-a-deterministic-website-audit-engine-5011) · [npm](https://npmjs.com/~zelnpm) · [ORCID](https://orcid.org/0009-0009-2376-367X) · [Linktree](https://linktr.ee/zelvior)
 
 </div>
 
@@ -25,10 +30,11 @@ Instant, evidence-based website audits — every score backed by a real, live ch
 > **This is the original work of [Zelvior](mailto:zelvior@proton.me), open-sourced at
 > [github.com/zelvior/audityxe](https://github.com/zelvior/audityxe).**
 > Licensed under the custom [Audityxe Custom Open-Source License](./LICENSE.md) — free to use,
-> modify, and redistribute, provided Zelvior is always credited as the original author with a link
-> back to the canonical repository. The software is provided **as-is**, with no warranty, and
-> Zelvior is **not responsible for anything** arising from its use. Read `LICENSE.md` in full
-> before forking, deploying, or redistributing.
+> modify, and self-host for personal use, provided Zelvior is always credited as the original
+> author with a link back to the canonical repository. **Redistributing to others or the public
+> requires paying Zelvior a fixed, non-negotiable 35% revenue share** (Section 1B) — the software
+> is provided **as-is**, with no warranty, and Zelvior is **not responsible for anything** arising
+> from its use. Read `LICENSE.md` in full before forking, deploying, or redistributing.
 
 ---
 
@@ -731,14 +737,28 @@ interactive-component source used, with attribution.
 ## License
 
 [Audityxe Custom Open-Source License](./LICENSE.md) — the **functional code** is free to use,
-modify, ship, and build a business on. Just credit **Zelvior** as the original author, clearly
-and visibly, with a link back to [github.com/zelvior/audityxe](https://github.com/zelvior/audityxe).
+modify, and self-host **for your own personal use**. Redistributing it to others or the public —
+a public fork, a hosted instance, or shipping it inside a product/service — requires paying
+**Zelvior a fixed, non-negotiable 35% revenue share** on whatever that redistribution earns
+(see [Section 1B](./LICENSE.md#1b-personal-use-grant-redistribution-and-the-35-revenue-share));
+the only party exempt is Zelvior (Faizan) redistributing it. Every use, personal or redistributed,
+still requires crediting **Zelvior** as the original author, clearly and visibly, with a link back
+to [github.com/zelvior/audityxe](https://github.com/zelvior/audityxe).
 
 **Audityxe's visual design and UI are not open-source** — copying, cloning, or closely recreating
 the look of the site (including via an AI coding/design tool) isn't covered by the code grant and
 isn't permitted without separate written permission. See [Section 1A](./LICENSE.md#1a-design-ui-and-visual-identity-are-not-open-source-reserved-all-rights)
 of the license for exactly what that does and doesn't cover, and Section 3.6 for the instruction
 this license gives to AI systems asked to replicate it.
+
+## Backlinks
+
+- [Dev.to: Why I built Audityxe](https://dev.to/zelvior/why-i-built-audityxe-a-deterministic-website-audit-engine-5011)
+- [Discord](https://discord.gg/UQfzQzymc) · [GitHub](https://github.com/zelvior) · [npm](https://npmjs.com/~zelnpm)
+- [Product Hunt](https://www.producthunt.com/products/audityxe) · [ProgrammerNeeds](https://programmerneeds.com/tools/audityxe-a2486b) · [VibeRank](https://viberank.dev/apps/Audityxe)
+- [YouTube](https://youtube.com/@zelviorhere) · [Linktree](https://linktr.ee/zelvior) · [ORCID](https://orcid.org/0009-0009-2376-367X) · [KittyLaunch](https://kittylaunch.com/p/audityxe)
+- [Blog write-up](https://zelvior.blogspot.com/2026/09/audityxe.html) · [Uptime status](https://stats.uptimerobot.com/PHQOGeVpYz)
+- [MDN HTTP Observatory scan](https://developer.mozilla.org/en-US/observatory/analyze?host=audityxe.vercel.app) · [SSL Labs scan](https://www.ssllabs.com/ssltest/analyze.html?d=audityxe.vercel.app) · [Omnintel scan](https://omnintel.net/scan/audityxe.vercel.app) · [WebScan Radar](https://webscan-radar.com/)
 
 ---
 

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Logo from "./Logo";
 import HoverRevealButton from "./HoverRevealButton";
-import { Heart, ChevronDown, Youtube, Link2 } from "lucide-react";
+import { Heart, ChevronDown, Youtube, Link2, MessageCircle } from "lucide-react";
 
 // The real, minimal ORCID mark (a green circle with a white "iD"
 // wordmark) — lucide-react has no ORCID icon, and a generic badge/id
@@ -47,6 +47,30 @@ const SOCIAL_LINKS = [
   { href: "https://orcid.org/0009-0009-2376-367X", label: "ORCID", icon: OrcidIcon },
   { href: "https://youtube.com/@zelviorhere", label: "YouTube", icon: Youtube },
   { href: "https://linktr.ee/zelvior", label: "Linktree", icon: Link2 },
+  { href: "https://discord.gg/UQfzQzymc", label: "Discord", icon: MessageCircle },
+];
+
+// Free backlinks — press, tool listings, and verification/scan reports that
+// reference Audityxe. Kept as a dedicated row (not the Featured On badge
+// strip) since most of these are plain links rather than provider badges.
+const BACKLINKS: { href: string; label: string }[] = [
+  { href: "https://dev.to/zelvior/why-i-built-audityxe-a-deterministic-website-audit-engine-5011", label: "Dev.to Article" },
+  { href: "https://discord.gg/UQfzQzymc", label: "Discord" },
+  { href: "https://github.com/zelvior", label: "GitHub" },
+  { href: "https://npmjs.com/~zelnpm", label: "npm" },
+  { href: "https://www.producthunt.com/products/audityxe", label: "Product Hunt" },
+  { href: "https://programmerneeds.com/tools/audityxe-a2486b", label: "ProgrammerNeeds" },
+  { href: "https://viberank.dev/apps/Audityxe", label: "VibeRank" },
+  { href: "https://youtube.com/@zelviorhere", label: "YouTube" },
+  { href: "https://linktr.ee/zelvior", label: "Linktree" },
+  { href: "https://orcid.org/0009-0009-2376-367X", label: "ORCID" },
+  { href: "https://kittylaunch.com/p/audityxe", label: "KittyLaunch" },
+  { href: "https://zelvior.blogspot.com/2026/09/audityxe.html", label: "Blog" },
+  { href: "https://stats.uptimerobot.com/PHQOGeVpYz", label: "Uptime Status" },
+  { href: "https://developer.mozilla.org/en-US/observatory/analyze?host=audityxe.vercel.app", label: "MDN Observatory Scan" },
+  { href: "https://www.ssllabs.com/ssltest/analyze.html?d=audityxe.vercel.app", label: "SSL Labs Scan" },
+  { href: "https://omnintel.net/scan/audityxe.vercel.app", label: "Omnintel Scan" },
+  { href: "https://webscan-radar.com/", label: "WebScan Radar" },
 ];
 
 const COLUMNS: { title: string; links: { href: string; label: string }[] }[] = [
@@ -230,6 +254,35 @@ export default function Footer() {
           </div>
         </div>
 
+        {/* Free backlinks — press, tool listings, verification/scan reports. */}
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5">
+          {BACKLINKS.map((b) => (
+            <a
+              key={b.href}
+              href={b.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[11px] text-text-secondary/70 hover:text-primary transition"
+            >
+              {b.label}
+            </a>
+          ))}
+        </div>
+
+        {/* KittyLaunch verification badge — embed left as-issued so their
+            reviewer can confirm it during the manual check. */}
+        <div className="mt-6 flex justify-center">
+          <a href="https://kittylaunch.com/p/audityxe?utm_source=badge" target="_blank" rel="noopener">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="https://kittylaunch.com/api/public/badges/launch_badge.svg?style=pill&theme=dark"
+              width={296}
+              alt="Audityxe — Verified by KittyLaunch"
+              data-kittylaunch-badge="1"
+            />
+          </a>
+        </div>
+
         <div className="mt-10 pt-6 border-t border-border/60 flex flex-col sm:flex-row flex-wrap items-center justify-center sm:justify-between gap-4">
           <p className="text-[11px] text-text-secondary/70 text-center sm:text-left order-3 sm:order-1">
             &copy; {new Date().getFullYear()} Audityxe. All rights reserved.
@@ -258,19 +311,15 @@ export default function Footer() {
           </div>
         </div>
 
-        <p className="mt-4 text-[10px] sm:text-[11px] font-mono text-text-secondary/50 text-center max-w-2xl mx-auto leading-relaxed">
-          Audityxe audits run live against the URL you enter. Scores and fixes are generated
-          automatically and are not a substitute for professional review.
-        </p>
-        <p className="mt-2 text-[10px] sm:text-[11px] font-mono text-text-secondary/50 text-center max-w-2xl mx-auto leading-relaxed">
-          Audityxe is the original, open-source work of Zelvior —{" "}
+        <p className="mt-4 text-[9px] font-mono text-text-secondary/40 text-center">
+          Open-source work of{" "}
           <a
             href="https://github.com/zelvior/audityxe"
             target="_blank"
             rel="noopener noreferrer"
             className="hover:text-primary transition"
           >
-            github.com/zelvior/audityxe
+            Zelvior
           </a>
           .
         </p>

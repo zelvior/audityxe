@@ -15,7 +15,7 @@ export default function ThirdPartyServicesPage() {
 
       <h2>1. Infrastructure</h2>
       <ul>
-        <li><strong>Vercel</strong> — hosting, serverless functions, edge network.</li>
+        <li><strong>Hosting provider</strong> — hosting, serverless functions, edge network. See the <a href="/credits">Credits</a> page for the specific provider.</li>
         <li><strong>Google Firebase</strong> — authentication (Firebase Auth) and data storage (Firestore).</li>
       </ul>
 

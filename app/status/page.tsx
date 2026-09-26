@@ -28,8 +28,8 @@ const DEPENDENCIES = [
     href: "https://status.firebase.google.com/",
   },
   {
-    name: "Vercel",
-    role: "Hosting and the serverless functions that run every audit.",
+    name: "Hosting provider",
+    role: "Hosting and the serverless functions that run every audit. See Credits for who.",
     href: "https://www.vercel-status.com/",
   },
   {

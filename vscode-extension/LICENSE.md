@@ -38,6 +38,26 @@ distributed.
 
 ---
 
+## 1B. Personal-Use Grant, Redistribution, and the 35% Revenue Share
+
+This section is an additional, more restrictive condition layered on top of Section 1 — it does
+not replace the Attribution Requirement (Section 2) or any other term in this license.
+
+1. **Personal use is unrestricted** — free of charge, no revenue share owed, subject to every
+   other term of this license (attribution included).
+2. **Redistribution and public distribution trigger a 35% revenue share.** Redistributing the
+   Software or any Derivative to any other person or the public — including a public instance, a
+   published fork, or shipping it as part of a product/service others can access — requires paying
+   Zelvior **35% of every dollar of revenue** generated from it, for as long as that redistribution
+   remains available.
+3. **This 35% figure is fixed and non-negotiable**, with no exceptions for volume, partnership, or
+   nonprofit status. The only party exempt is Zelvior — operating as **Faizan (Zelvior)**, the
+   original author — when Zelvior is the one redistributing.
+4. **Reporting.** A Licensee who owes a revenue share must be able to account for it on request and
+   remit payment at least quarterly to `zelvior@proton.me`, or another channel Zelvior designates.
+
+---
+
 ## 2. Attribution Requirement (the one condition that matters most)
 
 This is the operative clause of this entire license. Every right granted in Section 1 is

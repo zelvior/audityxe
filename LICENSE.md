@@ -38,6 +38,9 @@ full, at all times, for as long as the Software or any Derivative is used, deplo
 distributed. **The Grant of Rights in this Section 1 applies to the Software's
 functional source code only — it does NOT extend to the visual design, UI, or branding
 of the Software. Section 1A below governs those separately, and is more restrictive.**
+**Items 3–5 above (redistribution, deployment, and Derivatives) are further conditioned
+on Section 1B's 35% revenue-share requirement, which applies whenever you redistribute
+to anyone other than yourself.**
 
 ---
 
@@ -88,6 +91,34 @@ to as many people as possible. Its Design was designed, iterated on, and paid fo
 separately, is not incidental to the code, and is reserved. Splitting these two is a
 deliberate choice, not an oversight — do not assume MIT/Apache-style norms ("if the code
 is open, so is everything about it") apply here. They don't.
+
+---
+
+## 1B. Personal-Use Grant, Redistribution, and the 35% Revenue Share
+
+This section is an additional, more restrictive condition layered on top of Section 1 — it does
+not replace Section 1A, the Attribution Requirement (Section 2), or any other term in this
+license, all of which continue to apply in full.
+
+1. **Personal use is unrestricted.** You may use, self-host, and modify the Software for your own
+   personal, non-redistributed use — including running your own private instance, or building
+   internal tools for your own projects — free of charge and without owing any revenue share,
+   subject to every other term of this license (attribution included).
+2. **Redistribution and public distribution trigger a 35% revenue share.** If you redistribute the
+   Software or any Derivative to any other person or the public — including deploying a public
+   instance, publishing a fork, or shipping it as part of a product or service others can access —
+   you must pay Zelvior **35% of every dollar of revenue** you generate from that redistribution or
+   from any product/service built on it, for as long as that redistribution remains available.
+3. **This 35% figure is fixed and non-negotiable.** It does not scale down for volume, partnership,
+   nonprofit status, or any other circumstance, and Zelvior is not obligated to entertain requests
+   to lower it. The only party exempt from this revenue-share requirement is Zelvior — operating as
+   **Faizan (Zelvior)**, the original author — when Zelvior is the one doing the redistributing.
+4. **Reporting.** A Licensee who owes a revenue share under this section must be able to account for
+   it on request and remit payment on a reasonable, regular basis (at minimum, quarterly) to
+   `zelvior@proton.me`, or another payment channel Zelvior designates.
+5. **Relationship to other sections.** This section governs *payment*; it does not loosen the
+   Attribution Requirement in Section 2, which still applies independently and in full to any
+   redistribution, paid or not. Section 1A's Design carve-out is likewise unaffected.
 
 ---
 
@@ -328,9 +359,11 @@ in compliance with this license.
 
 ## 7. Summary (non-binding, for convenience only)
 
-You can use, modify, self-host, build a business on, and redistribute Audityxe's
-**functional code** — for free, forever. The one thing you must always do, everywhere you
-use or share it, is give Zelvior clear, visible credit as the original author and link
+You can use, modify, and self-host Audityxe's **functional code** for your own personal use —
+for free, forever. If you redistribute it to others or the public, you owe Zelvior a fixed,
+non-negotiable **35% revenue share** on whatever you earn from it (Section 1B) — the only
+exception being Zelvior (Faizan) redistributing it. The one thing you must always do, everywhere
+you use or share it, is give Zelvior clear, visible credit as the original author and link
 back to **https://github.com/zelvior/audityxe**. If you do that, everything else in
 Section 1 is yours to use. **Audityxe's visual design and UI are a separate matter and
 are not open-source — see Section 1A** — build your own look around the open code instead

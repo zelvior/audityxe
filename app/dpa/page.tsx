@@ -33,8 +33,8 @@ export default function DpaPage() {
 
       <h2>3. Sub-processors</h2>
       <p>
-        Audityxe uses Vercel for hosting and Google Firebase for authentication and data storage.
-        See the Third-Party Services page for the full list.
+        Audityxe uses its hosting provider (see the Credits page) and Google Firebase for
+        authentication and data storage. See the Third-Party Services page for the full list.
       </p>
 
       <h2>4. Security measures</h2>

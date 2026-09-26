@@ -36,8 +36,8 @@ export default function TrustCenterPage() {
 
       <h2>3. Infrastructure</h2>
       <p>
-        Hosted on Vercel with Firebase (Auth + Firestore) as the backend. See the Third-Party
-        Services page for the full sub-processor list.
+        Hosted on infrastructure detailed on the Credits page, with Firebase (Auth + Firestore) as
+        the backend. See the Third-Party Services page for the full sub-processor list.
       </p>
 
       <h2>3a. Email authentication (SPF, DKIM, DMARC)</h2>
