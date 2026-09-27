@@ -19,12 +19,19 @@ function fail(label, detail, evidence, severity = "high", confidence) {
 function unknown(label, detail, evidence) {
     return { label, status: "warn", detail, evidence, severity: "low", confidence: "low", unverifiable: true };
 }
-// Fraction of a module's score lost per finding at each severity. Score
-// (quantitative, 0-10) and status (qualitative alarm level) are both
-// driven by this table but combined differently below — a module can
-// score fairly high while still being flagged "critical" because one
-// finding is severe, which a flat pass/fail ratio could never surface.
-const SEVERITY_WEIGHT = { critical: 1, high: 0.65, medium: 0.35, low: 0.12 };
+// STRICT SCORING: fraction of a module's score lost per finding at each
+// severity. Weights raised from what they briefly were — a single
+// "critical" finding should cost the module nearly all of its score, not
+// leave room for it to still look decent, and "medium"/"low" findings now
+// cost more too so a module with many small gaps doesn't coast on a high
+// number just because no single issue was severe. Score (quantitative,
+// 0-10) and status (qualitative alarm level) are both driven by this
+// table but combined differently below — a module can score fairly high
+// while still being flagged "critical" because one finding is severe,
+// which a flat pass/fail ratio could never surface. See scoreFromSignals
+// in lib/analyze.ts for the parallel, category-level tightening (hard
+// score ceilings for HTTPS/robots.txt/viewport-class failures).
+const SEVERITY_WEIGHT = { critical: 1, high: 0.78, medium: 0.48, low: 0.2 };
 function statusFromFindings(findings) {
     const total = findings.length || 1;
     let lost = 0;
@@ -70,8 +77,13 @@ function statusFromFindings(findings) {
     // Status is severity-driven, not score-driven: one critical finding (an
     // exposed .env file, an expired cert, HTTPS entirely absent) marks the
     // whole module critical regardless of how many other checks passed.
+    // STRICT SCORING: two "high" findings (previously required two, still
+    // does) OR a single high finding paired with any other failed/warned
+    // check now also escalates to critical — a module shouldn't need two
+    // independently severe problems before the qualitative status admits
+    // something's seriously wrong.
     let status = "good";
-    if (hasCritical || severeFailCount >= 2)
+    if (hasCritical || severeFailCount >= 2 || (severeFailCount >= 1 && scored.filter((f) => f.status !== "pass").length >= 2))
         status = "critical";
     else if (anyFailOrWarn)
         status = "warning";
@@ -80,10 +92,12 @@ function statusFromFindings(findings) {
     // flagged "critical" because one finding out of twenty was severe).
     // The severity-driven status is treated as authoritative; the score is
     // capped to stay consistent with whatever status it produced.
+    // STRICT SCORING: caps lowered (3.9→2.9, 7.9→6.9) so "critical"/
+    // "warning" never render as a score that could pass for "mostly fine."
     if (status === "critical")
-        score = Math.min(score, 3.9);
+        score = Math.min(score, 2.9);
     else if (status === "warning")
-        score = Math.min(score, 7.9);
+        score = Math.min(score, 6.9);
     return { status, score };
 }
 function makeModule(id, label, summary, findings) {
@@ -1058,13 +1072,15 @@ function buildAuditModules(ctx) {
             : pass("HTTP→HTTPS upgrade", "Resolves to an https:// URL."));
     }
     modules.push(makeModule("cookies-redirects", "Cookies & Redirects", "Cookie security flags on the initial response and the redirect path taken to reach the final URL.", [...cookieFindings, ...redirectFindings]));
-    /* 19. AI Answer Engine Readiness (AEO/GEO): two distinct questions —
-     * whether AI answer engines (ChatGPT, Claude, Perplexity, Google's
-     * AI Overviews) can crawl this site at all (classic GEO/crawlability,
-     * a different question from search-engine SEO), and whether its
-     * content is actually *shaped* to be lifted as a direct, citable
-     * answer (AEO — FAQ/HowTo/Speakable schema, question-phrased
-     * headings, a direct-answer opening paragraph). ─────────────────── */
+    /* 19. AI Search & Agent Optimization — AIO / AEO / GEO / LLMO / AI SEO
+     * / LLM SEO (all industry synonyms for "is this site discoverable and
+     * citable by AI systems", which is why they share one module rather
+     * than being split into six near-duplicate cards) plus AAO/ACO (AI
+     * Agent/Automation Optimization — can an autonomous agent, not just a
+     * chat answer-engine, actually navigate and act on this site). Three
+     * questions in total: can AI crawlers/agents reach this site at all,
+     * is its content shaped to be lifted as a direct citable answer, and
+     * is it structured for agentic (not just conversational) AI use. ─── */
     {
         const rb = s.robotsTxt;
         const llms = s.llmsTxt;
@@ -1106,9 +1122,10 @@ function buildAuditModules(ctx) {
         geoFindings.push(ls.aiTrainingOptOut
             ? pass("AI-training opt-out signal", "A noai/noimageai directive is present — this site has explicitly opted out of AI-training use of its content (separate from being crawlable for AI-search citations, which is unaffected).")
             : pass("AI-training opt-out signal", "No noai/noimageai opt-out directive found — not required, just noted for sites that want one."));
-        // ── Answer-readiness (AEO): being crawlable isn't the same as being
-        // *citable* — this half checks whether the content is actually
-        // shaped so an AI answer engine can lift a direct answer from it.
+        // ── Answer-readiness (AEO/AIO/LLMO): being crawlable isn't the same
+        // as being *citable* — this half checks whether the content is
+        // actually shaped so an AI answer engine can lift a direct answer
+        // from it.
         const sd = d.structuredData;
         const ar = d.answerReadiness;
         geoFindings.push(sd.hasFaqPage
@@ -1120,13 +1137,94 @@ function buildAuditModules(ctx) {
         if (sd.hasSpeakable) {
             geoFindings.push(pass("Speakable schema", "Speakable structured data found — marks specific sections as suited for text-to-speech/voice-assistant readout."));
         }
+        // E-E-A-T-style authorship/entity signal — AI answer engines weigh
+        // "who is saying this" for citation trust, not just page content.
+        geoFindings.push(sd.hasOrganization
+            ? pass("Author/entity schema", "Organization structured data found — gives AI systems a concrete, named entity to attribute this content to, which factors into whether it's cited over an anonymous source.")
+            : warn("Author/entity schema", "No Organization schema found — AI answer engines and LLM-based search weigh a clearly identified, named source when deciding what to cite.", undefined, "low"));
         geoFindings.push(ar.questionHeadingCount > 0
             ? pass("Question-phrased headings", `${ar.questionHeadingCount} heading${ar.questionHeadingCount > 1 ? "s" : ""} phrased as a direct question (e.g. "${ar.questionHeadingSamples[0]}") — exactly the shape AI Overviews and answer engines pull from.`, ar.questionHeadingSamples.join(" · ") || undefined)
             : warn("Question-phrased headings", "No headings are phrased as a direct question. Rephrasing a section heading as the question it answers (\"How does X work?\" rather than \"How It Works\") makes it far more likely to be lifted verbatim as an AI-generated answer.", undefined, "low"));
         geoFindings.push(ar.hasDirectAnswerLead
             ? pass("Direct-answer opening", "The page's first heading is immediately followed by a concise, self-contained paragraph — easy for an answer engine to extract without synthesis.")
             : warn("Direct-answer opening", "The first heading isn't followed by a short, self-contained paragraph. Leading with a 1–2 sentence direct answer right after the main heading (before diving into detail) is the single most citable structure for AI answer engines.", undefined, "low"));
-        modules.push(makeModule("ai-crawler-readiness", "AI Answer Engine Readiness (AEO/GEO)", "Two distinct questions: can AI answer engines like ChatGPT, Claude, and Perplexity crawl this site at all (GEO), and is its content actually shaped so they can lift a direct, citable answer from it (AEO)?", geoFindings));
+        // ── Agent-readiness (AAO/ACO): a distinct question from "can a chat
+        // answer engine cite this page" — can an autonomous browsing agent
+        // (not a human, not a chat model reading rendered text) actually
+        // parse this page's structure and interactive elements well enough
+        // to act on it (fill a form, click the right button, navigate).
+        geoFindings.push(s.ariaLandmarkCount > 0
+            ? pass("Agent navigation landmarks (AAO/ACO)", `${s.ariaLandmarkCount} ARIA landmark role(s) found (nav/main/banner/etc.) — gives an automation agent a structural map of the page instead of forcing it to guess from visual layout alone.`)
+            : warn("Agent navigation landmarks (AAO/ACO)", "No ARIA landmark roles found. Automation agents (and screen readers) rely on landmarks like role=\"navigation\"/\"main\" to jump directly to the right part of a page rather than parsing the whole DOM.", undefined, "low"));
+        geoFindings.push(d.accessibility.inputsWithoutLabel === 0 && d.accessibility.totalFormInputs > 0
+            ? pass("Agent form-fill reliability (AAO/ACO)", "Every form input has a programmatic label — an automation agent filling this form can match fields by label text rather than guessing by position.")
+            : d.accessibility.totalFormInputs > 0
+                ? warn("Agent form-fill reliability (AAO/ACO)", `${d.accessibility.inputsWithoutLabel} of ${d.accessibility.totalFormInputs} form input(s) have no programmatic label — the same gap that breaks screen readers also makes it unreliable for an automation agent to know what a field is for.`, undefined, "low")
+                : pass("Agent form-fill reliability (AAO/ACO)", "No form inputs on this page to evaluate."));
+        modules.push(makeModule("ai-crawler-readiness", "AI Search & Agent Optimization (AIO / AEO / GEO / LLMO / AAO / ACO)", "Whether AI answer engines and autonomous agents (ChatGPT, Claude, Perplexity, Google AI Overviews, and agentic browsers) can crawl this site (GEO), whether its content is shaped to be lifted as a direct citable answer (AEO/AIO/LLMO), and whether its structure is reliable enough for an agent to actually navigate and act on (AAO/ACO) — six overlapping industry terms for essentially the same discoverability question, checked together rather than split into duplicate cards.", geoFindings));
+    }
+    /* 20. Conversion Rate Optimization (CRO) — this already drives one of
+     * the 6 top-level category scores (lib/analyze.ts), but previously had
+     * no dedicated module card showing the individual pass/fail findings
+     * behind that score. Reuses signals already extracted for that score
+     * rather than fetching anything new. ─────────────────────────────── */
+    {
+        const croFindings = [];
+        croFindings.push(s.ctaButtonCount === 0
+            ? fail("Call-to-action presence", "No button or CTA-styled link found anywhere on the page.", undefined, "high")
+            : s.ctaButtonCount < 3
+                ? warn("Call-to-action presence", `${s.ctaButtonCount} CTA element(s) found — on the light side.`, undefined, "low")
+                : pass("Call-to-action presence", `${s.ctaButtonCount} CTA element(s) found.`));
+        croFindings.push(s.hasAboveFoldCta
+            ? pass("Above-the-fold CTA", "A call-to-action appears in the first portion of the page, before scrolling.")
+            : warn("Above-the-fold CTA", "No CTA detected in the first portion of the page — visitors have to scroll before seeing a clear next step.", undefined, "medium"));
+        croFindings.push(s.formCount === 0
+            ? warn("Lead-capture form", "No <form> found on this page — no direct way to capture a visitor's contact info here.", undefined, "low")
+            : pass("Lead-capture form", `${s.formCount} form(s) found.`));
+        if (s.formCount > 0) {
+            croFindings.push(s.inputCount > 8
+                ? warn("Form length", `${s.inputCount} input field(s) across the page's form(s) — long forms measurably reduce completion rate.`, undefined, "medium")
+                : pass("Form length", `${s.inputCount} input field(s) — a reasonable length.`));
+        }
+        croFindings.push(s.telOrMailtoLinks > 0
+            ? pass("Direct contact links", `${s.telOrMailtoLinks} tel:/mailto: link(s) found — lets a visitor call or email in one tap, no form required.`)
+            : warn("Direct contact links", "No tel:/mailto: links found.", undefined, "low"));
+        croFindings.push(s.hasViewport && s.viewportHasInitialScale
+            ? pass("Mobile viewport", "A responsive viewport meta tag is present — CTAs and forms render usably on mobile.")
+            : fail("Mobile viewport", "No responsive viewport meta tag — layout (and CTA tap targets) likely break on mobile, where a large share of conversions happen.", undefined, "high"));
+        const sd = d.structuredData;
+        croFindings.push(sd.hasOrganization
+            ? pass("Trust signal: Organization schema", "Organization structured data found — helps establish legitimacy for search engines and AI answer engines alike.")
+            : warn("Trust signal: Organization schema", "No Organization schema found.", undefined, "low"));
+        croFindings.push(sd.hasReview
+            ? pass("Trust signal: reviews/ratings", "Review or AggregateRating structured data found — social proof that can render directly in search results.")
+            : warn("Trust signal: reviews/ratings", "No Review/AggregateRating schema found — if this site has real reviews, marking them up surfaces star ratings directly in search results.", undefined, "low"));
+        modules.push(makeModule("cro", "Conversion Rate Optimization (CRO)", "Whether the page actually gives a visitor a clear, frictionless next step — CTA placement, form length, direct contact options, mobile usability, and trust signals.", croFindings));
+    }
+    /* 21. TTFB — Time to First Byte, broken out as its own module using
+     * Google's official Core Web Vitals thresholds (good <800ms, needs
+     * improvement <1800ms, poor >=1800ms) rather than folded into the
+     * general Performance module's looser bands. Measured as a single
+     * request's full round-trip time (connect + TLS + server processing
+     * up to the first response byte) — an approximation of lab TTFB, not
+     * a browser-instrumented Navigation Timing measurement, which is
+     * called out explicitly rather than implied. ─────────────────────── */
+    {
+        const rt = s.security.responseTimeMs;
+        const ttfbFindings = [
+            rt < 800
+                ? pass("Time to First Byte", `~${rt}ms — in Google's "good" band (<800ms).`, "Measured as this request's connect+TLS+server-processing time to the first response byte.")
+                : rt < 1800
+                    ? warn("Time to First Byte", `~${rt}ms — "needs improvement" (800-1800ms).`, undefined, "medium")
+                    : fail("Time to First Byte", `~${rt}ms — "poor" (\u22651800ms). A slow TTFB delays every other render metric downstream of it.`, undefined, "high"),
+        ];
+        if (s.security.redirectHopCount > 0) {
+            ttfbFindings.push(warn("Redirect overhead on TTFB", `${s.security.redirectHopCount} redirect hop(s) happen before this measurement's final response — each hop adds a full round-trip to real TTFB that a single-request measurement here doesn't fully capture.`, undefined, "low"));
+        }
+        if (s.security.hasCompression) {
+            ttfbFindings.push(pass("Server-side compression", `${s.security.contentEncoding || "Compression"} enabled — reduces bytes after first byte, though not TTFB itself.`));
+        }
+        modules.push(makeModule("ttfb", "TTFB (Time to First Byte)", "How long the server takes to start responding, graded against Google's official Core Web Vitals TTFB thresholds.", ttfbFindings));
     }
     return modules;
 }

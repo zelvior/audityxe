@@ -436,7 +436,12 @@ function extractSignals(html: string, finalUrl: string): Signals {
    ──────────────────────────────────────────────────────────────── */
 function scoreFromSignals(s: Signals): CategoryScore[] {
   // Messaging & Copy Clarity
-  let messaging = 4;
+  let messaging = 3;
+  // Messaging & Clarity — base lowered from what it briefly was
+  // (rewarding "did nothing wrong" too generously); every category below
+  // now starts closer to "must earn it", not "assumed competent until
+  // proven otherwise." See the STRICT SCORING note above buildAuditModules
+  // for the parallel, module-level version of this same tightening.
   if (s.title.length >= 15 && s.title.length <= 65) messaging += 1.5;
   else if (s.title.length > 0) messaging += 0.4;
   else messaging -= 1.5;
@@ -449,56 +454,68 @@ function scoreFromSignals(s: Signals): CategoryScore[] {
   messaging = clamp(messaging);
 
   // UI/UX & Visual Hierarchy
-  let uiux = 4;
+  let uiux = 3.2;
   if (s.h1Count === 1) uiux += 1.3;
-  else if (s.h1Count === 0) uiux -= 2;
-  else uiux -= 1;
+  else if (s.h1Count === 0) uiux -= 2.5;
+  else uiux -= 1.4;
   if (s.headingOrderValid) uiux += 0.7;
   if (s.hasViewport) uiux += 1;
-  else uiux -= 2;
+  else uiux -= 2.8; // no responsive viewport is a hard usability failure, not a minor ding
   if (s.hasViewport && s.viewportHasInitialScale) uiux += 0.4;
   const altRatio = s.imgTotal > 0 ? 1 - s.imgMissingAlt / s.imgTotal : 1;
   uiux += altRatio * 1.6;
   if (s.ariaLandmarkCount >= 2) uiux += 0.8;
   if (s.fontFamilyCount > 4) uiux -= 0.6; // too many typefaces = inconsistent hierarchy
   uiux = clamp(uiux);
+  // Hard ceiling: no responsive viewport means most visitors (mobile
+  // traffic is the majority on the open web) get a broken layout — no
+  // amount of alt-text or heading hygiene should mask that into a
+  // passing-looking score.
+  if (!s.hasViewport) uiux = Math.min(uiux, 3.5);
 
   // Conversion Rate Optimization
-  let cro = 3.5;
+  let cro = 2.8;
   if (s.ctaButtonCount >= 1) cro += 1.6;
   if (s.ctaButtonCount >= 3) cro += 0.8;
   if (s.hasAboveFoldCta) cro += 1.4;
   if (s.formCount >= 1) cro += 1.2;
   if (s.inputCount > 0 && s.inputCount <= 5) cro += 0.8;
-  else if (s.inputCount > 8) cro -= 0.5; // long forms hurt conversion
+  else if (s.inputCount > 8) cro -= 0.9; // long forms hurt conversion — weighted up
   if (s.telOrMailtoLinks > 0) cro += 0.5;
   cro = clamp(cro);
+  if (s.ctaButtonCount === 0) cro = Math.min(cro, 4); // no CTA anywhere is a hard ceiling, not just a missed bonus
 
   // Technical & Metadata Health
-  let seo = 3.5;
+  let seo = 2.8;
   if (s.metaDescription) seo += 1.2;
-  else seo -= 1;
+  else seo -= 1.2;
   if (s.hasCanonical) seo += 0.8;
   if (s.isHttps) seo += 1;
-  else seo -= 2.5;
+  else seo -= 3.2;
   if (s.htmlLangSet) seo += 0.5;
   if (s.charsetSet) seo += 0.4;
   if (s.title) seo += 0.8;
-  else seo -= 1;
+  else seo -= 1.2;
   if (s.hasStructuredData) seo += 0.9;
-  if (s.hasRobotsMeta && s.robotsBlocksIndexing) seo -= 2.5; // actively blocking search engines
+  if (s.hasRobotsMeta && s.robotsBlocksIndexing) seo -= 3.2; // actively blocking search engines
   if (s.renderBlockingStylesheets > 4) seo -= 0.6;
   if (s.externalScriptCount > 12) seo -= 0.5;
   if (s.robotsTxt.fetched && !s.robotsTxt.exists) seo -= 0.7;
-  if (s.robotsTxt.blocksAllCrawlers) seo -= 3; // entire site disallowed for all bots
+  if (s.robotsTxt.blocksAllCrawlers) seo -= 4; // entire site disallowed for all bots
   if (s.robotsTxt.exists && s.robotsTxt.referencesSitemap) seo += 0.6;
   if (s.sitemap.fetched && !s.sitemap.exists) seo -= 0.8;
   if (s.sitemap.exists && s.sitemap.urlCount > 0) seo += 1;
   if (s.sitemap.exists && s.sitemap.hasLastmod) seo += 0.4;
   seo = clamp(seo);
+  // Hard ceilings for the two failures where the rest of the checklist
+  // is moot — a site that's actively told every crawler to go away, or
+  // isn't served over HTTPS at all, cannot look like a healthy SEO
+  // score no matter how tidy its meta tags are.
+  if (s.robotsTxt.blocksAllCrawlers) seo = Math.min(seo, 2);
+  if (!s.isHttps) seo = Math.min(seo, 3);
 
   // Brand Distinctiveness
-  let brand = 4;
+  let brand = 3.2;
   if (s.hasFavicon) brand += 1;
   if (s.hasAppleTouchIcon) brand += 0.5;
   if (s.hasOgImage) brand += 1.2;
@@ -516,10 +533,10 @@ function scoreFromSignals(s: Signals): CategoryScore[] {
 
   // Security & Performance — derived entirely from real response headers,
   // redirect-chain behavior, and page weight measured during the live fetch.
-  let security = 4.5;
+  let security = 3.4;
   if (s.security.finalIsHttps) security += 1;
-  else security -= 3;
-  if (s.security.httpDowngradeDetected) security -= 2; // https redirected to http mid-chain
+  else security -= 4; // no HTTPS at all — the single most severe possible finding here
+  if (s.security.httpDowngradeDetected) security -= 2.5; // https redirected to http mid-chain
   if (s.security.redirectHopCount === 0) security += 0.5;
   else if (s.security.redirectHopCount >= 3) security -= 1;
   if (s.security.hasHsts) security += 1;
@@ -527,17 +544,26 @@ function scoreFromSignals(s: Signals): CategoryScore[] {
   if (s.security.hasXFrameOptions) security += 0.5;
   if (s.security.hasXContentTypeOptions) security += 0.4;
   if (s.security.hasReferrerPolicy) security += 0.3;
-  if (s.security.exposesServerHeader) security -= 0.3;
-  if (s.security.exposesPoweredBy) security -= 0.5; // leaks tech stack to attackers
+  if (s.security.exposesServerHeader) security -= 0.4;
+  if (s.security.exposesPoweredBy) security -= 0.6; // leaks tech stack to attackers
   if (s.security.hasCacheControl) security += 0.4;
   if (s.security.hasCompression) security += 0.4;
   if (!s.security.hasDoctype) security -= 0.8; // triggers quirks-mode rendering
   if (s.security.hasMetaRefresh) security -= 0.6; // legacy/poor-practice redirect method
-  if (s.security.mixedContentCount > 0) security -= Math.min(2, s.security.mixedContentCount * 0.4);
+  if (s.security.mixedContentCount > 0) security -= Math.min(3, s.security.mixedContentCount * 0.55);
   if (s.security.responseTimeMs > 3000) security -= 1;
   else if (s.security.responseTimeMs > 1500) security -= 0.5;
   else if (s.security.responseTimeMs < 500) security += 0.5;
   security = clamp(security);
+  // Hard ceilings, mirroring the module-level severity cap in
+  // lib/audit-modules.ts's statusFromFindings: a site with no HTTPS at
+  // all, or one where HTTPS silently downgrades to HTTP mid-redirect
+  // (visitor traffic ends up unencrypted regardless of what the initial
+  // URL promised), cannot present as anything above "critical" no matter
+  // how many of the softer header checks it otherwise passes.
+  if (!s.security.finalIsHttps) security = Math.min(security, 2.5);
+  else if (s.security.httpDowngradeDetected) security = Math.min(security, 3.5);
+
 
   return [
     { key: "messaging", label: CATEGORY_META[0].label, score: Math.round(messaging * 10) / 10 },
@@ -1126,7 +1152,7 @@ Return ONLY valid JSON (no markdown fences) matching this exact shape:
 }
 
 function defaultBannerDesign(host: string, overall: number): BannerDesign {
-  if (overall >= 8) {
+  if (overall >= 8.3) {
     return {
       headline: "Nearly Best-in-Class",
       tagline: `${host} scored ${overall.toFixed(1)}/10 \u2014 a few fixes from perfect.`,
@@ -1134,7 +1160,7 @@ function defaultBannerDesign(host: string, overall: number): BannerDesign {
       layout: "centered-badge",
     };
   }
-  if (overall >= 5) {
+  if (overall >= 5.5) {
     return {
       headline: "Solid Engine, Vague Value Prop",
       tagline: `${host} scored ${overall.toFixed(1)}/10 on a live audit.`,
@@ -1156,10 +1182,10 @@ function defaultBannerDesign(host: string, overall: number): BannerDesign {
    actual measured scores, just not model-authored.
    ──────────────────────────────────────────────────────────────── */
 function verdictFor(overall: number, host: string, weakestLabel: string): string {
-  if (overall >= 8) {
+  if (overall >= 8.3) {
     return `${host} is in strong shape \u2014 ${weakestLabel} is the one area still worth tightening.`;
   }
-  if (overall >= 5) {
+  if (overall >= 5.5) {
     return `${host} has a solid foundation, but ${weakestLabel.toLowerCase()} is holding the overall score back.`;
   }
   return `${host} needs focused work, starting with ${weakestLabel.toLowerCase()}.`;
@@ -1888,7 +1914,8 @@ async function runAuditInner(
     siteContext,
     scoringMethodology:
       `Overall (${primary.overall}/10) is the unweighted average of the ${primary.categories.length} category scores below — every category counts equally. ` +
-      `Each category score is itself derived from that category's audit module findings: every "fail" or "warn" subtracts a fraction of that module's score based on its severity (critical > high > medium > low; warn counts at half the weight of an equivalent fail), then the module's status (good/warning/critical) is set from severity alone so the two can never contradict — a module flagged "critical" cannot also show a near-perfect score, and vice versa.`,
+      `Each category score is itself derived from that category's audit module findings: every "fail" or "warn" subtracts a fraction of that module's score based on its severity (critical > high > medium > low; warn counts at half the weight of an equivalent fail), then the module's status (good/warning/critical) is set from severity alone so the two can never contradict — a module flagged "critical" cannot also show a near-perfect score, and vice versa. ` +
+      `Scoring is intentionally strict: a single high-severity finding alongside any other issue is enough to escalate a module to "critical", critical/warning modules are score-capped so they can never read as "mostly fine", and several category scores carry hard ceilings for the failures that make the rest of their checklist moot (no HTTPS, robots.txt disallowing every crawler, no responsive viewport, an HTTPS\u2192HTTP downgrade, zero calls-to-action).`,
     banner,
     modules,
     pageSpeed,

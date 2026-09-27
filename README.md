@@ -45,6 +45,7 @@ Instant, evidence-based website audits — every score backed by a real, live ch
 - [Audit engine: what actually gets checked](#audit-engine-what-actually-gets-checked)
 - [Scoring model](#scoring-model)
 - [Exports](#exports)
+- [Background audit jobs & notifications](#background-audit-jobs--notifications)
 - [CLI, GitHub Action & API](#cli-github-action--api)
 - [Tech stack](#tech-stack)
 - [SEO & discoverability](#seo--discoverability)
@@ -106,11 +107,13 @@ Every check below runs for free, with no paid third-party API, on every audit.
 </details>
 
 <details>
-<summary><strong>AI Answer Engine Readiness (AEO/GEO)</strong></summary>
+<summary><strong>AI Search &amp; Agent Optimization (AIO / AEO / GEO / LLMO / AI SEO / LLM SEO / AAO / ACO)</strong></summary>
 
-Two distinct questions: can AI answer engines crawl the site at all (GEO), and separately, is its
-content actually *shaped* to be lifted as a direct, citable answer (AEO)? Different from classic SEO
-either way:
+Six industry buzzwords (AIO, AEO, GEO, LLMO, "AI SEO", "LLM SEO") for the same underlying question —
+is this site discoverable and citable by AI systems — checked together in one module instead of
+split into duplicate cards, plus AAO/ACO (AI Agent/Automation Optimization): can an *autonomous
+agent*, not just a chat answer-engine, actually navigate and act on the page. Three distinct
+questions in total:
 
 **Crawl access (GEO):**
 - Named AI crawler blocking in `robots.txt` (GPTBot, ChatGPT-User, ClaudeBot, Claude-Web, anthropic-ai, PerplexityBot, Google-Extended, CCBot, Bytespider, Applebot-Extended)
@@ -119,12 +122,37 @@ either way:
 - Conflicts between the header-level and meta-tag-level robots directives
 - `noai` / `noimageai` AI-training opt-out signals
 
-**Content shape (AEO):**
+**Content shape (AEO/AIO/LLMO):**
 - `FAQPage`, `HowTo`, and `Speakable` structured data — the most directly citable schema types
+- `Organization` entity/author schema — AI systems weigh a named, attributable source when citing
 - Headings phrased as a direct question ("How does X work?") vs. a label ("How It Works") — the
   question form is what answer engines actually pull from
 - A concise, self-contained paragraph immediately after the page's first heading — the
   definition-first pattern that's easy to extract without synthesis
+
+**Agent-readiness (AAO/ACO):**
+- ARIA landmark roles (`navigation`/`main`/`banner`/etc.) — gives an automation agent a structural
+  map instead of forcing it to parse visual layout
+- Programmatic form-input labeling — whether an autonomous agent can reliably fill this site's forms
+</details>
+
+<details>
+<summary><strong>Conversion Rate Optimization (CRO)</strong></summary>
+
+- CTA element count and above-the-fold CTA presence
+- Lead-capture form presence and length (long forms measurably hurt completion)
+- Direct `tel:`/`mailto:` contact links
+- Mobile viewport correctness (a large share of conversions happen on mobile)
+- Trust signals: `Organization` schema, `Review`/`AggregateRating` schema
+</details>
+
+<details>
+<summary><strong>TTFB (Time to First Byte)</strong></summary>
+
+- Graded against Google's official Core Web Vitals thresholds (good &lt;800ms, needs improvement
+  &lt;1800ms, poor &ge;1800ms) rather than the looser bands used elsewhere in the Performance module
+- Redirect-hop overhead called out separately, since a single-request measurement doesn't fully
+  capture the extra round-trips a redirect chain adds to real-world TTFB
 </details>
 
 <details>
@@ -142,7 +170,9 @@ either way:
 - Publicly exposed JavaScript source maps
 - `target="_blank"` tabnabbing risk (missing `rel="noopener"`)
 - Forms posting to insecure (`http://`) endpoints
+- **CAA DNS records** — which Certificate Authorities are permitted to issue certs for the domain
 </details>
+
 
 <details>
 <summary><strong>TLS &amp; DNS</strong></summary>
@@ -209,6 +239,21 @@ Scores are **deterministic**, not model-generated.
   than inventing a number from zero data.
 - `critical` findings force a module to `critical` status regardless of the arithmetic.
 
+**Strict by design, not just by accident.** Both the module-level engine above and the 6
+top-level category scores (`lib/analyze.ts`'s `scoreFromSignals`) are deliberately weighted so a
+mediocre site can't coast to a high number just because no single check was catastrophic:
+
+- Severity weights (`critical`/`high`/`medium`/`low`) cost more per finding than they used to — a
+  module doesn't need two independently severe problems before its status escalates to
+  `critical`; one `high` finding alongside any other failed/warned check is now enough.
+- `critical`/`warning` status caps the displayed score lower (2.9/10 and 6.9/10 respectively) so
+  a flagged module can never render as a number that could pass for "mostly fine."
+- The 6 category scores (Messaging, UI/UX, CRO, SEO, Brand, Security) all start from a lower base
+  and apply **hard score ceilings** for the failures that make the rest of the checklist moot —
+  no HTTPS at all, `robots.txt` disallowing every crawler, a missing responsive viewport, an
+  HTTPS→HTTP downgrade mid-redirect, or zero CTAs anywhere on the page. Each of those caps the
+  relevant category's score outright, regardless of how well everything else scores.
+
 Every result also has an optional **vector view** — the same 6 category scores plotted as a radar
 chart (`components/VectorMetricsVisualizer.tsx`), toggleable right under the score bars. It reads
 directly from the same `categories` array the bars render, so it's never a separate/approximate
@@ -218,11 +263,40 @@ number — nudge a category's score and the shape moves with it.
 
 | Format | Contents |
 |---|---|
-| **PDF** | Full branded report — score donut, category breakdown, every module and finding with evidence, Lighthouse lab + field data, embedded render screenshot |
+| **PDF** | Full branded report — score donut, module-status donut, findings-by-outcome stacked bar, category breakdown, every module and finding with evidence, Lighthouse lab + field data, embedded render screenshot |
 | **JSON** | Complete machine-readable payload — every module, finding, severity, confidence, and evidence string |
 | **Markdown** | Copy-to-clipboard / download, for pasting into GitHub Issues, Notion, or a PR |
 | **Badge** | Embeddable "Audited by Audityxe" SVG badge with live verification |
 | **Social** | Auto-generated X/LinkedIn post copy and a downloadable share banner |
+
+## Background audit jobs & notifications
+
+A real-browser Lighthouse pass or a deep multi-hop crawl can take long enough that staying on the
+page for it is a real cost — the **"Run in the background — let me leave this page or close the
+tab"** checkbox (shown whenever one of those is requested) exists for that.
+
+- `POST /api/audit/start` creates a Firestore-backed job document (`lib/audit-jobs.ts`) and hands
+  the actual analysis to [`@vercel/functions`'s `waitUntil()`](https://vercel.com/docs/functions/functions-api-reference/vercel-functions-package#waituntil),
+  which keeps the underlying serverless function alive past the point the HTTP response is sent —
+  independent of whether the requesting browser tab is still open. (Next.js's own `after()` isn't
+  used here: this project is pinned to Next 14.2, where `after()` hadn't been stabilized yet and
+  there's no `unstable_after` to fall back to either — `waitUntil` is the framework-independent
+  primitive Vercel's runtime provides for exactly this case.)
+- `GET /api/audit/status/[jobId]` (token-protected — a job ID alone isn't enough to read someone
+  else's result) is polled every few seconds for live progress and the final result.
+- The audit engine itself (`lib/analyze.ts`) reports real checkpoints as it actually reaches them
+  via an `onProgress` callback — not a simulated step list — which the live-preview iframe overlays
+  directly on top of the site being audited.
+- **"Notify me when it's ready"** (`components/NotifyMeButton.tsx`) is the part that survives the
+  browser being fully closed, not just the tab being backgrounded — polling alone can't do that,
+  since there's no JS left running once every tab is closed. It registers a minimal service worker
+  (`public/sw.js`), subscribes via the browser's `PushManager`, and `lib/push.ts` sends a real Web
+  Push message through the browser's own push service once the job finishes. Requires the
+  `WEB_PUSH_VAPID_*` env vars below — degrades to a clean no-op (the checkbox/polling flow still
+  works fine) if they're unset.
+- Job documents are short-lived working data, not the permanent audit-history feature
+  (`lib/audit-log.ts` already covers that) — `/api/cron/cleanup-jobs` prunes anything past its 24h
+  TTL every few hours.
 
 ## CLI, GitHub Action & API
 
@@ -310,8 +384,8 @@ curl -X POST https://audityxe.vercel.app/api/audit \
 
 [`vscode-extension/`](./vscode-extension) — run an audit from the Command Palette, results in an
 output panel. Also a thin wrapper around the CLI. A pre-built `.vsix` ships in the repo
-([`vscode-extension/audityxe-1.1.3.vsix`](./vscode-extension/audityxe-1.1.3.vsix)) — install it
-locally right now with `code --install-extension vscode-extension/audityxe-1.1.3.vsix`, no build
+([`vscode-extension/audityxe-1.2.0.vsix`](./vscode-extension/audityxe-1.2.0.vsix)) — install it
+locally right now with `code --install-extension vscode-extension/audityxe-1.2.0.vsix`, no build
 step needed. Not yet published to the Marketplace itself — see
 [`vscode-extension/README.md`](./vscode-extension/README.md) for the exact publish steps (needs
 your own Marketplace publisher account, which this repo can't create on your behalf).
@@ -415,6 +489,8 @@ Summary:
 | `NEXT_PUBLIC_DONATION_URL` | ➖ | Footer Sponsor button target |
 | `ADMIN_EMAILS` / `ADMIN_PASSWORD` | ➖ | Enables `/admin`. Unset = admin panel disabled |
 | `CRON_SECRET` | ➖ | Protects `/api/cron/*` endpoints |
+| `WEB_PUSH_VAPID_PUBLIC_KEY` / `WEB_PUSH_VAPID_PRIVATE_KEY` / `WEB_PUSH_VAPID_SUBJECT` | ➖ | Web Push notifications for background audit jobs ("notify me when it's ready" — see `lib/push.ts`). Generate with `npx web-push generate-vapid-keys`; subject is a `mailto:` or `https:` contact URL. Without these set, the notify-me button silently no-ops (polling/leaving the tab open still works). |
+| `NEXT_PUBLIC_WEB_PUSH_VAPID_PUBLIC_KEY` | ➖ | Same public key as above, exposed client-side so the browser can call `pushManager.subscribe()` |
 | `GOOGLE_SITE_VERIFICATION` | ➖ | Search Console verification |
 | `AUDITYXE_KILL_SWITCH` / `*_MESSAGE` | ➖ | Emergency maintenance mode without redeploying code |
 | `AUDITYXE_HOTFIX_MESSAGE` | ➖ | Zero-deploy dismissible banner (e.g. "Audits are running slow — we're on it") — served via `/api/announcement`, overrides the DB-driven announcement while set |

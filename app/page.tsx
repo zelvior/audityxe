@@ -59,6 +59,10 @@ export default function Home() {
   const [hasPsiByokKey, setHasPsiByokKey] = useState(false);
   const [wantsPageSpeed, setWantsPageSpeed] = useState(false);
   const [crawlMode, setCrawlMode] = useState<"fast" | "deep">("fast");
+  const [runInBackground, setRunInBackground] = useState(false);
+  const [backgroundJob, setBackgroundJob] = useState<{ jobId: string; token: string } | null>(null);
+  const [jobProgress, setJobProgress] = useState<string[]>([]);
+  const jobPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     if (!user) {
@@ -88,6 +92,12 @@ export default function Home() {
     if (needsEmailVerification) return;
 
     const confirmPageSpeed = wantsPageSpeed;
+    // The background-job path is only offered for — and only makes
+    // sense for — audits actually expected to run long (a real-browser
+    // Lighthouse pass, or a deep multi-hop crawl). A quick fast-mode
+    // audit finishes before the round-trip overhead of a job doc plus
+    // polling would even pay for itself.
+    const useBackgroundJob = runInBackground && (confirmPageSpeed || crawlMode === "deep");
 
     setPhase("scanning");
     setActiveStep(0);
@@ -95,6 +105,9 @@ export default function Home() {
     setResult(null);
     setErrorMsg("");
     setRateLimited(null);
+    setBackgroundJob(null);
+    setJobProgress([]);
+    if (jobPollRef.current) clearInterval(jobPollRef.current);
 
     let step = 0;
     // The step checklist is a client-side approximation, not real
@@ -105,11 +118,16 @@ export default function Home() {
     // which is exactly the confusing/misleading state this is meant to
     // avoid. A real-browser (Lighthouse) pass alone can take up to 75s
     // (see PSI_TIMEOUT_MS), so pace much slower when one was requested.
+    // Skipped entirely for the background-job path — that one has a
+    // *real* progress feed (jobProgress, polled from the server below)
+    // instead of this simulated one.
     const stepIntervalMs = confirmPageSpeed ? 9000 : crawlMode === "deep" ? 2200 : 900;
-    stepTimerRef.current = setInterval(() => {
-      step = Math.min(step + 1, SCAN_STEPS.length - 1);
-      setActiveStep(step);
-    }, stepIntervalMs);
+    if (!useBackgroundJob) {
+      stepTimerRef.current = setInterval(() => {
+        step = Math.min(step + 1, SCAN_STEPS.length - 1);
+        setActiveStep(step);
+      }, stepIntervalMs);
+    }
 
     try {
       // No token at all for a signed-out visitor — that's fine, the
@@ -119,6 +137,55 @@ export default function Home() {
         if (stepTimerRef.current) clearInterval(stepTimerRef.current);
         setErrorMsg("Your session has expired. Please sign in again.");
         setPhase("error");
+        return;
+      }
+
+      if (useBackgroundJob) {
+        const { ok, data, error } = await fetchJson<{ jobId: string; token: string; hostname: string; code?: string; plan?: PlanId; limit?: number }>(
+          "/api/audit/start",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+            body: JSON.stringify({ url, competitorUrl, confirmPageSpeed, crawlMode }),
+          }
+        );
+        if (!ok || !data) {
+          if (data?.code === "RATE_LIMITED") setRateLimited({ plan: data.plan as PlanId, limit: data.limit as number });
+          setErrorMsg(error || "Couldn't start that audit. Check the URL and try again.");
+          setPhase("error");
+          return;
+        }
+
+        setBackgroundJob({ jobId: data.jobId, token: data.token });
+        setActiveStep(1);
+
+        // Poll every 3s — cheap, plain HTTP polling rather than a
+        // streaming connection, so it costs nothing extra if the tab is
+        // backgrounded/throttled by the browser, and keeps working
+        // exactly the same after a page reload (a real SSE/WebSocket
+        // connection wouldn't survive that without extra reconnect
+        // logic this doesn't need).
+        jobPollRef.current = setInterval(async () => {
+          const poll = await fetchJson<{ status: "running" | "done" | "error"; progress: string[]; result: AuditResult | null; error: string | null }>(
+            `/api/audit/status/${data.jobId}?token=${encodeURIComponent(data.token)}`
+          );
+          if (!poll.ok || !poll.data) return; // transient network hiccup — just try again next tick
+
+          setJobProgress(poll.data.progress || []);
+
+          if (poll.data.status === "done" && poll.data.result) {
+            if (jobPollRef.current) clearInterval(jobPollRef.current);
+            setActiveStep(SCAN_STEPS.length - 1);
+            setResult(poll.data.result);
+            setBackgroundJob(null);
+            setPhase("results");
+          } else if (poll.data.status === "error") {
+            if (jobPollRef.current) clearInterval(jobPollRef.current);
+            setErrorMsg(poll.data.error || "Failed to fetch and analyze the site.");
+            setBackgroundJob(null);
+            setPhase("error");
+          }
+        }, 3000);
         return;
       }
 
@@ -149,6 +216,7 @@ export default function Home() {
       setPhase("results");
     } catch {
       if (stepTimerRef.current) clearInterval(stepTimerRef.current);
+      if (jobPollRef.current) clearInterval(jobPollRef.current);
       setErrorMsg("Network error while fetching that site. Check the URL and try again.");
       setPhase("error");
     }
@@ -157,6 +225,7 @@ export default function Home() {
   useEffect(() => {
     return () => {
       if (stepTimerRef.current) clearInterval(stepTimerRef.current);
+      if (jobPollRef.current) clearInterval(jobPollRef.current);
     };
   }, []);
 
@@ -215,6 +284,19 @@ export default function Home() {
           crawlMode={crawlMode}
           onCrawlModeChange={setCrawlMode}
         />
+        {(wantsPageSpeed || crawlMode === "deep") && phase !== "scanning" && (
+          <div className="max-w-xl mx-auto px-4 -mt-2 mb-2 relative">
+            <label className="flex items-center justify-center gap-2 text-xs text-text-secondary cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={runInBackground}
+                onChange={(e) => setRunInBackground(e.target.checked)}
+                className="accent-primary w-3.5 h-3.5"
+              />
+              Run in the background — let me leave this page or close the tab
+            </label>
+          </div>
+        )}
       </div>
 
       {user && needsEmailVerification && <VerifyEmailBanner />}
@@ -223,7 +305,13 @@ export default function Home() {
       <AnimatePresence mode="wait">
         {phase === "scanning" && (
           <motion.div key="scan" exit={{ opacity: 0 }}>
-            <ScanProgress activeStep={activeStep} isLongRun={wantsPageSpeed || crawlMode === "deep"} scanningUrl={scanningUrl} />
+            <ScanProgress
+              activeStep={activeStep}
+              isLongRun={wantsPageSpeed || crawlMode === "deep"}
+              scanningUrl={scanningUrl}
+              progressLog={jobProgress}
+              backgroundJob={backgroundJob}
+            />
           </motion.div>
         )}
 

@@ -10,15 +10,19 @@ export default function ScanProgress({
   activeStep,
   isLongRun = false,
   scanningUrl = "",
+  progressLog,
+  backgroundJob,
 }: {
   activeStep: number;
   isLongRun?: boolean;
   scanningUrl?: string;
+  progressLog?: string[];
+  backgroundJob?: { jobId: string; token: string } | null;
 }) {
   return (
     <section className="px-4 sm:px-6 py-10 sm:py-16">
       <div className="max-w-3xl mx-auto space-y-4">
-        {scanningUrl && <LiveScanPreview url={scanningUrl} />}
+        {scanningUrl && <LiveScanPreview url={scanningUrl} progressLog={progressLog} backgroundJob={backgroundJob} />}
 
         <div className="glass rounded-card p-5 sm:p-8 relative overflow-hidden">
         <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-primary/20 to-transparent pointer-events-none" />

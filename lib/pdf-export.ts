@@ -104,6 +104,100 @@ function categoryBars(doc: jsPDF, y: number, categories: CategoryScore[]): numbe
 }
 
 /**
+ * Multi-segment donut chart — module status breakdown (good/warning/
+ * critical). Same vector-line-segment technique as drawScoreDonut, just
+ * generalized to more than one color band around the ring, plus a small
+ * legend to its right so the three counts are still readable even
+ * without hovering a slice (this is a static PDF, not an interactive
+ * chart).
+ */
+function drawModuleStatusDonut(doc: jsPDF, cx: number, cy: number, r: number, good: number, warning: number, critical: number) {
+  const total = good + warning + critical || 1;
+  const segments: { count: number; color: [number, number, number]; label: string }[] = [
+    { count: good, color: [63, 125, 92], label: "Passing" },
+    { count: warning, color: [201, 148, 45], label: "Warning" },
+    { count: critical, color: [190, 62, 62], label: "Critical" },
+  ];
+  doc.setLineWidth(4.2);
+  let angleStart = -Math.PI / 2;
+  segments.forEach((seg) => {
+    if (seg.count === 0) return;
+    const sweep = (seg.count / total) * 2 * Math.PI;
+    const steps = Math.max(1, Math.round((seg.count / total) * 90));
+    doc.setDrawColor(seg.color[0], seg.color[1], seg.color[2]);
+    for (let i = 0; i < steps; i++) {
+      const a0 = angleStart + (i / steps) * sweep;
+      const a1 = angleStart + ((i + 1) / steps) * sweep;
+      doc.line(cx + r * Math.cos(a0), cy + r * Math.sin(a0), cx + r * Math.cos(a1), cy + r * Math.sin(a1));
+    }
+    angleStart += sweep;
+  });
+  doc.setFontSize(14);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(INK);
+  doc.text(String(good + warning + critical), cx, cy + 1, { align: "center" });
+  doc.setFontSize(6.5);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(MUTED);
+  doc.text("modules", cx, cy + 5.5, { align: "center" });
+
+  let ly = cy - r + 2;
+  segments.forEach((seg) => {
+    doc.setFillColor(seg.color[0], seg.color[1], seg.color[2]);
+    doc.roundedRect(cx + r + 8, ly - 2.6, 3, 3, 0.6, 0.6, "F");
+    doc.setFontSize(8);
+    doc.setTextColor(INK);
+    doc.text(`${seg.label}: ${seg.count}`, cx + r + 13, ly);
+    ly += 6.5;
+  });
+}
+
+/**
+ * Single-row stacked bar — pass/warn/fail/unverified finding counts as
+ * proportional colored segments, with the count printed inside each
+ * segment wide enough to hold it. Gives an at-a-glance shape of the
+ * whole audit's findings without reading the executive-summary table.
+ */
+function drawFindingsStackedBar(doc: jsPDF, y: number, passes: number, warns: number, fails: number, unverified: number): number {
+  const total = passes + warns + fails + unverified || 1;
+  const barW = CONTENT_W;
+  const barH = 7;
+  const segs: { count: number; color: [number, number, number]; label: string }[] = [
+    { count: passes, color: [63, 125, 92], label: "Pass" },
+    { count: warns, color: [201, 148, 45], label: "Warn" },
+    { count: fails, color: [190, 62, 62], label: "Fail" },
+    { count: unverified, color: [176, 176, 184], label: "Unverified" },
+  ];
+  let x = MARGIN;
+  segs.forEach((seg) => {
+    if (seg.count === 0) return;
+    const w = (seg.count / total) * barW;
+    doc.setFillColor(seg.color[0], seg.color[1], seg.color[2]);
+    doc.rect(x, y, w, barH, "F");
+    if (w > 9) {
+      doc.setFontSize(7.5);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(255, 255, 255);
+      doc.text(String(seg.count), x + w / 2, y + barH / 2 + 1.5, { align: "center" });
+    }
+    x += w;
+  });
+  let ly = y + barH + 6;
+  let lx = MARGIN;
+  doc.setFont("helvetica", "normal");
+  segs.forEach((seg) => {
+    doc.setFillColor(seg.color[0], seg.color[1], seg.color[2]);
+    doc.roundedRect(lx, ly - 2.6, 3, 3, 0.6, 0.6, "F");
+    doc.setFontSize(7.5);
+    doc.setTextColor(MUTED);
+    const label = `${seg.label} (${seg.count})`;
+    doc.text(label, lx + 5, ly);
+    lx += doc.getTextWidth(label) + 15;
+  });
+  return ly + 6;
+}
+
+/**
  * Generates a full, detailed PDF export of an audit result and triggers a
  * browser download. Every field present in the JSON export (AuditActionBar's
  * handleExport) is represented here too, laid out as a proper report rather
@@ -188,6 +282,22 @@ export function generateAuditPdf(result: AuditResult) {
     body: summaryRows,
     columnStyles: { 0: { textColor: [110, 98, 82], cellWidth: 75 }, 1: { fontStyle: "bold", textColor: [32, 27, 20] } },
   });
+
+  // Two new at-a-glance charts: a module-status donut, and a stacked bar
+  // of every finding across the whole audit — both derived from the same
+  // counts already in the table above, just visualized instead of only
+  // tabulated.
+  {
+    const chartY = lastAutoTableY(doc) + 16;
+    drawModuleStatusDonut(doc, MARGIN + 16, chartY, 14, goodModules, warningModules, criticalModules);
+    const barY = chartY + 24;
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(INK);
+    doc.text("All findings, by outcome", MARGIN, barY - 3);
+    doc.setFont("helvetica", "normal");
+    y = drawFindingsStackedBar(doc, barY, totalPasses, totalWarns, totalFails, totalUnverified) + 4;
+  }
 
   if (payload.promo.locked || payload.performance.locked || payload.performance.lockReason) {
     const fy = lastAutoTableY(doc);
