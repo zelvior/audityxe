@@ -1,4 +1,4 @@
-import jsPDF from "jspdf";
+import jsPDF, { GState } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { AuditResult, AuditModule, CategoryScore } from "./types";
 import { buildAuditExportPayload } from "./export-payload";
@@ -101,6 +101,122 @@ function categoryBars(doc: jsPDF, y: number, categories: CategoryScore[]): numbe
     y += 8;
   });
   return y;
+}
+
+/**
+ * Radar / vector-metrics chart — the same 6 category scores as the bars
+ * above, plotted as a hexagon so their overall *shape* (a well-rounded
+ * site vs. one spiky weak category) is visible at a glance, mirroring
+ * components/VectorMetricsVisualizer.tsx in the web app. Built from
+ * straight-line polygon edges (via jsPDF's `lines()` path primitive)
+ * rather than a true curved radial chart — appropriate here since a
+ * hexagon (one vertex per category) has straight edges by definition,
+ * unlike the circular donuts elsewhere in this file.
+ */
+function drawRadarChart(doc: jsPDF, cx: number, cy: number, r: number, categories: CategoryScore[]) {
+  const n = categories.length;
+  if (n < 3) return; // a radar chart needs at least a triangle to mean anything
+  const angleFor = (i: number) => -Math.PI / 2 + (i / n) * 2 * Math.PI;
+  const pointAt = (i: number, fraction: number) => {
+    const a = angleFor(i);
+    return [cx + r * fraction * Math.cos(a), cy + r * fraction * Math.sin(a)] as const;
+  };
+
+  // Gridlines at 20/40/60/80/100% — faint concentric hexagons.
+  doc.setDrawColor(230, 226, 214);
+  doc.setLineWidth(0.2);
+  [0.2, 0.4, 0.6, 0.8, 1].forEach((frac) => {
+    for (let i = 0; i < n; i++) {
+      const [x1, y1] = pointAt(i, frac);
+      const [x2, y2] = pointAt((i + 1) % n, frac);
+      doc.line(x1, y1, x2, y2);
+    }
+  });
+  // Spokes from center to each category vertex.
+  for (let i = 0; i < n; i++) {
+    const [x, y] = pointAt(i, 1);
+    doc.line(cx, cy, x, y);
+  }
+
+  // The actual data polygon — translucent fill isn't available in
+  // jsPDF's vector drawing without a graphics-state alpha call, so a
+  // light, brand-toned fill color is used directly (still reads
+  // clearly against the white page background) with a bold stroke on
+  // top for the outline.
+  const avg = categories.reduce((s, c) => s + c.score, 0) / categories.length;
+  const [pr, pg, pb] = colorForScore(avg);
+  const points: [number, number][] = categories.map((c, i) => pointAt(i, Math.max(0.04, c.score / 10)) as unknown as [number, number]);
+  const flatFromSecond = points.slice(1).map((p, i) => [p[0] - points[i][0], p[1] - points[i][1]]);
+  doc.setFillColor(pr, pg, pb);
+  doc.setDrawColor(pr, pg, pb);
+  doc.setLineWidth(0.8);
+  // jsPDF's GState alpha (setGState) is supported in modern jsPDF — used
+  // here only for this one fill so the grid/spokes underneath stay
+  // legible through the data polygon, then restored to full opacity
+  // immediately after for every chart/table drawn afterward.
+  doc.setGState(new GState({ opacity: 0.28 }));
+  doc.lines(flatFromSecond, points[0][0], points[0][1], [1, 1], "F", true);
+  doc.setGState(new GState({ opacity: 1 }));
+  doc.lines(flatFromSecond, points[0][0], points[0][1], [1, 1], "S", true);
+
+  // Vertex dots + category labels + numeric score, placed just outside
+  // the outer gridline ring on each axis.
+  categories.forEach((c, i) => {
+    const [dx, dy] = pointAt(i, Math.max(0.04, c.score / 10));
+    doc.setFillColor(pr, pg, pb);
+    doc.circle(dx, dy, 0.9, "F");
+
+    const [lx, ly] = pointAt(i, 1.16);
+    doc.setFontSize(6.6);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(INK);
+    const align = Math.abs(Math.cos(angleFor(i))) < 0.3 ? "center" : Math.cos(angleFor(i)) > 0 ? "left" : "right";
+    doc.text(c.label, lx, ly - 1.5, { align });
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.2);
+    const [sr, sg, sb] = colorForScore(c.score);
+    doc.setTextColor(sr, sg, sb);
+    doc.text(c.score.toFixed(1), lx, ly + 2.5, { align });
+  });
+}
+
+/**
+ * A genuine filled pie chart (as opposed to drawScoreDonut/
+ * drawModuleStatusDonut above, which are rings with a hole) — built the
+ * same way this file already approximates circles elsewhere: many thin
+ * filled triangles fanning out from the center, one per small angular
+ * step, rather than a true SVG-style arc path (jsPDF's vector primitives
+ * don't include a filled-arc/wedge shape directly).
+ */
+function drawPieChart(doc: jsPDF, cx: number, cy: number, r: number, segments: { count: number; color: [number, number, number]; label: string }[]) {
+  const total = segments.reduce((s, seg) => s + seg.count, 0) || 1;
+  let angleStart = -Math.PI / 2;
+  segments.forEach((seg) => {
+    if (seg.count === 0) return;
+    const sweep = (seg.count / total) * 2 * Math.PI;
+    const steps = Math.max(1, Math.round((seg.count / total) * 120) || 1);
+    doc.setFillColor(seg.color[0], seg.color[1], seg.color[2]);
+    doc.setDrawColor(255, 255, 255);
+    doc.setLineWidth(0.15);
+    for (let i = 0; i < steps; i++) {
+      const a0 = angleStart + (i / steps) * sweep;
+      const a1 = angleStart + ((i + 1) / steps) * sweep;
+      doc.triangle(cx, cy, cx + r * Math.cos(a0), cy + r * Math.sin(a0), cx + r * Math.cos(a1), cy + r * Math.sin(a1), "FD");
+    }
+    angleStart += sweep;
+  });
+
+  let ly = cy - r + 2;
+  segments.forEach((seg) => {
+    if (seg.count === 0) return;
+    doc.setFillColor(seg.color[0], seg.color[1], seg.color[2]);
+    doc.roundedRect(cx + r + 8, ly - 2.6, 3, 3, 0.6, 0.6, "F");
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(INK);
+    doc.text(`${seg.label}: ${seg.count}`, cx + r + 13, ly);
+    ly += 6.5;
+  });
 }
 
 /**
@@ -245,12 +361,29 @@ export function generateAuditPdf(result: AuditResult) {
   y = sectionHeading(doc, y, "Category scores");
   y = categoryBars(doc, y, result.categories) + 4;
 
+  // Vector-metrics radar chart — same 6 scores as the bars just drawn,
+  // as a shape rather than a list, so a lopsided single-weak-category
+  // profile is visible at a glance the way it is in the web app's own
+  // VectorMetricsVisualizer.
+  {
+    const radarY = y + 32;
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(INK);
+    doc.text("Vector metrics", MARGIN, y + 4);
+    doc.setFont("helvetica", "normal");
+    drawRadarChart(doc, PAGE_W / 2, radarY, 26, result.categories);
+    y = radarY + 34;
+  }
+
   const criticalModules = result.modules.filter((m) => m.status === "critical").length;
   const warningModules = result.modules.filter((m) => m.status === "warning").length;
   const goodModules = result.modules.filter((m) => m.status === "good").length;
   const allFindings = result.modules.flatMap((m) => m.findings);
   const criticalFindings = allFindings.filter((f) => f.status === "fail" && f.severity === "critical").length;
   const highFindings = allFindings.filter((f) => f.status === "fail" && (f.severity ?? "high") === "high").length;
+  const mediumFindings = allFindings.filter((f) => f.status === "fail" && f.severity === "medium").length;
+  const lowFindings = allFindings.filter((f) => f.status === "fail" && f.severity === "low").length;
   const totalFails = allFindings.filter((f) => f.status === "fail" && !f.unverifiable).length;
   const totalWarns = allFindings.filter((f) => f.status === "warn" && !f.unverifiable).length;
   const totalPasses = allFindings.filter((f) => f.status === "pass").length;
@@ -259,7 +392,12 @@ export function generateAuditPdf(result: AuditResult) {
   // can't be mistaken for either.
   const totalUnverified = allFindings.filter((f) => f.unverifiable).length;
 
-  y = sectionHeading(doc, y + 4, "Executive summary");
+  // The cover page ends here (header, verdict, category bars, radar
+  // chart) — executive summary and its charts start fresh on their own
+  // page rather than risking an overflow off the bottom of a page whose
+  // remaining space depends on how long the verdict text wrapped to.
+  doc.addPage();
+  y = sectionHeading(doc, 20, "Executive summary");
   const summaryRows: [string, string][] = [
     ["Modules audited", String(result.modules.length)],
     ["Modules in critical state", String(criticalModules)],
@@ -269,6 +407,8 @@ export function generateAuditPdf(result: AuditResult) {
     ["Unverified checks (lookup failed/timed out \u2014 not scored)", String(totalUnverified)],
     ["Critical-severity findings", String(criticalFindings)],
     ["High-severity findings", String(highFindings)],
+    ["Medium-severity findings", String(mediumFindings)],
+    ["Low-severity findings", String(lowFindings)],
     ["Actionable code fixes generated", String(result.fixes.length)],
   ];
   if (payload.usage) {
@@ -283,13 +423,29 @@ export function generateAuditPdf(result: AuditResult) {
     columnStyles: { 0: { textColor: [110, 98, 82], cellWidth: 75 }, 1: { fontStyle: "bold", textColor: [32, 27, 20] } },
   });
 
-  // Two new at-a-glance charts: a module-status donut, and a stacked bar
-  // of every finding across the whole audit — both derived from the same
-  // counts already in the table above, just visualized instead of only
+  // Three at-a-glance charts: a module-status donut, a stacked bar of
+  // every finding across the whole audit, and a genuine filled pie chart
+  // of fail-severity distribution — all derived from the same counts
+  // already in the table above, just visualized instead of only
   // tabulated.
   {
     const chartY = lastAutoTableY(doc) + 16;
     drawModuleStatusDonut(doc, MARGIN + 16, chartY, 14, goodModules, warningModules, criticalModules);
+
+    if (totalFails > 0) {
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(INK);
+      doc.text("Fails by severity", PAGE_W - MARGIN - 62, chartY - 18);
+      doc.setFont("helvetica", "normal");
+      drawPieChart(doc, PAGE_W - MARGIN - 48, chartY, 14, [
+        { count: criticalFindings, color: [178, 58, 46], label: "Critical" },
+        { count: highFindings, color: [214, 110, 40], label: "High" },
+        { count: mediumFindings, color: [201, 148, 45], label: "Medium" },
+        { count: lowFindings, color: [150, 140, 120], label: "Low" },
+      ]);
+    }
+
     const barY = chartY + 24;
     doc.setFontSize(9);
     doc.setFont("helvetica", "bold");

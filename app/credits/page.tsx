@@ -42,6 +42,31 @@ function CreditCard({
   );
 }
 
+// Free backlinks — press, tool listings, and verification/scan reports
+// that reference Audityxe. Previously shown in the site footer on every
+// page; moved here (still fully live in the webapp, just not cluttering
+// every page's footer) since this Credits page is where "where is
+// Audityxe mentioned/listed" already belongs, alongside Featured On.
+const BACKLINKS: { href: string; label: string }[] = [
+  { href: "https://dev.to/zelvior/why-i-built-audityxe-a-deterministic-website-audit-engine-5011", label: "Dev.to Article" },
+  { href: "https://discord.gg/UQfzQzymc", label: "Discord" },
+  { href: "https://github.com/zelvior", label: "GitHub" },
+  { href: "https://npmjs.com/~zelnpm", label: "npm" },
+  { href: "https://www.producthunt.com/products/audityxe", label: "Product Hunt" },
+  { href: "https://programmerneeds.com/tools/audityxe-a2486b", label: "ProgrammerNeeds" },
+  { href: "https://viberank.dev/apps/Audityxe", label: "VibeRank" },
+  { href: "https://youtube.com/@zelviorhere", label: "YouTube" },
+  { href: "https://linktr.ee/zelvior", label: "Linktree" },
+  { href: "https://orcid.org/0009-0009-2376-367X", label: "ORCID" },
+  { href: "https://kittylaunch.com/p/audityxe", label: "KittyLaunch" },
+  { href: "https://zelvior.blogspot.com/2026/09/audityxe.html", label: "Blog" },
+  { href: "https://stats.uptimerobot.com/PHQOGeVpYz", label: "Uptime Status" },
+  { href: "https://developer.mozilla.org/en-US/observatory/analyze?host=audityxe.vercel.app", label: "MDN Observatory Scan" },
+  { href: "https://www.ssllabs.com/ssltest/analyze.html?d=audityxe.vercel.app", label: "SSL Labs Scan" },
+  { href: "https://omnintel.net/scan/audityxe.vercel.app", label: "Omnintel Scan" },
+  { href: "https://webscan-radar.com/", label: "WebScan Radar" },
+];
+
 export default function CreditsPage() {
   return (
     <LegalLayout title="Credits" updated="September 2026" path="credits">
@@ -122,6 +147,16 @@ export default function CreditsPage() {
       <h2>Featured on</h2>
       <p>Where Audityxe is listed and covered:</p>
       <FeaturedOn />
+
+      <h2>Mentions &amp; backlinks</h2>
+      <p>Press, tool listings, and independent third-party scan/verification reports:</p>
+      <div className="flex flex-wrap gap-x-4 gap-y-1.5 not-prose text-sm">
+        {BACKLINKS.map((b) => (
+          <a key={b.href} href={b.href} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+            {b.label}
+          </a>
+        ))}
+      </div>
 
       <p className="text-xs text-text-secondary/80 mt-6">
         Team, contact, and site credits are also published machine-readably at{" "}

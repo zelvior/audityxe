@@ -101,4 +101,21 @@ as certainty, no guessing.
 ## Security
 
 Found a vulnerability? Please **don't** open a public issue. Email
-[zelvior@proton.me](mailto:zelvior@proton.me) directly.
+[zelvior@proton.me](mailto:zelvior@proton.me) directly — see `SECURITY.md` for the full policy
+and scope.
+
+## License and your contributions
+
+Audityxe is released under the Audityxe Custom Open-Source License (ACOL-1.0) — see
+`LICENSE.md` for the full text. **By submitting a pull request, you agree that your
+contribution is licensed under the same terms** (the Attribution Requirement in Section 2, and
+the personal-use-vs-Commercial-Redistributor split in Section 1B), so that the project's
+licensing stays consistent across every contributor's code, not just Zelvior's own. If that's
+not something you're comfortable agreeing to, please open an issue to discuss before submitting
+a PR rather than after.
+
+## Code of Conduct
+
+Participation in this project — issues, pull requests, discussions — is governed by
+`CODE_OF_CONDUCT.md`. tl;dr: be respectful, assume good faith, and report problems to
+`zelvior@proton.me` rather than escalating publicly.

@@ -6,6 +6,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    version: "3.14.0",
+    date: "September 2026",
+    changes: [
+      "Changed: the footer's free-backlinks row and the KittyLaunch verification badge moved off the site-wide footer to the Credits page (a new \"Mentions & backlinks\" section, alongside the existing Featured On badges) \u2014 still fully live in the webapp, just not repeated on every single page.",
+      "Fixed: the footer's Discord icon was lucide-react's generic MessageCircle icon, which doesn't actually look like the Discord logo \u2014 replaced with the real Discord mark (brand blurple, reproduced as inline SVG the same way the ORCID/npm marks already were).",
+      "Fixed: a real license inconsistency \u2014 the vscode-extension package's copy of LICENSE.md had never been updated when the 35% revenue-share clause (Section 1B) was added to the root license, so its own Section 7 summary still read \"redistribute \u2014 for free\" with no mention of 1B at all, directly contradicting the rest of the document. The in-app /license page had the same problem in a different way: it was a hand-written summary from before 1A (design carve-out), 1B (revenue share), and 3.6 (AI-cloning instruction) existed, so it was missing all three. Both are now kept word-for-word consistent with the root LICENSE.md.",
+      "Changed: license terms restructured for internal consistency and worldwide applicability. Section 1's grant of rights now states the personal-use-vs-Commercial-Redistributor split directly in the grant itself, rather than as a footnote conditioning it after the fact, so the license no longer reads as granting free redistribution up front and then contradicting that later. Section 1B rewritten with precise definitions: an \"Individual\" (one natural person, not acting for any organization) gets unrestricted personal use forever \u2014 explicitly modeled on how WinRAR has never actually been enforced against an individual running an unregistered copy \u2014 while a \"Commercial Redistributor\" (any company, startup, or organization of any size, or an individual monetizing it) owes the fixed 35% revenue share, with no change to who's exempt (Zelvior/Faizan only). Section 6 (Governing Interpretation) now states explicitly that the license is intended to be enforceable worldwide under any country's laws, with a reformation clause for provisions unenforceable under one specific jurisdiction.",
+      "New: root CHANGELOG.md, SECURITY.md, CODE_OF_CONDUCT.md, .github/ISSUE_TEMPLATE/ (bug report + feature request), .github/PULL_REQUEST_TEMPLATE.md, and .github/FUNDING.yml \u2014 none of these existed before. CONTRIBUTING.md gained a \"License and your contributions\" section (contributions are licensed under the same ACOL-1.0 terms) and a Code of Conduct pointer.",
+      "New: PDF export gained a category radar/vector-metrics chart (the same 6 category scores as the bars, plotted as a hexagon so the overall shape is visible at a glance \u2014 mirrors the web app's own VectorMetricsVisualizer) and a genuine filled pie chart of fail-severity distribution, alongside the existing score donut, module-status donut, and findings-by-outcome stacked bar.",
+      "New: JSON export gained a `schemaVersion` field, a `summary` block (module/finding/severity counts \u2014 the same numbers the PDF's new charts visualize, computed once so they can't drift from what the charts show), and the banner design moved to always be included with an `aiGenerated` flag \u2014 previously it was nested under `promo` and nulled out whenever promo was locked, hiding a real value (a deterministic fallback banner) that was always present on the underlying result regardless of plan.",
+    ],
+  },
+  {
     version: "3.13.1",
     date: "September 2026",
     changes: [

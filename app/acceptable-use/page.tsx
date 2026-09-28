@@ -20,7 +20,7 @@ export default function AcceptableUsePage() {
         <li>Use multiple accounts, IPs, or sessions to circumvent quota enforcement.</li>
         <li>Probe, scan, or attempt to exploit Audityxe's own infrastructure or API.</li>
         <li>Use the promo/copy generation features to produce misleading claims about a site's audit results.</li>
-        <li>Resell or redistribute audit output as your own automated service without permission.</li>
+        <li>Resell or redistribute audit output as your own automated service without permission (running the open-source Software itself, per the terms in <code>LICENSE.md</code>, is a separate matter from reselling this hosted service's output — see the License page for the 35% revenue-share terms that apply to a Commercial Redistributor of the Software itself).</li>
       </ul>
 
       <h2>2. Enforcement</h2>

@@ -8,7 +8,20 @@ import { AuditResult } from "./types";
  * pick it up.
  */
 export function buildAuditExportPayload(result: AuditResult) {
+  const allFindings = result.modules.flatMap((m) => m.findings);
+  const bySeverity = { critical: 0, high: 0, medium: 0, low: 0 };
+  allFindings.forEach((f) => {
+    if (f.status !== "fail" || f.unverifiable) return;
+    const sev = f.severity ?? "high";
+    bySeverity[sev] += 1;
+  });
+
   return {
+    // Bump when a field is added/removed/renamed in a way a downstream
+    // consumer parsing this JSON should know about — additive-only
+    // changes (a new optional field) don't require a bump, a shape
+    // change does.
+    schemaVersion: "1.1",
     meta: {
       tool: "Audityxe",
       generatedAt: new Date().toISOString(),
@@ -18,6 +31,24 @@ export function buildAuditExportPayload(result: AuditResult) {
     scoringMethodology: result.scoringMethodology ?? null,
     verdict: result.verdict,
     categories: result.categories,
+    // Same counts the PDF export visualizes as its module-status donut,
+    // findings-by-outcome stacked bar, and fail-severity pie chart —
+    // computed once here so a JSON consumer gets the identical numbers
+    // without re-deriving them from `modules` themselves.
+    summary: {
+      modulesAudited: result.modules.length,
+      modulesGood: result.modules.filter((m) => m.status === "good").length,
+      modulesWarning: result.modules.filter((m) => m.status === "warning").length,
+      modulesCritical: result.modules.filter((m) => m.status === "critical").length,
+      findings: {
+        pass: allFindings.filter((f) => f.status === "pass").length,
+        warn: allFindings.filter((f) => f.status === "warn" && !f.unverifiable).length,
+        fail: allFindings.filter((f) => f.status === "fail" && !f.unverifiable).length,
+        unverified: allFindings.filter((f) => f.unverifiable).length,
+      },
+      failsBySeverity: bySeverity,
+      fixesGenerated: result.fixes.length,
+    },
     siteContext: result.siteContext
       ? {
           siteType: result.siteContext.siteType,
@@ -49,6 +80,17 @@ export function buildAuditExportPayload(result: AuditResult) {
       })),
     })),
     fixes: result.fixes,
+    // Independent of the promo lock below — always a real, complete
+    // value (either the AI-personalized version, or a deterministic
+    // fallback keyed off the actual score/categories when promo/AI
+    // generation wasn't available) rather than a value that only exists
+    // when Pro+BYOK unlocked it. Previously nested under `promo` and
+    // nulled out whenever promo was locked, which hid a real value that
+    // was always present on `result` regardless.
+    banner: {
+      ...result.banner,
+      aiGenerated: !result.promoLocked,
+    },
     performance: {
       fetched: result.pageSpeed?.fetched ?? false,
       attempted: result.pageSpeed?.attempted ?? false,
@@ -96,7 +138,6 @@ export function buildAuditExportPayload(result: AuditResult) {
       lockReason: result.promoLockReason ?? null,
       xPost: result.promoLocked ? null : result.xPost || null,
       linkedinPost: result.promoLocked ? null : result.linkedinPost || null,
-      banner: result.promoLocked ? null : result.banner,
     },
     competitor: result.competitor
       ? {

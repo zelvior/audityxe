@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Logo from "./Logo";
 import HoverRevealButton from "./HoverRevealButton";
-import { Heart, ChevronDown, Youtube, Link2, MessageCircle } from "lucide-react";
+import { Heart, ChevronDown, Youtube, Link2 } from "lucide-react";
 
 // The real, minimal ORCID mark (a green circle with a white "iD"
 // wordmark) — lucide-react has no ORCID icon, and a generic badge/id
@@ -35,6 +35,22 @@ function NpmIcon({ size = 15 }: { size?: number }) {
   );
 }
 
+// The real Discord mark ("Clyde" logo) — lucide-react has no Discord
+// icon, and a generic chat-bubble icon (this used lucide's MessageCircle
+// before, which visibly isn't the Discord logo) isn't recognizable as
+// Discord specifically, so this is reproduced directly, same approach
+// as the ORCID/npm marks above.
+function DiscordIcon({ size = 15 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 256 199" fill="none" aria-hidden="true">
+      <path
+        fill="#5865F2"
+        d="M216.9 16.6A208.5 208.5 0 0 0 164 0c-2.3 4.1-5 9.7-6.8 14.1a192.8 192.8 0 0 0-58.4 0C97 9.7 94.2 4.1 91.9 0a207.9 207.9 0 0 0-53 16.6C11.4 55.6 4 93.6 7.7 131a209.5 209.5 0 0 0 63.9 32.1c5.2-7 9.7-14.5 13.6-22.4a136.2 136.2 0 0 1-21.4-10.2c1.8-1.3 3.6-2.7 5.3-4.1a149.5 149.5 0 0 0 127 0c1.7 1.4 3.5 2.8 5.3 4.1a136.2 136.2 0 0 1-21.5 10.3c3.9 7.9 8.4 15.4 13.6 22.4a208.8 208.8 0 0 0 64-32.1c4.3-43.4-7.5-81.1-32.7-114.4ZM85.5 108c-10.9 0-19.8-9.9-19.8-22.1 0-12.2 8.7-22.2 19.8-22.2 11.2 0 20 10 19.8 22.2 0 12.2-8.7 22.1-19.8 22.1Zm85 0c-10.9 0-19.8-9.9-19.8-22.1 0-12.2 8.7-22.2 19.8-22.2 11.2 0 20 10 19.8 22.2 0 12.2-8.6 22.1-19.8 22.1Z"
+      />
+    </svg>
+  );
+}
+
 // Points at our own /donate page by default, which embeds the
 // NOWPayments donation widget and also offers non-financial ways to
 // help. NEXT_PUBLIC_DONATION_URL can override it with an external link
@@ -47,30 +63,7 @@ const SOCIAL_LINKS = [
   { href: "https://orcid.org/0009-0009-2376-367X", label: "ORCID", icon: OrcidIcon },
   { href: "https://youtube.com/@zelviorhere", label: "YouTube", icon: Youtube },
   { href: "https://linktr.ee/zelvior", label: "Linktree", icon: Link2 },
-  { href: "https://discord.gg/UQfzQzymc", label: "Discord", icon: MessageCircle },
-];
-
-// Free backlinks — press, tool listings, and verification/scan reports that
-// reference Audityxe. Kept as a dedicated row (not the Featured On badge
-// strip) since most of these are plain links rather than provider badges.
-const BACKLINKS: { href: string; label: string }[] = [
-  { href: "https://dev.to/zelvior/why-i-built-audityxe-a-deterministic-website-audit-engine-5011", label: "Dev.to Article" },
-  { href: "https://discord.gg/UQfzQzymc", label: "Discord" },
-  { href: "https://github.com/zelvior", label: "GitHub" },
-  { href: "https://npmjs.com/~zelnpm", label: "npm" },
-  { href: "https://www.producthunt.com/products/audityxe", label: "Product Hunt" },
-  { href: "https://programmerneeds.com/tools/audityxe-a2486b", label: "ProgrammerNeeds" },
-  { href: "https://viberank.dev/apps/Audityxe", label: "VibeRank" },
-  { href: "https://youtube.com/@zelviorhere", label: "YouTube" },
-  { href: "https://linktr.ee/zelvior", label: "Linktree" },
-  { href: "https://orcid.org/0009-0009-2376-367X", label: "ORCID" },
-  { href: "https://kittylaunch.com/p/audityxe", label: "KittyLaunch" },
-  { href: "https://zelvior.blogspot.com/2026/09/audityxe.html", label: "Blog" },
-  { href: "https://stats.uptimerobot.com/PHQOGeVpYz", label: "Uptime Status" },
-  { href: "https://developer.mozilla.org/en-US/observatory/analyze?host=audityxe.vercel.app", label: "MDN Observatory Scan" },
-  { href: "https://www.ssllabs.com/ssltest/analyze.html?d=audityxe.vercel.app", label: "SSL Labs Scan" },
-  { href: "https://omnintel.net/scan/audityxe.vercel.app", label: "Omnintel Scan" },
-  { href: "https://webscan-radar.com/", label: "WebScan Radar" },
+  { href: "https://discord.gg/UQfzQzymc", label: "Discord", icon: DiscordIcon },
 ];
 
 const COLUMNS: { title: string; links: { href: string; label: string }[] }[] = [
@@ -252,35 +245,6 @@ export default function Footer() {
               <FooterColumn key={col.title} title={col.title} links={col.links} />
             ))}
           </div>
-        </div>
-
-        {/* Free backlinks — press, tool listings, verification/scan reports. */}
-        <div className="mt-8 flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5">
-          {BACKLINKS.map((b) => (
-            <a
-              key={b.href}
-              href={b.href}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[11px] text-text-secondary/70 hover:text-primary transition"
-            >
-              {b.label}
-            </a>
-          ))}
-        </div>
-
-        {/* KittyLaunch verification badge — embed left as-issued so their
-            reviewer can confirm it during the manual check. */}
-        <div className="mt-6 flex justify-center">
-          <a href="https://kittylaunch.com/p/audityxe?utm_source=badge" target="_blank" rel="noopener">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="https://kittylaunch.com/api/public/badges/launch_badge.svg?style=pill&theme=dark"
-              width={296}
-              alt="Audityxe — Verified by KittyLaunch"
-              data-kittylaunch-badge="1"
-            />
-          </a>
         </div>
 
         <div className="mt-10 pt-6 border-t border-border/60 flex flex-col sm:flex-row flex-wrap items-center justify-center sm:justify-between gap-4">

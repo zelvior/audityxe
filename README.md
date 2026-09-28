@@ -263,8 +263,8 @@ number — nudge a category's score and the shape moves with it.
 
 | Format | Contents |
 |---|---|
-| **PDF** | Full branded report — score donut, module-status donut, findings-by-outcome stacked bar, category breakdown, every module and finding with evidence, Lighthouse lab + field data, embedded render screenshot |
-| **JSON** | Complete machine-readable payload — every module, finding, severity, confidence, and evidence string |
+| **PDF** | Full branded report — score donut, category radar/vector-metrics chart, module-status donut, fail-severity pie chart, findings-by-outcome stacked bar, category breakdown, every module and finding with evidence, Lighthouse lab + field data, embedded render screenshot |
+| **JSON** | Complete machine-readable payload (`schemaVersion` field for forward compatibility) — every module, finding, severity, confidence, and evidence string, plus a `summary` block (module/finding/severity counts) and the banner design (always included, with an `aiGenerated` flag, not hidden behind the promo lock the way it briefly was) |
 | **Markdown** | Copy-to-clipboard / download, for pasting into GitHub Issues, Notion, or a PR |
 | **Badge** | Embeddable "Audited by Audityxe" SVG badge with live verification |
 | **Social** | Auto-generated X/LinkedIn post copy and a downloadable share banner |
