@@ -10,6 +10,15 @@ The CLI (`audityxe-cli`) and VS Code extension share the audit engine with the w
 versioned separately — see `cli/CHANGELOG.md` and `vscode-extension/CHANGELOG.md` for their own
 release notes.
 
+## 3.15.1 — September 2026
+
+- Fixed: the PDF's "Vector metrics" section title and the radar chart's own topmost category
+  label mathematically overlapped on every generated report — recomputed the chart's vertical
+  offset so it clears the title with real room instead of a negative gap.
+- Fixed: the "Fails by severity" pie chart's legend text could run past the page's right
+  printable margin on reports with longer severity labels — repositioned with margin verified
+  against the longest possible label.
+
 ## 3.15.0 — September 2026
 
 - New: data-retention/cleanup moved off Vercel Cron onto a new Cloudflare Worker

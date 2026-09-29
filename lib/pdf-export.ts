@@ -366,7 +366,15 @@ export function generateAuditPdf(result: AuditResult) {
   // profile is visible at a glance the way it is in the web app's own
   // VectorMetricsVisualizer.
   {
-    const radarY = y + 32;
+    // BUG FIX: this was previously `y + 32`, which put the chart's own
+    // topmost category label (at radius r*1.16 above center — see
+    // pointAt(i, 1.16) in drawRadarChart) *above* the "Vector metrics"
+    // title text drawn at y+4, i.e. the two visibly overlapped. With
+    // r=26, the top label sits at (radarY - 26*1.16) ≈ radarY - 30.2, so
+    // radarY needs to clear the title (at y+4) by at least ~30mm, not
+    // ~28mm — bumped to y+44 for a real ~10mm buffer instead of a
+    // negative one.
+    const radarY = y + 44;
     doc.setFontSize(9);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(INK);
@@ -433,12 +441,20 @@ export function generateAuditPdf(result: AuditResult) {
     drawModuleStatusDonut(doc, MARGIN + 16, chartY, 14, goodModules, warningModules, criticalModules);
 
     if (totalFails > 0) {
+      // BUG FIX: this pie's legend text (drawn to the right of the
+      // chart, at cx + r + 13, growing further right per label — see
+      // drawPieChart) could run past PAGE_W - MARGIN (the page's actual
+      // right printable edge) with the previous cx of
+      // `PAGE_W - MARGIN - 48` — there wasn't enough room reserved
+      // between the chart and the edge of the page for the legend text
+      // itself. Shifted further left so the legend has real room.
+      const pieCx = PAGE_W - MARGIN - 60;
       doc.setFontSize(8);
       doc.setFont("helvetica", "bold");
       doc.setTextColor(INK);
-      doc.text("Fails by severity", PAGE_W - MARGIN - 62, chartY - 18);
+      doc.text("Fails by severity", pieCx - 14, chartY - 18);
       doc.setFont("helvetica", "normal");
-      drawPieChart(doc, PAGE_W - MARGIN - 48, chartY, 14, [
+      drawPieChart(doc, pieCx, chartY, 14, [
         { count: criticalFindings, color: [178, 58, 46], label: "Critical" },
         { count: highFindings, color: [214, 110, 40], label: "High" },
         { count: mediumFindings, color: [201, 148, 45], label: "Medium" },

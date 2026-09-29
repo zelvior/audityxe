@@ -6,6 +6,14 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    version: "3.15.1",
+    date: "September 2026",
+    changes: [
+      "Fixed: the PDF's \"Vector metrics\" section title and the radar chart's own topmost category label mathematically overlapped \u2014 the chart's vertical offset (y+32) put its top label at roughly y+1.8 while the title itself was drawn at y+4, so the label sat above (behind) the title text on every generated report. Recomputed the correct offset (y+44) so the chart clears the title with real room instead of a negative gap.",
+      "Fixed: the \"Fails by severity\" pie chart's legend text could run past the page's right printable margin (and close to the physical page edge) on reports with longer severity labels \u2014 its horizontal position didn't reserve enough room for the legend drawn to its right. Moved further left with margin verified against the longest possible label.",
+    ],
+  },
+  {
     version: "3.15.0",
     date: "September 2026",
     changes: [

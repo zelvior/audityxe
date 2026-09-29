@@ -35,6 +35,28 @@ Cloudflare Workers were chosen specifically because:
   hours, not per-user work. The thing that scales with user count is Firestore/Firebase Auth usage
   itself, which this Worker doesn't add to beyond its periodic cleanup queries.
 
+## Secrets stay private, even though this repo is (partly) open-source
+
+Two separate, independent secret stores — a person who clones or forks this public repo gets
+neither, the same way they don't get the main Next.js app's real `FIREBASE_PRIVATE_KEY`,
+`ENCRYPTION_KEY`, etc. from `.env.example`:
+
+| | Main app (Next.js/Vercel) | This Worker (Cloudflare) |
+|---|---|---|
+| Committed placeholder file | `.env.example` (repo root) | `.dev.vars.example` (this folder) |
+| Real local-dev file | `.env.local` — gitignored | `.dev.vars` — gitignored |
+| Real production secrets live in | Vercel dashboard → Project → Environment Variables | Cloudflare, set via `wrangler secret put <NAME>` |
+| Ever committed to git? | No | No |
+| Ever visible in this repo's source code? | No — every `process.env.X` reference is a lookup, never a literal value | No — every `env.X` reference (see `src/index.ts`'s `Env` interface) is a lookup, never a literal value |
+
+Nothing in `src/*.ts` or `wrangler.toml` in this folder contains a real project ID, key, secret,
+or deployed URL — every example in this README uses an obvious placeholder
+(`your-project-id`, `<your-subdomain>`) specifically so it's safe for this to be public. Your
+actual `wrangler secret put` values live only in Cloudflare's own encrypted secret storage for
+*your* account's deployment of this Worker — someone else running this same open-source code
+deploys their own Worker under their own Cloudflare account with their own secrets, and never
+sees yours.
+
 ## Setup
 
 ### 1. Create a dedicated service account
@@ -66,14 +88,14 @@ npx wrangler secret put GOOGLE_PRIVATE_KEY      # paste the full PEM, literal \n
 npx wrangler secret put CLEANUP_SHARED_SECRET   # any long random string — protects the manual POST /run endpoint
 ```
 
-For local development, copy these into a `.dev.vars` file instead (already gitignored):
+For local development, copy the placeholder template and fill in real values:
 
+```bash
+cp .dev.vars.example .dev.vars
 ```
-FIREBASE_PROJECT_ID=your-project-id
-GOOGLE_CLIENT_EMAIL=your-sa@your-project.iam.gserviceaccount.com
-GOOGLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
-CLEANUP_SHARED_SECRET=some-long-random-string
-```
+
+`.dev.vars` is read automatically by `wrangler dev` and is gitignored — it never gets committed,
+never gets deployed, and is read by nothing except your own local `wrangler dev` process.
 
 ### 4. Deploy
 

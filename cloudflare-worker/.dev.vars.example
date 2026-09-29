@@ -1,0 +1,24 @@
+# =============================================================================
+#  AUDITYXE CLEANUP WORKER — LOCAL SECRETS
+# =============================================================================
+#  Copy this file to `.dev.vars` and fill in real values:
+#
+#      cp .dev.vars.example .dev.vars
+#
+#  `.dev.vars` is gitignored (see .gitignore in this folder) — it is read
+#  automatically by `wrangler dev` for local development ONLY. It is NEVER
+#  read by the deployed Worker and NEVER uploaded to Cloudflare.
+#
+#  For the actual deployed Worker, these same four values are set with
+#  `wrangler secret put <NAME>` instead (see README.md, step 3) — Cloudflare
+#  stores them encrypted, separately from this repo, the same way Vercel
+#  environment variables are separate from what's committed for the main
+#  Next.js app. Nobody who clones this public repo gets your real keys from
+#  either file — .env.example (main app) and this file are both placeholders
+#  only, on purpose.
+# =============================================================================
+
+FIREBASE_PROJECT_ID=your-project-id
+GOOGLE_CLIENT_EMAIL=your-service-account@your-project.iam.gserviceaccount.com
+GOOGLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nMII...\n-----END PRIVATE KEY-----\n"
+CLEANUP_SHARED_SECRET=replace-with-a-long-random-string
