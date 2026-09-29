@@ -13,8 +13,14 @@ export const maxDuration = 60;
  * cleanup-unverified this can run frequently and just deletes anything
  * past its TTL, no grace-period judgment calls needed.
  *
- * Wired up via Vercel Cron (see vercel.json). Protected by the same
- * shared secret as the other cron routes.
+ * NOT scheduled via Vercel Cron (removed from vercel.json) — this task
+ * now runs on a Cloudflare Worker instead (see /cloudflare-worker in the
+ * repo root), specifically because Vercel's Hobby plan caps cron
+ * triggers at once/day while this job was meant to run every 4 hours,
+ * and Cloudflare's free tier has no such limit. This route is kept as a
+ * manual/fallback trigger only: protected by the same shared secret,
+ * callable directly if you want to run this project without Cloudflare
+ * at all, or to force a run without waiting for the Worker's schedule.
  */
 export async function GET(req: NextRequest) {
   const authHeader = req.headers.get("authorization");

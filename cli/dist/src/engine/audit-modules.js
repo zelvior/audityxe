@@ -101,8 +101,14 @@ function statusFromFindings(findings) {
     return { status, score };
 }
 function makeModule(id, label, summary, findings) {
-    const { status, score } = statusFromFindings(findings);
-    return { id, label, status, score, summary, findings };
+    // `null` entries let a call-site conditionally include a finding
+    // inline (e.g. "only relevant when CSP is present at all") without an
+    // awkward pre-built-array-with-conditional-push just to satisfy the
+    // type checker — filtered out here, once, rather than at every
+    // call-site.
+    const realFindings = findings.filter((f) => f !== null);
+    const { status, score } = statusFromFindings(realFindings);
+    return { id, label, status, score, summary, findings: realFindings };
 }
 /**
  * Builds a real module (same shape, same pass/warn/fail scoring engine
@@ -317,6 +323,27 @@ function buildAuditModules(ctx) {
                 ? warn("Strict-Transport-Security", `Present, but max-age=${s.security.hstsMaxAge}s is under the recommended 180 days.`)
                 : pass("Strict-Transport-Security", `Present, max-age=${s.security.hstsMaxAge ?? "?"}s${s.security.hstsIncludesSubDomains ? ", includeSubDomains" : ""}${s.security.hstsPreload ? ", preload" : ""}.`)
             : warn("Strict-Transport-Security", "Missing."),
+        // Distinct from the basic HSTS check above: whether this exact
+        // header would actually be *accepted* by Chrome's HSTS preload
+        // list submission (hstspreload.org) — a real site can have
+        // valid, working HSTS protection at 6-months max-age and still
+        // not qualify for preload, which requires the stricter 1-year
+        // minimum plus both flags. Preload is the strongest possible
+        // HSTS posture (browsers refuse the first-ever HTTP request
+        // outright, not just upgrade the response), so it's worth a
+        // check of its own rather than folding this into the finding
+        // above and losing the distinction.
+        s.security.hasHsts
+            ? s.security.hstsPreload && s.security.hstsIncludesSubDomains && (s.security.hstsMaxAge ?? 0) >= 31536000
+                ? pass("HSTS preload-list eligibility", "Meets hstspreload.org's submission requirements (max-age \u2265 1 year, includeSubDomains, preload directive) \u2014 this domain could be submitted to browsers' built-in preload lists for the strongest possible HSTS posture.")
+                : warn("HSTS preload-list eligibility", `Does not meet hstspreload.org's submission requirements yet: ${[
+                    (s.security.hstsMaxAge ?? 0) < 31536000 && "max-age must be \u2265 31536000 (1 year)",
+                    !s.security.hstsIncludesSubDomains && "includeSubDomains must be set",
+                    !s.security.hstsPreload && "the preload directive must be present",
+                ]
+                    .filter(Boolean)
+                    .join("; ")}. This is a stricter, optional tier above the basic HSTS check above \u2014 not required, but the strongest available protection against a first-visit HTTP downgrade attack.`, undefined, "low")
+            : null,
         s.security.hasHsts && !s.security.hstsIncludesSubDomains
             ? warn("HSTS includeSubDomains", "Not set — subdomains aren't covered by HSTS enforcement.")
             : s.security.hasHsts
@@ -324,15 +351,42 @@ function buildAuditModules(ctx) {
                 : pass("HSTS includeSubDomains", "N/A — HSTS not present."),
         s.security.hasCsp
             ? s.security.cspAllowsUnsafeInline || s.security.cspAllowsUnsafeEval || s.security.cspAllowsWildcardSource
-                ? warn("Content-Security-Policy", `Present but weakened: ${[
+                ? fail("Content-Security-Policy: script-src", `Present but the script-executing directive itself is weakened: ${[
                     s.security.cspAllowsUnsafeInline && "'unsafe-inline'",
                     s.security.cspAllowsUnsafeEval && "'unsafe-eval'",
-                    s.security.cspAllowsWildcardSource && "wildcard (*) source",
+                    s.security.cspAllowsWildcardSource && "a bare wildcard (* / http: / https:) source",
                 ]
                     .filter(Boolean)
-                    .join(", ")} weakens script/style origin restrictions.`)
-                : pass("Content-Security-Policy", "Present, no unsafe-inline/unsafe-eval/wildcard sources detected.")
-            : warn("Content-Security-Policy", "Missing."),
+                    .join(", ")} on script-src (or default-src, if script-src isn't set) — this specifically defeats CSP's main purpose, blocking injected/inline script execution, unlike a wildcard on an unrelated directive like img-src.`, undefined, "high")
+                : pass("Content-Security-Policy: script-src", s.security.cspUsesNonceOrStrictDynamic
+                    ? "Present, using a nonce or 'strict-dynamic' — the strongest CSP posture, not bypassable via an open redirect on an otherwise-allowlisted host the way a static origin allowlist can be."
+                    : "Present, no unsafe-inline/unsafe-eval/wildcard sources on the script-executing directive.")
+            : fail("Content-Security-Policy: script-src", "Missing entirely.", undefined, "high"),
+        s.security.hasCsp
+            ? s.security.cspStyleAllowsUnsafeInline
+                ? warn("Content-Security-Policy: style-src", "style-src (or its default-src fallback) allows 'unsafe-inline' — a real but lower-severity gap than the same on script-src (CSS injection, not arbitrary JS execution).", undefined, "low")
+                : pass("Content-Security-Policy: style-src", "No unsafe-inline on the style-executing directive.")
+            : null,
+        s.security.hasCsp
+            ? s.security.cspHasObjectSrcNone
+                ? pass("CSP object-src", "Set to 'none' (or covered by an equivalent default-src 'none') — blocks legacy plugin content (Flash/Java applets) some XSS payloads still rely on.")
+                : warn("CSP object-src", "Not explicitly restricted to 'none' — a defense-in-depth gap, lower severity than the script-src findings above.", undefined, "low")
+            : null,
+        s.security.hasCsp
+            ? s.security.cspRestrictsBaseUri
+                ? pass("CSP base-uri", "Restricted — blocks <base href> injection from silently redirecting the page's own relative script/link/form URLs to an attacker's origin.")
+                : warn("CSP base-uri", "Not set — a <base href> injection could redirect every relative URL on the page even with a strict script-src.", undefined, "medium")
+            : null,
+        s.security.hasCsp
+            ? s.security.cspHasFrameAncestors
+                ? pass("CSP frame-ancestors", "Set — CSP's modern, more expressive replacement for X-Frame-Options (supports multiple/wildcard-scheme origins).")
+                : s.security.hasXFrameOptions
+                    ? pass("CSP frame-ancestors", "Not set, but X-Frame-Options covers clickjacking protection on its own.")
+                    : warn("CSP frame-ancestors", "Not set, and X-Frame-Options is also missing — no clickjacking protection from either mechanism.", undefined, "medium")
+            : null,
+        s.security.hasCspReportOnly && !s.security.hasCsp
+            ? warn("CSP enforcement mode", "Only a Content-Security-Policy-Report-Only header is present — CSP violations are being logged, not actually blocked. This is a legitimate rollout/testing stage, but the site currently has no enforced CSP protection at all.", undefined, "medium")
+            : null,
         s.security.hasXFrameOptions ? pass("X-Frame-Options", "Present.") : warn("X-Frame-Options", "Missing — clickjacking risk."),
         s.security.hasXContentTypeOptions
             ? pass("X-Content-Type-Options", "Set to nosniff.")

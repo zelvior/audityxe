@@ -384,8 +384,8 @@ curl -X POST https://audityxe.vercel.app/api/audit \
 
 [`vscode-extension/`](./vscode-extension) — run an audit from the Command Palette, results in an
 output panel. Also a thin wrapper around the CLI. A pre-built `.vsix` ships in the repo
-([`vscode-extension/audityxe-1.2.0.vsix`](./vscode-extension/audityxe-1.2.0.vsix)) — install it
-locally right now with `code --install-extension vscode-extension/audityxe-1.2.0.vsix`, no build
+([`vscode-extension/audityxe-1.2.1.vsix`](./vscode-extension/audityxe-1.2.1.vsix)) — install it
+locally right now with `code --install-extension vscode-extension/audityxe-1.2.1.vsix`, no build
 step needed. Not yet published to the Marketplace itself — see
 [`vscode-extension/README.md`](./vscode-extension/README.md) for the exact publish steps (needs
 your own Marketplace publisher account, which this repo can't create on your behalf).
@@ -488,7 +488,7 @@ Summary:
 | `NOWPAYMENTS_IPN_SECRET` | ⚠️ | **Mandatory if the API key is set** — checkout refuses to start without it |
 | `NEXT_PUBLIC_DONATION_URL` | ➖ | Footer Sponsor button target |
 | `ADMIN_EMAILS` / `ADMIN_PASSWORD` | ➖ | Enables `/admin`. Unset = admin panel disabled |
-| `CRON_SECRET` | ➖ | Protects `/api/cron/*` endpoints |
+| `CRON_SECRET` | ➖ | Protects `/api/cron/*` endpoints (now manual/fallback triggers — see [Infrastructure & scaling](#infrastructure--scaling)) |
 | `WEB_PUSH_VAPID_PUBLIC_KEY` / `WEB_PUSH_VAPID_PRIVATE_KEY` / `WEB_PUSH_VAPID_SUBJECT` | ➖ | Web Push notifications for background audit jobs ("notify me when it's ready" — see `lib/push.ts`). Generate with `npx web-push generate-vapid-keys`; subject is a `mailto:` or `https:` contact URL. Without these set, the notify-me button silently no-ops (polling/leaving the tab open still works). |
 | `NEXT_PUBLIC_WEB_PUSH_VAPID_PUBLIC_KEY` | ➖ | Same public key as above, exposed client-side so the browser can call `pushManager.subscribe()` |
 | `GOOGLE_SITE_VERIFICATION` | ➖ | Search Console verification |
@@ -689,11 +689,13 @@ audityxe/
 │   │   ├── account/            # profile, delete, redeem-code
 │   │   ├── admin/               # activity, announcement, api-keys/[id], audits, redeem-codes, search, stats, users
 │   │   ├── announcement/
-│   │   ├── audit/               # the main audit endpoint (+ bulk/)
+│   │   ├── audit/               # the main (synchronous) audit endpoint (+ bulk/)
+│   │   ├── audit/start/  audit/status/[jobId]/   # background-job flow — see Infrastructure & scaling
 │   │   ├── badge/[domain]/  badge/qualys/  badge/mdn/
 │   │   ├── banner-bg/
-│   │   ├── cron/cleanup-unverified/  cron/security-badges/
+│   │   ├── cron/cleanup-unverified/  cron/cleanup-jobs/  cron/security-badges/  # first two are now manual/fallback only — see Infrastructure & scaling
 │   │   ├── payments/nowpayments/ # create, ipn, status, subscribe
+│   │   ├── push/subscribe/      # Web Push subscription registration for background jobs
 │   │   └── settings/
 │   ├── audit-verification/  badge/  bulk/  changelog/  contact/  cookies/
 │   ├── crash-reports/  credits/  disclaimer/  donate/  dpa/  faq/
@@ -707,7 +709,9 @@ audityxe/
 │   ├── CompetitorBattle.tsx     DiffFixes.tsx            Footer.tsx
 │   ├── Header.tsx               Hero.tsx                 HomepageSeoContent.tsx
 │   ├── HoverRevealButton.tsx    IsometricLoader.tsx      LegalLayout.tsx
+│   ├── LiveScanPreview.tsx      # live-preview iframe + real progress overlay, shown while scanning
 │   ├── Logo.tsx                 ModerationGuard.tsx      NotFoundGame.tsx
+│   ├── NotifyMeButton.tsx       # Web Push opt-in for background audit jobs
 │   ├── OAuthButtons.tsx         OfflineGame.tsx          Onboarding.tsx
 │   ├── PasswordInput.tsx        PerformanceMetrics.tsx   PromoKit.tsx
 │   ├── RenderProof.tsx          SampleReportView.tsx     ScanProgress.tsx
@@ -717,9 +721,11 @@ audityxe/
 ├── context/
 │   └── AuthContext.tsx
 ├── lib/
-│   ├── analyze.ts            # orchestrates a full audit
+│   ├── analyze.ts            # orchestrates a full audit (onProgress callback powers the live overlay)
 │   ├── audit-modules.ts      # turns signals into scored modules + findings
 │   ├── audit-defender-data.ts   audit-log.ts             admin.ts / admin-log.ts
+│   ├── audit-jobs.ts         # Firestore-backed background-job store (create/progress/complete/fail)
+│   ├── audit-request.ts      # shared auth/quota/BYOK resolution — used by both /api/audit and /api/audit/start
 │   ├── ai.ts                    announcement.ts          badge-store.ts
 │   ├── api-keys.ts           # Pro-linked API key issuance/validation for /api/audit
 │   ├── bloom-filter.ts          breadcrumb.ts            constants.ts
@@ -728,12 +734,13 @@ audityxe/
 │   ├── deep-signals.ts       # HTML/DOM signal extraction
 │   ├── discount-codes.ts     # redeem/giveaway codes only — percent-off codes removed
 │   ├── dns-email-auth.ts        dns-security.ts
-│   ├── export-payload.ts     # JSON report builder
+│   ├── export-payload.ts     # JSON report builder (schemaVersion, summary block, banner)
 │   ├── fetch-json.ts            gemini.ts                ip.ts
 │   ├── legal-pages.ts           network-checks.ts
 │   ├── nowpayments.ts        # invoice creation + IPN HMAC verification
-│   ├── ops.ts                   pagespeed.ts             pdf-export.ts
+│   ├── ops.ts                   pagespeed.ts             pdf-export.ts  # radar chart, pie chart, donuts, stacked bar
 │   ├── plans.ts                 rate-limit.ts            security.ts
+│   ├── push.ts                # Web Push (VAPID) — sends the "your audit is ready" notification
 │   ├── security-badges.ts     # cached SSL Labs / MDN Observatory grades (refreshed by cron)
 │   ├── security-badge-svg.ts  # shared SVG renderer for those two badges
 │   ├── seo.ts                   site-context.ts
@@ -744,16 +751,23 @@ audityxe/
 │   └── firebase/
 │       ├── admin.ts
 │       └── client.ts
-└── public/
-    ├── google08dd6d11c7637a2e.html
-    ├── llms.txt / llms-full.txt
-    ├── manifest.webmanifest
-    ├── security.txt
+├── public/
+│   ├── google08dd6d11c7637a2e.html
+│   ├── llms.txt / llms-full.txt
+│   ├── manifest.webmanifest
+│   ├── security.txt
+│   └── sw.js                 # service worker — receives Web Push, shows the notification
+├── cli/                       # audityxe-cli (npm) — same audit engine, local-first, no account needed
+├── vscode-extension/          # shells out to `npx audityxe-cli@latest` for every command
+├── cloudflare-worker/         # scheduled cleanup (expired jobs, orphaned push subs, unverified accounts) — see its own README.md
+├── CHANGELOG.md  SECURITY.md  CODE_OF_CONDUCT.md  CONTRIBUTING.md
+└── .github/
+    ├── ISSUE_TEMPLATE/  PULL_REQUEST_TEMPLATE.md  FUNDING.yml
+    └── workflows/ci.yml
 ```
 
-Generated from a full repository scan (185 files analyzed at commit `99feeee`, after removing two
-outdated `public/logo-text.png` / `logo-with-text.png` assets superseded by `logo-mark*`); regenerate
-this block whenever routes or top-level modules are added or removed.
+Regenerate this block whenever routes or top-level modules are added or removed — it's meant to
+stay a reliable map of the repo, not a one-time snapshot.
 
 ## Plans and limits
 
@@ -797,13 +811,56 @@ than a live plugin system.
 See [`/roadmap`](https://audityxe.vercel.app/roadmap) for what's planned next, and
 [GitHub Issues](https://github.com/zelvior/audityxe/issues) to weigh in or request something.
 
+## Infrastructure & scaling
+
+Audityxe's data-retention/cleanup jobs (expired background-audit-job documents, orphaned push
+subscriptions, unverified Firebase Auth accounts) run on a **Cloudflare Worker**
+(`/cloudflare-worker` — see its own `README.md` for full setup), not Vercel Cron. This wasn't a
+style preference: **Vercel's Hobby (free) plan caps cron triggers at once per day**, no matter
+what schedule you configure, while Cloudflare's free tier has no such limit — the cleanup job
+that was supposed to run every 4 hours would have silently only run once a day on Vercel Cron.
+The equivalent Next.js API routes (`/api/cron/cleanup-jobs`, `/api/cron/cleanup-unverified`) are
+kept as manual/fallback triggers, just no longer scheduled via `vercel.json`.
+
+A few notes on why this project's current infrastructure choices hold up at real scale, not just
+at demo scale:
+
+- **Nothing here needs "keeping alive."** The Worker's `GET /health` endpoint (optionally polled
+  by UptimeRobot or any monitor) exists purely for *alerting* if the Worker or its credentials
+  ever break — Cloudflare Workers with a Cron Trigger run on Cloudflare's own schedule regardless
+  of whether anything ever calls them over HTTP, unlike the "free tier sleeps if nobody visits"
+  pattern from services like Heroku's old free dynos. Neither this Worker nor Vercel's serverless
+  functions need that workaround.
+- **Rate limiting is already atomic and per-identity**, not a shared global counter — see
+  `lib/rate-limit.ts`'s `checkAndIncrementUsage`/`checkAndIncrementAnonymousUsage`, which use
+  Firestore transactions keyed by uid or hashed IP, so usage limits stay correct under concurrent
+  requests from many different users at once, not just under light traffic.
+- **The audit engine itself has no shared mutable state** — every audit is a fresh set of
+  concurrent `fetch()` calls against the target site (see `lib/analyze.ts`'s `runAuditInner`) with
+  no server-side session or connection pool to exhaust; Vercel scales the number of concurrent
+  serverless invocations independently of this.
+- **Background jobs (`lib/audit-jobs.ts`) don't hold a connection open** — a long-running
+  Lighthouse/deep-crawl audit is tracked as a Firestore document polled by the client, not a
+  long-lived WebSocket/SSE connection per in-progress audit, which is what would actually struggle
+  to scale to many concurrent long audits.
+- **What would need attention before "millions of users" for real**: Firestore's own per-database
+  write-rate limits on hot documents (the shared PSI/BYOK weekly-quota counters in
+  `lib/rate-limit.ts` are the most likely hot spot — sharding those counters is the standard
+  Firestore pattern if they ever become a bottleneck), and the third-party API quotas this project
+  doesn't control (Google's PageSpeed Insights/CrUX APIs, Gemini) — those are genuinely external
+  constraints no amount of Audityxe-side engineering removes, only BYOK (already the default
+  posture for PSI/CrUX — see the Settings page) mitigates them.
+
 ## Security
 
-Found a vulnerability? Please **don't** open a public issue. Email
+See [`SECURITY.md`](./SECURITY.md) for the full vulnerability-reporting policy and scope. Short
+version: found a vulnerability? Please **don't** open a public issue — email
 [zelvior@proton.me](mailto:zelvior@proton.me) directly.
 
-Never commit `.env.local`, Firebase service-account keys, `ENCRYPTION_KEY`, or NOWPayments
-credentials.
+Never commit `.env.local`, Firebase service-account keys, `ENCRYPTION_KEY`, NOWPayments
+credentials, or the Cloudflare Worker's `GOOGLE_PRIVATE_KEY`/`CLEANUP_SHARED_SECRET` (the Worker
+uses `wrangler secret put` for these — see `/cloudflare-worker/README.md` — specifically so they
+never end up in a committed file).
 
 ## Credits
 

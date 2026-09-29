@@ -10,6 +10,23 @@ The CLI (`audityxe-cli`) and VS Code extension share the audit engine with the w
 versioned separately — see `cli/CHANGELOG.md` and `vscode-extension/CHANGELOG.md` for their own
 release notes.
 
+## 3.15.0 — September 2026
+
+- New: data-retention/cleanup moved off Vercel Cron onto a new Cloudflare Worker
+  (`/cloudflare-worker`) — Vercel's Hobby plan caps cron triggers at once/day regardless of
+  configured schedule, so the cleanup-jobs route's intended 4-hour schedule was silently only
+  running once a day; Cloudflare's free tier has no such limit. See
+  `cloudflare-worker/README.md` for full setup. The equivalent Next.js cron routes are kept as
+  manual/fallback triggers only.
+- New: README gained an "Infrastructure & scaling" section.
+- Fixed: Content-Security-Policy checks deepened from a single whole-header regex (which could
+  false-positive on wildcards in unrelated directives) to a real per-directive parser. New
+  findings: object-src 'none', base-uri, frame-ancestors, nonce/strict-dynamic detection, and
+  Report-Only-only setups.
+- New: HSTS preload-list eligibility checked as its own finding, separate from basic HSTS
+  validity.
+- Ported: both CSP and HSTS deepening to the CLI's copy of the audit engine.
+
 ## 3.14.0 — September 2026
 
 - Changed: the footer's free-backlinks row and the KittyLaunch verification badge moved off the

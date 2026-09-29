@@ -234,6 +234,12 @@ function extractSignals(html, finalUrl) {
             cspAllowsUnsafeInline: false,
             cspAllowsUnsafeEval: false,
             cspAllowsWildcardSource: false,
+            cspStyleAllowsUnsafeInline: false,
+            cspHasObjectSrcNone: false,
+            cspRestrictsBaseUri: false,
+            cspHasFrameAncestors: false,
+            cspUsesNonceOrStrictDynamic: false,
+            hasCspReportOnly: false,
             hasXFrameOptions: false,
             hasXContentTypeOptions: false,
             hasReferrerPolicy: false,
@@ -1322,11 +1328,52 @@ async function fetchHtml(rawUrl) {
         clearTimeout(timeout);
     }
 }
+/**
+ * Parses a Content-Security-Policy header into a directive → source-list
+ * map, per the CSP3 grammar (directives separated by `;`, each a
+ * directive-name followed by space-separated source expressions).
+ * Directive names are lowercased for case-insensitive lookups; values
+ * keep their original casing (nonces/hashes are case-sensitive).
+ * Malformed input degrades to an empty map rather than throwing — a
+ * hand-authored CSP header is exactly the kind of value likely to have
+ * a stray typo, and a parse failure here must never break the audit.
+ */
+function parseCsp(csp) {
+    const directives = new Map();
+    if (!csp)
+        return directives;
+    csp
+        .split(";")
+        .map((d) => d.trim())
+        .filter(Boolean)
+        .forEach((d) => {
+        const [name, ...values] = d.split(/\s+/);
+        if (!name)
+            return;
+        directives.set(name.toLowerCase(), values);
+    });
+    return directives;
+}
+/** The CSP spec's own fallback chain for the directives that gate script
+ * execution: script-src falls back to default-src when absent, and
+ * style-src does the same. Returns the effective source list for a
+ * "fetch directive" that participates in this fallback. */
+function cspEffectiveSources(directives, name) {
+    return directives.get(name) ?? directives.get("default-src") ?? [];
+}
 function extractSecurityFromResponse(headers, finalUrl, redirectHopCount, httpDowngradeDetected, responseTimeMs) {
     const get = (name) => headers.get(name) || "";
     const hsts = get("strict-transport-security");
     const hstsMaxAgeMatch = hsts.match(/max-age\s*=\s*(\d+)/i);
     const csp = get("content-security-policy");
+    const cspDirectives = parseCsp(csp);
+    const cspScriptSources = cspEffectiveSources(cspDirectives, "script-src");
+    const cspStyleSources = cspEffectiveSources(cspDirectives, "style-src");
+    // A bare "*" token is a true wildcard; "*.example.com" is a scoped
+    // wildcard subdomain match and is not treated as the same severity of
+    // finding — conflating the two was part of what made the old
+    // whole-string regex approach inaccurate.
+    const isBareWildcard = (src) => src === "*" || src === "http:" || src === "https:";
     const referrerPolicy = get("referrer-policy").toLowerCase();
     // getSetCookie() is the standard way to read multiple Set-Cookie values;
     // fall back to a single get() for runtimes without it.
@@ -1356,9 +1403,15 @@ function extractSecurityFromResponse(headers, finalUrl, redirectHopCount, httpDo
         hstsIncludesSubDomains: /includesubdomains/i.test(hsts),
         hstsPreload: /preload/i.test(hsts),
         hasCsp: !!csp,
-        cspAllowsUnsafeInline: /'unsafe-inline'/i.test(csp),
-        cspAllowsUnsafeEval: /'unsafe-eval'/i.test(csp),
-        cspAllowsWildcardSource: /(?:^|\s)\*(?:\s|;|$)/.test(csp),
+        cspAllowsUnsafeInline: cspScriptSources.some((s) => s === "'unsafe-inline'"),
+        cspAllowsUnsafeEval: cspScriptSources.some((s) => s === "'unsafe-eval'"),
+        cspAllowsWildcardSource: cspScriptSources.some(isBareWildcard),
+        cspStyleAllowsUnsafeInline: cspStyleSources.some((s) => s === "'unsafe-inline'"),
+        cspHasObjectSrcNone: (cspDirectives.get("object-src") ?? cspDirectives.get("default-src") ?? []).includes("'none'"),
+        cspRestrictsBaseUri: cspDirectives.has("base-uri"),
+        cspHasFrameAncestors: cspDirectives.has("frame-ancestors"),
+        cspUsesNonceOrStrictDynamic: cspScriptSources.some((s) => s.startsWith("'nonce-") || s === "'strict-dynamic'"),
+        hasCspReportOnly: !!get("content-security-policy-report-only"),
         hasXFrameOptions: !!get("x-frame-options"),
         hasXContentTypeOptions: /nosniff/i.test(get("x-content-type-options")),
         hasReferrerPolicy: !!referrerPolicy,

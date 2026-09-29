@@ -6,6 +6,17 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    version: "3.15.0",
+    date: "September 2026",
+    changes: [
+      "New: data-retention/cleanup (expired background-audit-job documents, orphaned push-notification subscriptions, unverified Firebase Auth accounts) moved off Vercel Cron onto a new Cloudflare Worker (/cloudflare-worker) \u2014 Vercel's Hobby plan caps cron triggers at once/day regardless of configured schedule, so the cleanup-jobs route's intended 4-hour schedule was silently only ever running once a day; Cloudflare's free tier has no such limit. The Worker reimplements Google OAuth2 service-account authentication and the Firestore/Identity Toolkit REST calls it needs entirely via Web Crypto (Workers can't use firebase-admin/googleapis, both Node-only). The equivalent Next.js cron routes are kept as manual/fallback triggers, just removed from vercel.json's schedule.",
+      "New: README gained an \"Infrastructure & scaling\" section documenting the reasoning above plus the project's current scaling posture (atomic per-identity rate limiting, no shared mutable audit state, no long-lived per-audit connections, and what would actually need attention at real scale \u2014 Firestore hot-document write limits and third-party API quotas).",
+      "Fixed: Content-Security-Policy checks deepened from a single whole-header regex (which could false-positive \u2014 e.g. flagging a bare \"*\" in an unrelated img-src as weakening script execution) to a real per-directive parser respecting CSP's own script-src/default-src and style-src/default-src fallback chains. New findings: object-src 'none', base-uri restriction, frame-ancestors, nonce/strict-dynamic usage (the strongest possible posture, now recognized as a positive signal), and detection of a Content-Security-Policy-Report-Only-only setup (monitoring mode, nothing actually enforced).",
+      "New: HSTS preload-list eligibility checked as its own finding, separate from basic HSTS validity \u2014 a site can have working HSTS at 6 months max-age and still not qualify for hstspreload.org's stricter submission requirements (max-age \u2265 1 year, includeSubDomains, preload directive).",
+      "Ported: both CSP and HSTS deepening to the CLI's identical copy of the audit engine.",
+    ],
+  },
+  {
     version: "3.14.0",
     date: "September 2026",
     changes: [

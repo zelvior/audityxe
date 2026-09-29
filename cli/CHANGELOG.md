@@ -7,6 +7,18 @@ every scoring change, every fix) lives in one place: the web app's in-product ch
 (`/changelog` on the site, sourced from `lib/changelog-data.ts`). This file only tracks the CLI
 package's own version number against that shared history.
 
+## 1.2.1
+
+Engine parity with web app release 3.15.0. Deepened, more accurate checks — no new modules:
+
+- Content-Security-Policy checks rewritten from a single whole-header regex to a real
+  per-directive parser respecting CSP's script-src/default-src and style-src/default-src
+  fallback chains — fixes false positives (e.g. a wildcard in img-src no longer flags as
+  weakening script execution). New findings: object-src 'none', base-uri, frame-ancestors,
+  nonce/strict-dynamic detection, Report-Only-only setup detection.
+- HSTS preload-list eligibility (hstspreload.org's stricter submission requirements) checked as
+  its own finding, separate from basic HSTS validity.
+
 ## 1.2.0
 
 Engine parity with web app release 3.13.0. Highlights relevant to CLI/CI usage:

@@ -1,0 +1,18 @@
+name = "audityxe-cleanup-worker"
+main = "src/index.ts"
+compatibility_date = "2024-09-25"
+
+# Every 4 hours. Cloudflare Workers' free tier (100k requests/day,
+# cron triggers included) has no restriction on cron frequency, unlike
+# Vercel's Hobby plan (cron capped at once/day) — this is the whole
+# reason this cleanup moved off Vercel Cron. Adjust freely; even
+# hourly is well within the free tier for a job this cheap.
+[triggers]
+crons = ["0 */4 * * *"]
+
+# Secrets (never put these in this file — set them with `wrangler secret
+# put <NAME>`, see README.md in this folder):
+#   FIREBASE_PROJECT_ID
+#   GOOGLE_CLIENT_EMAIL
+#   GOOGLE_PRIVATE_KEY
+#   CLEANUP_SHARED_SECRET

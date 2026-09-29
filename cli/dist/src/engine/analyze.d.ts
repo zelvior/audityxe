@@ -62,9 +62,51 @@ export interface SecuritySignals {
     hstsIncludesSubDomains: boolean;
     hstsPreload: boolean;
     hasCsp: boolean;
+    /** True only when the *script-executing* directive (script-src, or
+     * default-src as its fallback per the CSP spec) itself allows
+     * unsafe-inline/unsafe-eval/a wildcard source — not just whether that
+     * token appears anywhere in the header string. A whole-string regex
+     * (the previous approach) produces false positives: e.g.
+     * "object-src 'none'; script-src 'self'; img-src *" contains a bare
+     * "*" for images only, which poses no XSS risk at all, but a
+     * whole-string match would have flagged it as weakening script
+     * execution. Parsed per-directive via parseCsp() below instead. */
     cspAllowsUnsafeInline: boolean;
     cspAllowsUnsafeEval: boolean;
     cspAllowsWildcardSource: boolean;
+    /** Same false-positive concern as above but for style-src specifically
+     * — unsafe-inline styles are a real but meaningfully lower-severity
+     * issue than unsafe-inline scripts (CSS injection vs. arbitrary JS
+     * execution), so tracked and reported separately rather than lumped
+     * into the script-level finding. */
+    cspStyleAllowsUnsafeInline: boolean;
+    /** object-src 'none' (or equivalent default-src 'none') blocks legacy
+     * plugin content (Flash/Java applets) that classic XSS payloads and
+     * clickjacking-adjacent attacks have historically abused — a
+     * well-known CSP hardening recommendation distinct from script-src. */
+    cspHasObjectSrcNone: boolean;
+    /** base-uri restricts <base href> injection, which can otherwise
+     * redirect every relative script/link/form on the page to an
+     * attacker's origin even with a strict script-src in place. */
+    cspRestrictsBaseUri: boolean;
+    /** frame-ancestors is CSP's modern, more expressive replacement for
+     * X-Frame-Options (supports multiple origins, wildcards by scheme,
+     * and is respected by browsers that also honor CSP) — its absence is
+     * a real gap even when X-Frame-Options is present, since the two
+     * mechanisms don't always agree on edge cases (e.g. some browsers
+     * prioritize frame-ancestors when both are set). */
+    cspHasFrameAncestors: boolean;
+    /** A nonce- or strict-dynamic-based script-src is the strongest,
+     * most modern CSP posture — strictly stronger than a static
+     * allowlist of origins, since it can't be bypassed by a JSONP/open
+     * redirect on an allowlisted host the way an origin-based allowlist
+     * can. Tracked as a positive signal, not just an absence check. */
+    cspUsesNonceOrStrictDynamic: boolean;
+    /** A separate Content-Security-Policy-Report-Only header (monitoring
+     * mode, not enforced) — worth surfacing distinctly since a site can
+     * have a report-only CSP that looks reassuring in a raw header dump
+     * but enforces nothing at all. */
+    hasCspReportOnly: boolean;
     hasXFrameOptions: boolean;
     hasXContentTypeOptions: boolean;
     hasReferrerPolicy: boolean;

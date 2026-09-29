@@ -16,9 +16,14 @@ const STALE_AFTER_DAYS = 7;
  * verifies has no Firestore footprint at all — this job only needs to
  * clean up the Firebase Auth record itself.
  *
- * Wired up via Vercel Cron (see vercel.json) to run once a day, for
- * free, on Vercel's Hobby plan. Protected by a shared secret so it
- * can't be triggered by anyone who finds the URL.
+ * NOT scheduled via Vercel Cron (removed from vercel.json) — this task
+ * now runs on a Cloudflare Worker instead (see /cloudflare-worker in the
+ * repo root), specifically because Vercel's Hobby plan caps cron
+ * triggers at once/day while Cloudflare's free tier has no such limit.
+ * This route is kept as a manual/fallback trigger only: protected by
+ * the same shared secret, callable directly if you want to run this
+ * project without Cloudflare at all, or to force a run without waiting
+ * for the Worker's schedule.
  */
 export async function GET(req: NextRequest) {
   const authHeader = req.headers.get("authorization");

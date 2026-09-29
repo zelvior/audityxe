@@ -121,9 +121,51 @@ export interface SecuritySignals {
   hstsIncludesSubDomains: boolean;
   hstsPreload: boolean;
   hasCsp: boolean;
+  /** True only when the *script-executing* directive (script-src, or
+   * default-src as its fallback per the CSP spec) itself allows
+   * unsafe-inline/unsafe-eval/a wildcard source — not just whether that
+   * token appears anywhere in the header string. A whole-string regex
+   * (the previous approach) produces false positives: e.g.
+   * "object-src 'none'; script-src 'self'; img-src *" contains a bare
+   * "*" for images only, which poses no XSS risk at all, but a
+   * whole-string match would have flagged it as weakening script
+   * execution. Parsed per-directive via parseCsp() below instead. */
   cspAllowsUnsafeInline: boolean;
   cspAllowsUnsafeEval: boolean;
   cspAllowsWildcardSource: boolean;
+  /** Same false-positive concern as above but for style-src specifically
+   * — unsafe-inline styles are a real but meaningfully lower-severity
+   * issue than unsafe-inline scripts (CSS injection vs. arbitrary JS
+   * execution), so tracked and reported separately rather than lumped
+   * into the script-level finding. */
+  cspStyleAllowsUnsafeInline: boolean;
+  /** object-src 'none' (or equivalent default-src 'none') blocks legacy
+   * plugin content (Flash/Java applets) that classic XSS payloads and
+   * clickjacking-adjacent attacks have historically abused — a
+   * well-known CSP hardening recommendation distinct from script-src. */
+  cspHasObjectSrcNone: boolean;
+  /** base-uri restricts <base href> injection, which can otherwise
+   * redirect every relative script/link/form on the page to an
+   * attacker's origin even with a strict script-src in place. */
+  cspRestrictsBaseUri: boolean;
+  /** frame-ancestors is CSP's modern, more expressive replacement for
+   * X-Frame-Options (supports multiple origins, wildcards by scheme,
+   * and is respected by browsers that also honor CSP) — its absence is
+   * a real gap even when X-Frame-Options is present, since the two
+   * mechanisms don't always agree on edge cases (e.g. some browsers
+   * prioritize frame-ancestors when both are set). */
+  cspHasFrameAncestors: boolean;
+  /** A nonce- or strict-dynamic-based script-src is the strongest,
+   * most modern CSP posture — strictly stronger than a static
+   * allowlist of origins, since it can't be bypassed by a JSONP/open
+   * redirect on an allowlisted host the way an origin-based allowlist
+   * can. Tracked as a positive signal, not just an absence check. */
+  cspUsesNonceOrStrictDynamic: boolean;
+  /** A separate Content-Security-Policy-Report-Only header (monitoring
+   * mode, not enforced) — worth surfacing distinctly since a site can
+   * have a report-only CSP that looks reassuring in a raw header dump
+   * but enforces nothing at all. */
+  hasCspReportOnly: boolean;
   hasXFrameOptions: boolean;
   hasXContentTypeOptions: boolean;
   hasReferrerPolicy: boolean;
@@ -389,6 +431,12 @@ function extractSignals(html: string, finalUrl: string): Signals {
       cspAllowsUnsafeInline: false,
       cspAllowsUnsafeEval: false,
       cspAllowsWildcardSource: false,
+      cspStyleAllowsUnsafeInline: false,
+      cspHasObjectSrcNone: false,
+      cspRestrictsBaseUri: false,
+      cspHasFrameAncestors: false,
+      cspUsesNonceOrStrictDynamic: false,
+      hasCspReportOnly: false,
       hasXFrameOptions: false,
       hasXContentTypeOptions: false,
       hasReferrerPolicy: false,
@@ -1518,6 +1566,39 @@ async function fetchHtml(rawUrl: string): Promise<FetchOutcome> {
   }
 }
 
+/**
+ * Parses a Content-Security-Policy header into a directive → source-list
+ * map, per the CSP3 grammar (directives separated by `;`, each a
+ * directive-name followed by space-separated source expressions).
+ * Directive names are lowercased for case-insensitive lookups; values
+ * keep their original casing (nonces/hashes are case-sensitive).
+ * Malformed input degrades to an empty map rather than throwing — a
+ * hand-authored CSP header is exactly the kind of value likely to have
+ * a stray typo, and a parse failure here must never break the audit.
+ */
+function parseCsp(csp: string): Map<string, string[]> {
+  const directives = new Map<string, string[]>();
+  if (!csp) return directives;
+  csp
+    .split(";")
+    .map((d) => d.trim())
+    .filter(Boolean)
+    .forEach((d) => {
+      const [name, ...values] = d.split(/\s+/);
+      if (!name) return;
+      directives.set(name.toLowerCase(), values);
+    });
+  return directives;
+}
+
+/** The CSP spec's own fallback chain for the directives that gate script
+ * execution: script-src falls back to default-src when absent, and
+ * style-src does the same. Returns the effective source list for a
+ * "fetch directive" that participates in this fallback. */
+function cspEffectiveSources(directives: Map<string, string[]>, name: "script-src" | "style-src"): string[] {
+  return directives.get(name) ?? directives.get("default-src") ?? [];
+}
+
 function extractSecurityFromResponse(
   headers: Headers,
   finalUrl: string,
@@ -1531,6 +1612,14 @@ function extractSecurityFromResponse(
   const hstsMaxAgeMatch = hsts.match(/max-age\s*=\s*(\d+)/i);
 
   const csp = get("content-security-policy");
+  const cspDirectives = parseCsp(csp);
+  const cspScriptSources = cspEffectiveSources(cspDirectives, "script-src");
+  const cspStyleSources = cspEffectiveSources(cspDirectives, "style-src");
+  // A bare "*" token is a true wildcard; "*.example.com" is a scoped
+  // wildcard subdomain match and is not treated as the same severity of
+  // finding — conflating the two was part of what made the old
+  // whole-string regex approach inaccurate.
+  const isBareWildcard = (src: string) => src === "*" || src === "http:" || src === "https:";
 
   const referrerPolicy = get("referrer-policy").toLowerCase();
 
@@ -1567,9 +1656,15 @@ function extractSecurityFromResponse(
     hstsIncludesSubDomains: /includesubdomains/i.test(hsts),
     hstsPreload: /preload/i.test(hsts),
     hasCsp: !!csp,
-    cspAllowsUnsafeInline: /'unsafe-inline'/i.test(csp),
-    cspAllowsUnsafeEval: /'unsafe-eval'/i.test(csp),
-    cspAllowsWildcardSource: /(?:^|\s)\*(?:\s|;|$)/.test(csp),
+    cspAllowsUnsafeInline: cspScriptSources.some((s) => s === "'unsafe-inline'"),
+    cspAllowsUnsafeEval: cspScriptSources.some((s) => s === "'unsafe-eval'"),
+    cspAllowsWildcardSource: cspScriptSources.some(isBareWildcard),
+    cspStyleAllowsUnsafeInline: cspStyleSources.some((s) => s === "'unsafe-inline'"),
+    cspHasObjectSrcNone: (cspDirectives.get("object-src") ?? cspDirectives.get("default-src") ?? []).includes("'none'"),
+    cspRestrictsBaseUri: cspDirectives.has("base-uri"),
+    cspHasFrameAncestors: cspDirectives.has("frame-ancestors"),
+    cspUsesNonceOrStrictDynamic: cspScriptSources.some((s) => s.startsWith("'nonce-") || s === "'strict-dynamic'"),
+    hasCspReportOnly: !!get("content-security-policy-report-only"),
     hasXFrameOptions: !!get("x-frame-options"),
     hasXContentTypeOptions: /nosniff/i.test(get("x-content-type-options")),
     hasReferrerPolicy: !!referrerPolicy,
