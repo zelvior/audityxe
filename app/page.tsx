@@ -273,39 +273,6 @@ export default function Home() {
 
         <Header />
         <Onboarding />
-
-        {/* Brag video section with 3D tilt effect */}
-        <section className="relative py-8 sm:py-12 px-4 sm:px-6 overflow-hidden">
-          <div className="max-w-3xl mx-auto">
-            <div
-              className="relative group"
-              style={{ perspective: "1000px" }}
-            >
-              <div
-                className="relative rounded-2xl overflow-hidden border border-border shadow-lg transition-transform duration-500 group-hover:scale-[1.02]"
-                style={{
-                  transform: "rotateX(2deg) rotateY(-1deg)",
-                  transformStyle: "preserve-3d",
-                }}
-              >
-                <video
-                  src="/brag.mp4"
-                  poster="/brag.jpg"
-                  controls
-                  playsInline
-                  preload="metadata"
-                  className="w-full h-auto"
-                />
-              </div>
-              {/* Glow effect behind video */}
-              <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 via-secondary/20 to-primary/20 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 -z-10" />
-            </div>
-            <p className="text-center text-xs text-text-secondary mt-3">
-              See Audityxe in action — 20-second overview
-            </p>
-          </div>
-        </section>
-
         <Hero
           onAnalyze={handleAnalyze}
           disabled={phase === "scanning"}
