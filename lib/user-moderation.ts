@@ -251,7 +251,7 @@ export async function getAdminStats(): Promise<AdminStats> {
     rateLimitHits: counters.rateLimitHitsAllTime,
     dailyStats,
     retention: [
-      { collection: "usage / anon_usage", suggestedTtlDays: 2, note: "Daily rate-limit counters — safe to purge after the day rolls over." },
+      { collection: "usage", suggestedTtlDays: 2, note: "Daily rate-limit counters — safe to purge after the day rolls over." },
       { collection: "feature_usage", suggestedTtlDays: 8, note: "Weekly feature counters (e.g. PageSpeed) — safe to purge after ~1 week." },
       { collection: "admin_password_attempts", suggestedTtlDays: 1, note: "Hourly brute-force budget — safe to purge after 24h." },
       { collection: "audits", suggestedTtlDays: 90, note: "Audit history log — keep for trend charts / support, prune beyond 90 days." },

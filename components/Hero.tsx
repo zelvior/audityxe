@@ -119,11 +119,10 @@ export default function Hero({
 
         {!hasAccount && !authLoading && (
           <p className="mt-3 text-xs text-text-secondary">
-            1 free audit, no account needed.{" "}
             <button type="button" onClick={() => router.push("/login?redirect=/")} className="text-primary hover:underline">
-              Sign up
+              Sign up free
             </button>{" "}
-            for more, free.
+            to run an audit.
           </p>
         )}
 

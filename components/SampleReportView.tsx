@@ -22,7 +22,7 @@ export default function SampleReportView({ result }: { result: AuditResult }) {
             Want this for your own site?
           </h2>
           <p className="text-sm sm:text-base text-text-secondary mb-6">
-            Create a free account and run your first audit in under a minute — 3 free per day, no
+            Create a free account and run your first audit in under a minute — 2 free per day, no
             card required.
           </p>
           <Link
