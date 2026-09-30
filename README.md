@@ -400,6 +400,8 @@ any other CI's pre-deploy step.
 - `public/brag.mp4` — 20-second launch video (1920×1080, 30fps) showing the full audit flow: URL input → score reveal → evidence panel → fix card → outro
 - `public/brag.jpg` — Poster frame extracted at 3.2s (the score reveal moment)
 
+<video src="public/brag.mp4" controls width="640" height="360"></video>
+
 ## Tech stack
 
 - **[Next.js 14](https://nextjs.org)** (App Router) · **[React 18](https://react.dev)** · **[TypeScript](https://www.typescriptlang.org)**
