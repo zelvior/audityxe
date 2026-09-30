@@ -18,8 +18,8 @@ interface HeroProps {
   hasPsiByokKey: boolean;
   wantsPageSpeed: boolean;
   onWantsPageSpeedChange: (value: boolean) => void;
-  crawlMode: "fast" | "deep";
-  onCrawlModeChange: (value: "fast" | "deep") => void;
+  crawlMode: "fast" | "deep" | "max";
+  onCrawlModeChange: (value: "fast" | "deep" | "max") => void;
 }
 
 export default function Hero({
@@ -215,6 +215,20 @@ export default function Hero({
             }`}
           >
             Deep
+          </button>
+          <button
+            type="button"
+            role="radio"
+            aria-checked={crawlMode === "max"}
+            onClick={() => onCrawlModeChange("max")}
+            title="Up to 50 pages, 5 hops, maximum coverage"
+            className={`px-2.5 py-1 rounded-full border transition ${
+              crawlMode === "max"
+                ? "bg-primary/10 border-primary/40 text-primary font-semibold"
+                : "border-border glass hover:text-text-primary"
+            }`}
+          >
+            Max
           </button>
         </div>
       </div>

@@ -1824,10 +1824,9 @@ export interface AuditOptions {
   psiByokKey?: string | null;
   /** "fast" (default) crawls a bounded sample from the homepage's own
    * links + sitemap seeds. "deep" runs a real multi-hop request queue
-   * (site-crawl-deep.ts) — slower, but reaches pages fast mode can't.
-   * Lazy-imported only when requested, so its dependency (cheerio)
-   * never loads on the default fast path. */
-  crawlMode?: "fast" | "deep";
+   * (site-crawl-deep.ts). "max" runs the maximum-coverage crawler
+   * (site-crawl-max.ts). Lazy-imported only when requested. */
+  crawlMode?: "fast" | "deep" | "max";
 }
 
 export async function runAudit(

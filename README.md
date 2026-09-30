@@ -615,15 +615,15 @@ per audit from a toggle under the URL field ("Site crawl: Fast / Deep"):
 
 | | Fast (default) | Deep |
 |---|---|---|
-| Source file | `lib/site-crawl.ts` | `lib/site-crawl-deep.ts` (lazy-imported — see below) |
-| Discovery | Homepage's own links + `/sitemap.xml` seeds | Real multi-hop request queue — follows links found on every page it visits |
-| Pages | Up to 6 | Up to 25 |
-| Depth | 1 hop from homepage | Up to 3 hops |
-| HTML parsing | Regex-based | Real DOM traversal via `cheerio` |
-| robots.txt | Not checked | Fetched once, Disallow rules enforced before a URL is ever queued |
-| Retries | None | One retry with backoff per failed/429/503 request |
-| Concurrency | 3 in flight | 5 in flight |
-| Typical cost | A few seconds | Up to ~40s internal budget (audit's overall timeout is raised to 60s for deep-mode requests specifically, see `DEEP_OVERALL_AUDIT_TIMEOUT_MS` in `lib/analyze.ts`) |
+| Source file | `lib/site-crawl.ts` | `lib/site-crawl-deep.ts` (lazy-imported) | `lib/site-crawl-max.ts` (lazy-imported) |
+| Discovery | Homepage's own links + `/sitemap.xml` seeds | Real multi-hop request queue | Multi-hop queue + sitemap seeding |
+| Pages | Up to 6 | Up to 25 | Up to 50 |
+| Depth | 1 hop from homepage | Up to 3 hops | Up to 5 hops |
+| HTML parsing | Regex-based | Real DOM traversal via `cheerio` | Real DOM traversal via `cheerio` |
+| robots.txt | Not checked | Fetched once, Disallow rules enforced | Fetched once, Disallow rules enforced |
+| Retries | None | One retry with backoff | Two retries with backoff |
+| Concurrency | 3 in flight | 5 in flight | 8 in flight |
+| Typical cost | A few seconds | Up to ~40s internal budget | Up to ~80s internal budget |
 
 **On the standalone Crawlee-based crawler package supplied for review:** we evaluated merging it in
 directly instead of building `site-crawl-deep.ts`. Verdict: **it cannot be built as delivered.**

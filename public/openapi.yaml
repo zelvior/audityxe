@@ -74,11 +74,12 @@ paths:
                     on the shared key — unlimited with your own PSI key configured on the account).
                 crawlMode:
                   type: string
-                  enum: [fast, deep]
+                  enum: [fast, deep, max]
                   default: fast
                   description: >-
-                    "deep" runs a real multi-hop crawl (up to 25 pages, 3 hops) instead of the
-                    default homepage-sample crawl. Available on every plan.
+                    "deep" runs a real multi-hop crawl (up to 25 pages, 3 hops).
+                    "max" runs the maximum-coverage crawl (up to 50 pages, 5 hops).
+                    Both are available on every plan.
       responses:
         "200":
           description: Audit completed successfully.

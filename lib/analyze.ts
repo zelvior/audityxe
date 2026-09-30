@@ -1808,6 +1808,13 @@ const COMPETITOR_PSI_OVERALL_AUDIT_TIMEOUT_MS = 88000;
 // residual tail case is raising maxDuration (a Vercel plan-tier
 // decision), not shaving this number down further.
 const COMPETITOR_DEEP_PSI_OVERALL_AUDIT_TIMEOUT_MS = 88000;
+// Max crawl mode — the most demanding option. 50 pages, 5 hops, 80s
+// crawl budget, 2 retries. Timeouts sized for the worst case while
+// staying under the route's maxDuration=300 (background job path).
+const MAX_OVERALL_AUDIT_TIMEOUT_MS = 90000;
+const COMPETITOR_MAX_OVERALL_AUDIT_TIMEOUT_MS = 105000;
+const MAX_PSI_OVERALL_AUDIT_TIMEOUT_MS = 115000;
+const COMPETITOR_MAX_PSI_OVERALL_AUDIT_TIMEOUT_MS = 120000;
 
 function withOverallTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
   let timer: ReturnType<typeof setTimeout>;
@@ -1839,10 +1846,10 @@ export interface AuditOptions {
   cruxByokKey?: string | null;
   /** "fast" (default) crawls a bounded sample from the homepage's own
    * links + sitemap seeds. "deep" runs a real multi-hop request queue
-   * (site-crawl-deep.ts) — slower, but reaches pages fast mode can't.
-   * Lazy-imported only when requested, so its dependency (cheerio)
-   * never loads on the default fast path. */
-  crawlMode?: "fast" | "deep";
+   * (site-crawl-deep.ts). "max" runs the maximum-coverage crawler
+   * (site-crawl-max.ts) — the most thorough option. Lazy-imported only
+   * when requested, so cheerio never loads on the default fast path. */
+  crawlMode?: "fast" | "deep" | "max";
   /** Optional real-time progress reporter — called at genuine checkpoints
    * as the audit actually reaches them (not a simulated/fake step list).
    * Used by the background-job flow (app/api/audit/start) to persist a
@@ -1867,25 +1874,35 @@ export async function runAudit(
     throw new Error("The competitor URL is too long.");
   }
 
-  const isDeep = options.crawlMode === "deep";
+  const crawlMode = options.crawlMode ?? "fast";
+  const isDeep = crawlMode === "deep";
+  const isMax = crawlMode === "max";
   const hasCompetitor = !!(competitorRawUrl && competitorRawUrl.trim());
   const wantsPsi = !!options.includePageSpeed;
 
-  const timeoutMs = hasCompetitor && isDeep && wantsPsi
-    ? COMPETITOR_DEEP_PSI_OVERALL_AUDIT_TIMEOUT_MS
-    : isDeep && wantsPsi
-      ? DEEP_PSI_OVERALL_AUDIT_TIMEOUT_MS
-      : hasCompetitor && wantsPsi
-        ? COMPETITOR_PSI_OVERALL_AUDIT_TIMEOUT_MS
-        : hasCompetitor && isDeep
-          ? COMPETITOR_DEEP_OVERALL_AUDIT_TIMEOUT_MS
-          : wantsPsi
-            ? PSI_OVERALL_AUDIT_TIMEOUT_MS
-            : isDeep
-              ? DEEP_OVERALL_AUDIT_TIMEOUT_MS
-              : hasCompetitor
-                ? COMPETITOR_OVERALL_AUDIT_TIMEOUT_MS
-                : OVERALL_AUDIT_TIMEOUT_MS;
+  const timeoutMs = hasCompetitor && isMax && wantsPsi
+    ? COMPETITOR_MAX_PSI_OVERALL_AUDIT_TIMEOUT_MS
+    : isMax && wantsPsi
+      ? MAX_PSI_OVERALL_AUDIT_TIMEOUT_MS
+      : hasCompetitor && isMax
+        ? COMPETITOR_MAX_OVERALL_AUDIT_TIMEOUT_MS
+        : hasCompetitor && isDeep && wantsPsi
+          ? COMPETITOR_DEEP_PSI_OVERALL_AUDIT_TIMEOUT_MS
+          : isDeep && wantsPsi
+            ? DEEP_PSI_OVERALL_AUDIT_TIMEOUT_MS
+            : hasCompetitor && wantsPsi
+              ? COMPETITOR_PSI_OVERALL_AUDIT_TIMEOUT_MS
+              : hasCompetitor && isDeep
+                ? COMPETITOR_DEEP_OVERALL_AUDIT_TIMEOUT_MS
+                : wantsPsi
+                  ? PSI_OVERALL_AUDIT_TIMEOUT_MS
+                  : isMax
+                    ? MAX_OVERALL_AUDIT_TIMEOUT_MS
+                    : isDeep
+                      ? DEEP_OVERALL_AUDIT_TIMEOUT_MS
+                      : hasCompetitor
+                        ? COMPETITOR_OVERALL_AUDIT_TIMEOUT_MS
+                        : OVERALL_AUDIT_TIMEOUT_MS;
 
   return withOverallTimeout(
     runAuditInner(rawUrl, competitorRawUrl, options),
@@ -1971,12 +1988,17 @@ async function runAuditInner(
     checkFaviconManifest(primary.origin, primary.html, primary.finalUrl),
     checkAssetWeights(primary.html, primary.finalUrl),
     checkLegalPages(primary.html, primary.origin, primary.finalUrl, siteContext),
-    options.crawlMode === "deep"
-      ? import("./site-crawl-deep").then((m) => m.crawlSiteDeep(primary.html, primary.finalUrl)).then((r) => {
-          report("Deep multi-hop crawl complete.");
+    options.crawlMode === "max"
+      ? import("./site-crawl-max").then((m) => m.crawlSiteMax(primary.html, primary.finalUrl)).then((r) => {
+          report("Max-coverage crawl complete.");
           return r;
         })
-      : crawlSite(primary.html, primary.finalUrl),
+      : options.crawlMode === "deep"
+        ? import("./site-crawl-deep").then((m) => m.crawlSiteDeep(primary.html, primary.finalUrl)).then((r) => {
+            report("Deep multi-hop crawl complete.");
+            return r;
+          })
+        : crawlSite(primary.html, primary.finalUrl),
     checkCookieFlags(primary.origin),
     checkRedirectChain(rawUrl),
   ]);
@@ -2059,6 +2081,7 @@ async function runAuditInner(
     verdict,
     categories: primary.categories,
     fixes,
+    crawlMode: options.crawlMode ?? "fast",
     xPost,
     linkedinPost,
     siteContext,

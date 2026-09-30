@@ -58,7 +58,7 @@ export default function Home() {
   const [accountPlan, setAccountPlan] = useState<PlanId>("free");
   const [hasPsiByokKey, setHasPsiByokKey] = useState(false);
   const [wantsPageSpeed, setWantsPageSpeed] = useState(false);
-  const [crawlMode, setCrawlMode] = useState<"fast" | "deep">("fast");
+  const [crawlMode, setCrawlMode] = useState<"fast" | "deep" | "max">("fast");
   const [runInBackground, setRunInBackground] = useState(false);
   const [backgroundJob, setBackgroundJob] = useState<{ jobId: string; token: string } | null>(null);
   const [jobProgress, setJobProgress] = useState<string[]>([]);
@@ -97,7 +97,7 @@ export default function Home() {
     // Lighthouse pass, or a deep multi-hop crawl). A quick fast-mode
     // audit finishes before the round-trip overhead of a job doc plus
     // polling would even pay for itself.
-    const useBackgroundJob = runInBackground && (confirmPageSpeed || crawlMode === "deep");
+    const useBackgroundJob = runInBackground && (confirmPageSpeed || crawlMode === "deep" || crawlMode === "max");
 
     setPhase("scanning");
     setActiveStep(0);
@@ -121,7 +121,7 @@ export default function Home() {
     // Skipped entirely for the background-job path — that one has a
     // *real* progress feed (jobProgress, polled from the server below)
     // instead of this simulated one.
-    const stepIntervalMs = confirmPageSpeed ? 9000 : crawlMode === "deep" ? 2200 : 900;
+    const stepIntervalMs = confirmPageSpeed ? 9000 : crawlMode === "max" ? 3000 : crawlMode === "deep" ? 2200 : 900;
     if (!useBackgroundJob) {
       stepTimerRef.current = setInterval(() => {
         step = Math.min(step + 1, SCAN_STEPS.length - 1);
@@ -288,7 +288,7 @@ export default function Home() {
           crawlMode={crawlMode}
           onCrawlModeChange={setCrawlMode}
         />
-        {(wantsPageSpeed || crawlMode === "deep") && phase !== "scanning" && (
+        {(wantsPageSpeed || crawlMode === "deep" || crawlMode === "max") && phase !== "scanning" && (
           <div className="max-w-xl mx-auto px-4 -mt-2 mb-2 relative">
             <label className="flex items-center justify-center gap-2 text-xs text-text-secondary cursor-pointer select-none">
               <input
@@ -311,7 +311,7 @@ export default function Home() {
           <motion.div key="scan" exit={{ opacity: 0 }}>
             <ScanProgress
               activeStep={activeStep}
-              isLongRun={wantsPageSpeed || crawlMode === "deep"}
+              isLongRun={wantsPageSpeed || crawlMode === "deep" || crawlMode === "max"}
               scanningUrl={scanningUrl}
               progressLog={jobProgress}
               backgroundJob={backgroundJob}

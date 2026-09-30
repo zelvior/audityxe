@@ -26,6 +26,7 @@ export function buildAuditExportPayload(result: AuditResult) {
       tool: "Audityxe",
       generatedAt: new Date().toISOString(),
       url: result.url,
+      crawlMode: result.crawlMode,
     },
     overall: result.overall,
     scoringMethodology: result.scoringMethodology ?? null,

@@ -14,6 +14,8 @@ USAGE
 OPTIONS
   --deep                 Run the deep crawl (up to 25 pages, 3 hops) instead
                           of the default fast crawl (homepage sample only).
+  --max                  Run the max crawl (up to 50 pages, 5 hops) — the
+                          most thorough option.
   --compare <url>        Also audit a second URL and print a head-to-head
                           comparison (category-by-category and overall).
   --psi-key <key>        Your own free Google PageSpeed Insights API key —
@@ -280,7 +282,7 @@ export async function main(argv: string[]): Promise<void> {
   }
 
   const options: AuditOptions = {
-    crawlMode: args.deep ? "deep" : "fast",
+    crawlMode: args.max ? "max" : args.deep ? "deep" : "fast",
     includePageSpeed: !!args.psiKey,
     psiByokKey: args.psiKey || null,
     // The CLI doesn't (yet) support the AI-generated promo copy/banner
