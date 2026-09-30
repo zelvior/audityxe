@@ -3,12 +3,10 @@ import { requireAuth, AuthError } from "./auth-server";
 import {
   ensureUserDoc,
   checkAndIncrementUsage,
-  checkAndIncrementAnonymousUsage,
   checkAndIncrementWeeklyFeatureUsage,
 } from "./rate-limit";
-import { PLANS, ANON_DAILY_LIMIT } from "./plans";
+import { PLANS } from "./plans";
 import { isTrustedOrigin, looksLikeBot } from "./security";
-import { getClientIp, hashIp } from "./ip";
 import { getByokCredentials, getPsiByokCredentials, getCruxByokCredentials } from "./user-settings";
 import { resolveApiKeyIdentity, ApiKeyError } from "./api-keys";
 
@@ -27,7 +25,7 @@ export interface ResolvedAuditRequest {
   psiByokKey: string | null;
   cruxByokKey: string | null;
   consumedSharedPsiQuota: boolean;
-  identity: { uid: string; email: string | null } | null;
+  identity: { uid: string; email: string | null };
   plan: string;
   used: number;
   limit: number;
@@ -62,7 +60,7 @@ export async function resolveAuditRequest(req: NextRequest): Promise<AuditReques
 
   const hasAuthHeader = !!(req.headers.get("authorization") || req.headers.get("Authorization"));
 
-  let identity: { uid: string; email: string | null } | null = null;
+  let identity: { uid: string; email: string | null };
   if (apiKeyHeader) {
     try {
       identity = await resolveApiKeyIdentity(apiKeyHeader);
@@ -77,6 +75,8 @@ export async function resolveAuditRequest(req: NextRequest): Promise<AuditReques
       if (err instanceof AuthError) return fail({ error: err.message, code: err.code }, err.status);
       return fail({ error: "Authentication failed." }, 401);
     }
+  } else {
+    return fail({ error: "Authentication required. Sign in to run an audit." }, 401);
   }
 
   let body: { url?: string; competitorUrl?: string; confirmPageSpeed?: boolean; crawlMode?: string };
@@ -93,7 +93,7 @@ export async function resolveAuditRequest(req: NextRequest): Promise<AuditReques
     return fail({ error: "The competitor URL is too long." }, 400);
   }
 
-  if (identity && !apiKeyHeader) {
+  if (!apiKeyHeader) {
     try {
       await ensureUserDoc(identity as Awaited<ReturnType<typeof requireAuth>>);
     } catch (err) {
@@ -104,51 +104,26 @@ export async function resolveAuditRequest(req: NextRequest): Promise<AuditReques
 
   let used: number, limit: number, remaining: number, plan: string, competitorAllowed: boolean;
 
-  if (identity) {
-    let usage;
-    try {
-      usage = await checkAndIncrementUsage(identity.uid);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to check your usage limit.";
-      return fail({ error: message }, 500);
-    }
-    if (!usage.allowed) {
-      return fail(
-        {
-          error: `You've used all ${usage.limit} audits on your ${PLANS[usage.plan].name} plan today. It resets at midnight UTC, or upgrade for a higher limit.`,
-          code: "RATE_LIMITED",
-          plan: usage.plan,
-          limit: usage.limit,
-        },
-        429
-      );
-    }
-    ({ used, limit, remaining, plan } = usage);
-    competitorAllowed = PLANS[usage.plan].competitorAudits;
-  } else {
-    const ip = getClientIp(req);
-    let anonUsage;
-    try {
-      anonUsage = await checkAndIncrementAnonymousUsage(hashIp(ip));
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to check your usage limit.";
-      return fail({ error: message }, 500);
-    }
-    if (!anonUsage.allowed) {
-      return fail(
-        {
-          error: `You've used your ${ANON_DAILY_LIMIT} free audit for today without an account. Sign up free for more daily audits, or come back tomorrow.`,
-          code: "RATE_LIMITED",
-          plan: "anonymous",
-          limit: anonUsage.limit,
-        },
-        429
-      );
-    }
-    ({ used, limit, remaining } = anonUsage);
-    plan = "anonymous";
-    competitorAllowed = false;
+  let usage;
+  try {
+    usage = await checkAndIncrementUsage(identity.uid);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Failed to check your usage limit.";
+    return fail({ error: message }, 500);
   }
+  if (!usage.allowed) {
+    return fail(
+      {
+        error: `You've used all ${usage.limit} audits on your ${PLANS[usage.plan].name} plan today. It resets at midnight UTC, or upgrade for a higher limit.`,
+        code: "RATE_LIMITED",
+        plan: usage.plan,
+        limit: usage.limit,
+      },
+      429
+    );
+  }
+  ({ used, limit, remaining, plan } = usage);
+  competitorAllowed = PLANS[usage.plan].competitorAudits;
 
   const competitorUrl = competitorAllowed ? body.competitorUrl : undefined;
   const crawlMode: "fast" | "deep" = body.crawlMode === "deep" ? "deep" : "fast";
@@ -157,7 +132,7 @@ export async function resolveAuditRequest(req: NextRequest): Promise<AuditReques
   let promoLockReason: "plan" | "byok_missing" | undefined;
   let byok: { apiKey: string; baseUrl?: string | null; model?: string | null } | undefined;
 
-  if (plan === "pro" && identity) {
+  if (plan === "pro") {
     const creds = await getByokCredentials(identity.uid);
     if (creds) {
       includePromo = true;
@@ -173,7 +148,7 @@ export async function resolveAuditRequest(req: NextRequest): Promise<AuditReques
   let pageSpeedLockReason: "not_confirmed" | "weekly_limit" | "byok_required" | undefined;
   let psiByokKey: string | null = null;
   let consumedSharedPsiQuota = false;
-  if (identity && body.confirmPageSpeed) {
+  if (body.confirmPageSpeed) {
     psiByokKey = await getPsiByokCredentials(identity.uid);
     if (psiByokKey) {
       includePageSpeed = true;
@@ -185,12 +160,10 @@ export async function resolveAuditRequest(req: NextRequest): Promise<AuditReques
     } else {
       pageSpeedLockReason = "byok_required";
     }
-  } else if (identity && !body.confirmPageSpeed) {
+  } else {
     pageSpeedLockReason = "not_confirmed";
-  } else if (!identity) {
-    pageSpeedLockReason = "byok_required";
   }
-  const cruxByokKey = identity ? await getCruxByokCredentials(identity.uid) : null;
+  const cruxByokKey = await getCruxByokCredentials(identity.uid);
 
   return {
     ok: true,

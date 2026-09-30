@@ -68,8 +68,8 @@ export interface StoredPushSubscription {
 const SUBS_COLLECTION = "auditJobPushSubs";
 
 /** Stored keyed by jobId (not uid) — the notify-me flow works for
- * anonymous, non-signed-in visitors too, since a background audit job
- * has no requirement to be signed in. */
+ * any signed-in user, since a background audit job is tied to their
+ * account. */
 export async function savePushSubscription(jobId: string, token: string, subscription: StoredPushSubscription): Promise<void> {
   const db = adminDb();
   await db.collection(SUBS_COLLECTION).doc(jobId).set(

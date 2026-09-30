@@ -46,10 +46,7 @@ paths:
           don't apply to a keyed, non-browser caller.
         - `Authorization: Bearer <Firebase ID token>` → uses that account's plan limit instead
           (Free/Standard/Pro — see the README).
-        - Neither header → treated as an anonymous visitor: 1 free audit per IP per calendar day
-          (UTC). A cross-site browser request (one sending an `Origin` header that doesn't match
-          this host) is rejected with 403 — CSRF protection for browser clients, not a block on
-          server-side/script callers, which typically don't send `Origin` at all.
+        - Neither header → rejected with 401. Authentication is required for all audits.
 
         Competitor comparison (`competitorUrl`), the real-browser PageSpeed Insights pass
         (`confirmPageSpeed`), and AI-generated promo copy all require specific plan tiers and are

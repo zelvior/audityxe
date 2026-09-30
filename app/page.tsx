@@ -130,10 +130,14 @@ export default function Home() {
     }
 
     try {
-      // No token at all for a signed-out visitor — that's fine, the
-      // request goes through as an anonymous, IP-limited audit.
-      const token = user ? await getToken() : null;
-      if (user && !token) {
+      if (!user) {
+        if (stepTimerRef.current) clearInterval(stepTimerRef.current);
+        setErrorMsg("Please sign in to run an audit.");
+        setPhase("error");
+        return;
+      }
+      const token = await getToken();
+      if (!token) {
         if (stepTimerRef.current) clearInterval(stepTimerRef.current);
         setErrorMsg("Your session has expired. Please sign in again.");
         setPhase("error");

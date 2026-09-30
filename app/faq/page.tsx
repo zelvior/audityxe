@@ -21,7 +21,7 @@ export const metadata: Metadata = {
 const FAQ_SCHEMA = [
   {
     q: "How do I audit a website for free?",
-    a: "Paste any URL into Audityxe's website checker and click Analyze. It's a free website audit tool — no signup required for your first audit, and a free account unlocks more per day. You'll get a website quality score out of 10 across 6 categories: SEO, performance, accessibility, security, UX, and technical health.",
+    a: "Paste any URL into Audityxe's website checker and click Analyze. It's a free website audit tool — sign up for a free account and you'll get a website quality score out of 10 across 6 categories: SEO, performance, accessibility, security, UX, and technical health.",
   },
   {
     q: "How are Audityxe's scores actually calculated?",

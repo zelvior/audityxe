@@ -61,8 +61,8 @@ export default function ApiDocsPage() {
           <h3 className="font-display font-semibold text-base mb-2 mt-6">Authentication</h3>
           <ul className="list-disc pl-5 space-y-1.5 text-sm text-text-secondary mb-4">
             <li>
-              No <code>Authorization</code> or <code>x-api-key</code> header — treated as an
-              anonymous visitor: 1 free audit per IP per calendar day (UTC).
+              No <code>Authorization</code> or <code>x-api-key</code> header — rejected with 401.
+              Authentication is required for all audits.
             </li>
             <li>
               <code>Authorization: Bearer &lt;Firebase ID token&gt;</code> — uses that account's
@@ -133,7 +133,7 @@ export default function ApiDocsPage() {
             </pre>
           </div>
           <p className="text-xs text-text-secondary/70 mb-6">
-            With a Pro API key instead of the anonymous 1/day limit, add{" "}
+            With a Pro API key, add{" "}
             <code>-H "x-api-key: atx_live_..."</code>.
           </p>
 

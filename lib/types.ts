@@ -43,14 +43,15 @@ export interface AuditModuleFinding {
   /** Concrete, checkable proof behind this finding — an exact URL that
    * was fetched, an HTTP status returned, a literal count of elements
    * found, or a snippet of real markup. Every finding should be provable
-   * from this field, not just asserted in `detail`. */
-  evidence?: string;
+   * from this field, not just asserted in `detail`. `null` means no
+   * evidence was collected for this finding. */
+  evidence?: string | null;
   /** How sure we are this finding is correct. "high" = deterministic
    * check against directly observed data (an HTTP status, a literal tag
    * count). "medium"/"low" = heuristic or inferred (keyword matching,
    * classification, anything that could be a false positive/negative).
-   * Omitted = high, so existing callers keep working. */
-  confidence?: "high" | "medium" | "low";
+   * `null` means confidence was not assessed. */
+  confidence?: "high" | "medium" | "low" | null;
   /** True when the underlying check could not actually be verified
    * (a lookup timed out, errored, or was blocked) rather than genuinely
    * confirming an absence. Unverifiable findings are shown for
@@ -179,7 +180,7 @@ export interface AuditResult {
    * graceful-degradation pattern as pageSpeed. */
   crux: CruxSummary;
   /** True when promo copy/banner and PageSpeed weren't generated because
-   * the caller's plan doesn't include them (Free/anonymous). The UI uses
+   * the caller's plan doesn't include them (Free/Standard). The UI uses
    * this to show an upgrade prompt instead of the (deterministic-only)
    * placeholder content. */
   promoLocked?: boolean;

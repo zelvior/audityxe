@@ -34,10 +34,9 @@ paths:
         Runs a full audit against `url` and returns the complete scored result.
 
         **Auth / rate limits:**
-        - No `Authorization` header → treated as an anonymous visitor: 1 free audit per IP per
-          calendar day (UTC).
-        - `Authorization: Bearer <Firebase ID token>` → uses that account's plan limit instead
+        - `Authorization: Bearer <Firebase ID token>` → uses that account's plan limit
           (Free/Standard/Pro — see the README).
+        - No `Authorization` header → rejected with 401. Authentication is required for all audits.
         - A cross-site browser request (one sending an `Origin` header that doesn't match this
           host) is rejected with 403 — this is CSRF protection for browser clients, not a block on
           server-side/script callers, which typically don't send `Origin` at all.

@@ -1,5 +1,5 @@
 import { adminDb } from "./firebase/admin";
-import { DEFAULT_PLAN, PlanId, planLimit, ANON_DAILY_LIMIT } from "./plans";
+import { DEFAULT_PLAN, PlanId, planLimit } from "./plans";
 import { DocumentData, FieldValue, Timestamp, Transaction } from "firebase-admin/firestore";
 import { recordDailyEvent, incrementCounter } from "./counters";
 import { bloomAddTokens } from "./bloom-filter";
@@ -300,43 +300,4 @@ export async function refundWeeklyFeatureUsage(uid: string, feature: string): Pr
   }
 }
 
-export interface AnonUsageResult {
-  allowed: boolean;
-  used: number;
-  limit: number;
-  remaining: number;
-}
 
-/**
- * Atomic per-IP daily quota for visitors with no account at all.
- * Un-bypassable in the sense that matters here: it's enforced server-side
- * in a Firestore transaction keyed by a hashed IP, not by anything the
- * client controls (no cookie, no localStorage flag, no client-supplied
- * identifier) — clearing site data or opening a private window doesn't
- * reset it, only a genuinely different IP does.
- */
-export async function checkAndIncrementAnonymousUsage(ipHash: string): Promise<AnonUsageResult> {
-  const db = adminDb();
-  const ref = db.collection("anon_usage").doc(ipHash);
-  const today = todayKey();
-  const limit = ANON_DAILY_LIMIT;
-
-  return db.runTransaction(async (tx: Transaction) => {
-    const snap = await tx.get(ref);
-
-    let used = 0;
-    if (snap.exists) {
-      const data = snap.data()!;
-      used = data.date === today ? (data.count as number) || 0 : 0;
-    }
-
-    if (used >= limit) {
-      return { allowed: false, used, limit, remaining: 0 };
-    }
-
-    const nextUsed = used + 1;
-    tx.set(ref, { date: today, count: nextUsed, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
-
-    return { allowed: true, used: nextUsed, limit, remaining: Math.max(0, limit - nextUsed) };
-  });
-}

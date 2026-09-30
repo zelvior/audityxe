@@ -77,11 +77,35 @@ export async function appendJobProgress(jobId: string, step: string): Promise<vo
   await ref.update({ progress: next, updatedAt: new Date().toISOString() });
 }
 
+/**
+ * Recursively strips `undefined` values from an object/array so the result
+ * is safe to write to Firestore, which rejects `undefined` as a field
+ * value. `null` is preserved — it's a valid Firestore value and is used
+ * intentionally (e.g. `evidence: null` means "no evidence for this
+ * finding", which is different from the field being absent).
+ */
+function stripUndefined<T>(value: T): T {
+  if (value === null || value === undefined) return value;
+  if (Array.isArray(value)) {
+    return value.map((item) => stripUndefined(item)) as unknown as T;
+  }
+  if (typeof value === "object") {
+    const result: Record<string, unknown> = {};
+    for (const [key, val] of Object.entries(value as Record<string, unknown>)) {
+      if (val !== undefined) {
+        result[key] = stripUndefined(val);
+      }
+    }
+    return result as T;
+  }
+  return value;
+}
+
 export async function completeAuditJob(jobId: string, result: AuditResult): Promise<void> {
   const db = adminDb();
   await db.collection(COLLECTION).doc(jobId).update({
     status: "done",
-    result,
+    result: stripUndefined(result),
     updatedAt: new Date().toISOString(),
   });
 }

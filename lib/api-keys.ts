@@ -4,12 +4,6 @@ import { FieldValue, QueryDocumentSnapshot } from "firebase-admin/firestore";
 import { getUserPlan } from "./rate-limit";
 
 /**
- * Programmatic access to /api/audit used to be wide open: any request
- * without an Authorization header was simply treated as an anonymous
- * visitor (1 free audit/IP/day) with nothing stopping a script from
- * rotating IPs to bypass even that. There was no concept of a durable,
- * revocable credential at all.
- *
  * This module is the only way an API key gets created — issuance is a
  * one-way door that requires admin auth (see app/api/admin/api-keys),
  * never something a user can self-serve, and never something this

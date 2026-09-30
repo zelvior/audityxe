@@ -20,7 +20,7 @@ export default function HomepageSeoContent() {
         </h2>
         <p className="text-sm sm:text-base text-text-secondary mb-4 leading-relaxed">
           Audityxe is a free website audit tool and website analysis tool you run entirely online:
-          no install, no signup required for your first check. Paste a URL into the website checker
+          no install required. Paste a URL into the website checker
           above and Audityxe acts as a website auditor, pulling the page's real HTTP response and
           HTML, then scoring it the same way for every site it looks at. If you've been searching
           for a website quality checker, a website health checker, or simply a free website audit

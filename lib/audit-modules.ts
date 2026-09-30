@@ -38,20 +38,20 @@ type Severity = "critical" | "high" | "medium" | "low";
 type Confidence = "high" | "medium" | "low";
 
 function pass(label: string, detail: string, evidence?: string, confidence?: Confidence): AuditModuleFinding {
-  return { label, status: "pass", detail, evidence, confidence };
+  return { label, status: "pass", detail, evidence: evidence ?? null, confidence: confidence ?? null };
 }
 function warn(label: string, detail: string, evidence?: string, severity: Severity = "medium", confidence?: Confidence): AuditModuleFinding {
-  return { label, status: "warn", detail, evidence, severity, confidence };
+  return { label, status: "warn", detail, evidence: evidence ?? null, severity, confidence: confidence ?? null };
 }
 function fail(label: string, detail: string, evidence?: string, severity: Severity = "high", confidence?: Confidence): AuditModuleFinding {
-  return { label, status: "fail", detail, evidence, severity, confidence };
+  return { label, status: "fail", detail, evidence: evidence ?? null, severity, confidence: confidence ?? null };
 }
 /** For a check that couldn't actually be verified (a lookup errored or
  * timed out) — shown to the user for transparency but excluded from
  * score/status impact in statusFromFindings, since "we don't know" is
  * not the same evidence as "we checked and it's missing". */
 function unknown(label: string, detail: string, evidence?: string): AuditModuleFinding {
-  return { label, status: "warn", detail, evidence, severity: "low", confidence: "low", unverifiable: true };
+  return { label, status: "warn", detail, evidence: evidence ?? null, severity: "low", confidence: "low", unverifiable: true };
 }
 
 // STRICT SCORING: fraction of a module's score lost per finding at each

@@ -360,8 +360,7 @@ runs the engine locally instead of calling this hosted endpoint.
 #### API keys
 
 Programmatic access to `/api/audit` is **Pro-plan only** and requires an API key — there is no
-free/anonymous/open tier for scripted callers anymore (an anonymous *browser* visitor still gets
-1 audit/day, same as before). Keys:
+free/open tier for scripted callers. Keys:
 
 - Are minted **only from the admin panel**, never self-serve, and only for an account already on
   the Pro plan.
@@ -480,7 +479,7 @@ Summary:
 | `NEXT_PUBLIC_FIREBASE_*` (6 vars) | ✅ | Firebase web config — public by design |
 | `FIREBASE_PROJECT_ID` / `FIREBASE_CLIENT_EMAIL` / `FIREBASE_PRIVATE_KEY` | ✅ | Firebase Admin service account (**secret**) |
 | `BYOK_ENCRYPTION_KEY` | ✅ | Encrypts user-supplied API keys at rest |
-| `IP_HASH_SALT` | ✅ | Salts IP hashes for anonymous rate limiting (no raw IPs stored) |
+
 | `PAGESPEED_API_KEY` | ➖ | Lighthouse module. Without it PSI uses a shared quota that rate-limits hard |
 | `AI_API_KEY` / `AI_BASE_URL` / `AI_MODEL` | ➖ | Written verdict + promo copy. Scores never depend on this |
 | `GEMINI_API_KEY` / `GEMINI_MODEL` | ➖ | Alternative AI provider |
@@ -832,8 +831,8 @@ at demo scale:
   pattern from services like Heroku's old free dynos. Neither this Worker nor Vercel's serverless
   functions need that workaround.
 - **Rate limiting is already atomic and per-identity**, not a shared global counter — see
-  `lib/rate-limit.ts`'s `checkAndIncrementUsage`/`checkAndIncrementAnonymousUsage`, which use
-  Firestore transactions keyed by uid or hashed IP, so usage limits stay correct under concurrent
+  `lib/rate-limit.ts`'s `checkAndIncrementUsage`, which uses
+  Firestore transactions keyed by uid, so usage limits stay correct under concurrent
   requests from many different users at once, not just under light traffic.
 - **The audit engine itself has no shared mutable state** — every audit is a fresh set of
   concurrent `fetch()` calls against the target site (see `lib/analyze.ts`'s `runAuditInner`) with

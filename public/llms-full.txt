@@ -41,7 +41,7 @@
 
 ## FAQ
 Q: How do I audit a website for free?
-A: Paste any URL into Audityxe's website checker and click Analyze. It's a free website audit tool - no signup required for your first audit, and a free account unlocks more per day. You'll get a website quality score out of 10 across 6 categories: SEO, performance, accessibility, security, UX, and technical health.
+A: Paste any URL into Audityxe's website checker and click Analyze. It's a free website audit tool - sign up for a free account and you'll get a website quality score out of 10 across 6 categories: SEO, performance, accessibility, security, UX, and technical health.
 
 Q: How are Audityxe's scores actually calculated?
 A: All category scores come from parsing the real, live HTML and HTTP response of the page being audited - heading structure, meta tags, security headers, redirect chains, robots.txt and sitemap.xml fetched live, and sampled broken-link/image checks. The same strict benchmark and weighting is applied to every website, so scores are comparable across audits and over time.

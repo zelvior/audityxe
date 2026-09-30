@@ -89,9 +89,6 @@ export const PLANS: Record<PlanId, Plan> = {
   },
 };
 
-/** Daily audits allowed per IP for a visitor with no account at all. */
-export const ANON_DAILY_LIMIT = 1;
-
 export const DEFAULT_PLAN: PlanId = "free";
 
 export function planLimit(plan: PlanId): number {
