@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { X, Zap, ShieldCheck, Layers } from "lucide-react";
+import Link from "next/link";
+import { X, Zap, ShieldCheck, Layers, ArrowRight } from "lucide-react";
 
 const STORAGE_KEY = "audityxe:onboarding-dismissed";
 
@@ -61,6 +62,15 @@ export default function Onboarding() {
                 </button>
               )}
             </div>
+          </div>
+          <div className="mt-3 pt-3 border-t border-border">
+            <Link
+              href="/onboarding/welcome"
+              className="inline-flex items-center gap-1 text-xs font-mono text-primary hover:underline"
+            >
+              View full guide
+              <ArrowRight size={12} />
+            </Link>
           </div>
         </div>
         <button

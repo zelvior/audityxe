@@ -40,6 +40,13 @@ export default function Header() {
             Pricing
           </Link>
 
+          <Link
+            href="/onboarding/welcome"
+            className="hidden sm:inline-block text-sm font-medium text-text-secondary hover:text-primary transition px-2"
+          >
+            Guide
+          </Link>
+
           {loading ? (
             <div className="w-8 h-8 rounded-lg bg-surface2 animate-pulse" />
           ) : user ? (
