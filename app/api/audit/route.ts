@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { waitUntil } from "@vercel/functions";
 import { runAudit } from "@/lib/analyze";
+import { sendAuditPush } from "@/lib/push";
 import { refundWeeklyFeatureUsage } from "@/lib/rate-limit";
 import { saveLastAuditScore } from "@/lib/badge-store";
 import { logAuditRecord } from "@/lib/audit-log";
@@ -8,6 +10,14 @@ import { resolveAuditRequest } from "@/lib/audit-request";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 90;
+
+function safeHostname(raw: string): string {
+  try {
+    return new URL(/^https?:\/\//i.test(raw) ? raw : `https://${raw}`).hostname;
+  } catch {
+    return raw;
+  }
+}
 
 export async function POST(req: NextRequest) {
   const resolved = await resolveAuditRequest(req);
@@ -63,6 +73,8 @@ export async function POST(req: NextRequest) {
       status: "success",
     }).catch(() => {});
 
+    waitUntil(sendAuditPush(identity?.uid, { hostname: safeHostname(result.url), ok: true, score: result.overall }));
+
     return NextResponse.json({
       ...result,
       _usage: { used, limit, remaining, plan },
@@ -79,6 +91,7 @@ export async function POST(req: NextRequest) {
       status: "failed",
       error: message,
     }).catch(() => {});
+    waitUntil(sendAuditPush(identity?.uid, { hostname: safeHostname(url), ok: false }));
     return NextResponse.json({ error: message }, { status: 502 });
   }
 }

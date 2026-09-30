@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { waitUntil } from "@vercel/functions";
 import { runAudit } from "@/lib/analyze";
+import { sendAuditPush } from "@/lib/push";
 import { requireAuth, AuthError } from "@/lib/auth-server";
 import { ensureUserDoc, checkAndIncrementUsage, getUsageSnapshot } from "@/lib/rate-limit";
 import { PLANS } from "@/lib/plans";
@@ -139,6 +141,14 @@ export async function POST(req: NextRequest) {
       return { url, ok: false, error: err instanceof Error ? err.message : "Failed to audit this URL." };
     }
   });
+
+  const okCount = results.filter((r) => r.ok).length;
+  waitUntil(
+    sendAuditPush(identity.uid, {
+      hostname: results.length === 1 ? results[0].url : `${results.length} sites (${okCount} succeeded)`,
+      ok: okCount > 0,
+    })
+  );
 
   return NextResponse.json({ results, plan: PLANS.pro.name });
 }

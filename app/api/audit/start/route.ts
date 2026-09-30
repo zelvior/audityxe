@@ -6,7 +6,7 @@ import { saveLastAuditScore } from "@/lib/badge-store";
 import { logAuditRecord } from "@/lib/audit-log";
 import { resolveAuditRequest } from "@/lib/audit-request";
 import { createAuditJob, appendJobProgress, completeAuditJob, failAuditJob } from "@/lib/audit-jobs";
-import { sendJobReadyPush } from "@/lib/push";
+import { sendAuditPush } from "@/lib/push";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -102,7 +102,7 @@ export async function POST(req: NextRequest) {
         }).catch(() => {});
 
         await completeAuditJob(jobId, { ...result, _usage: { used, limit, remaining, plan }, pageSpeedLockReason });
-        await sendJobReadyPush(jobId, hostname, true).catch(() => {});
+        await sendAuditPush(identity?.uid, { hostname, ok: true, score: result.overall, jobId, token }).catch(() => {});
       } catch (err) {
         const message = err instanceof Error ? err.message : "Failed to fetch and analyze the site.";
         logAuditRecord({
@@ -115,7 +115,7 @@ export async function POST(req: NextRequest) {
           error: message,
         }).catch(() => {});
         await failAuditJob(jobId, message).catch(() => {});
-        await sendJobReadyPush(jobId, hostname, false).catch(() => {});
+        await sendAuditPush(identity?.uid, { hostname, ok: false, jobId, token }).catch(() => {});
       }
     })()
   );

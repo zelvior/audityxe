@@ -1,4 +1,6 @@
+import { createHash } from "crypto";
 import webpush from "web-push";
+import { FieldValue } from "firebase-admin/firestore";
 import { adminDb } from "./firebase/admin";
 
 /**
@@ -49,7 +51,7 @@ function ensureConfigured(): boolean {
     if (!warnedOnce) {
       console.warn(
         "[push] WEB_PUSH_VAPID_PUBLIC_KEY / WEB_PUSH_VAPID_PRIVATE_KEY / WEB_PUSH_VAPID_SUBJECT not fully set — " +
-          "\"notify me when ready\" will silently do nothing until these are configured. See README env var table."
+          "audit-complete notifications will silently do nothing until these are configured. See README env var table."
       );
       warnedOnce = true;
     }
@@ -65,51 +67,101 @@ export interface StoredPushSubscription {
   keys: { p256dh: string; auth: string };
 }
 
-const SUBS_COLLECTION = "auditJobPushSubs";
+// One document per account, holding every device/browser that account
+// has enabled notifications on — so an audit finishing always reaches
+// the person, regardless of which tab/device started it or whether any
+// tab is still open. Notifications are a required part of onboarding
+// (see components/PushGate.tsx), so there is no per-audit opt-in.
+const SUBS_COLLECTION = "pushSubscriptions";
+const MAX_DEVICES_PER_USER = 10;
 
-/** Stored keyed by jobId (not uid) — the notify-me flow works for
- * any signed-in user, since a background audit job is tied to their
- * account. */
-export async function savePushSubscription(jobId: string, token: string, subscription: StoredPushSubscription): Promise<void> {
-  const db = adminDb();
-  await db.collection(SUBS_COLLECTION).doc(jobId).set(
-    { token, subscription, savedAt: new Date().toISOString() },
-    { merge: true }
-  );
+function subKey(endpoint: string): string {
+  return createHash("sha1").update(endpoint).digest("hex");
 }
 
-/** Sends the "your audit is ready" push and deletes the subscription
- * immediately after — this is a one-shot notification tied to a single
- * job, not a recurring subscription, so there's nothing to keep around
- * once it's been used (or once the job is done and no notify-me
- * subscription was ever registered for it, in which case this is a
- * harmless no-op read). */
-export async function sendJobReadyPush(jobId: string, hostname: string, ok: boolean): Promise<void> {
-  if (!ensureConfigured()) return;
+interface SubsDoc {
+  subscriptions?: Record<string, StoredPushSubscription & { savedAt: string }>;
+}
+
+export async function savePushSubscription(uid: string, subscription: StoredPushSubscription): Promise<void> {
   const db = adminDb();
-  const ref = db.collection(SUBS_COLLECTION).doc(jobId);
+  const ref = db.collection(SUBS_COLLECTION).doc(uid);
   const snap = await ref.get();
-  if (!snap.exists) return; // nobody opted in for this job — nothing to do
+  const existing = ((snap.data() as SubsDoc | undefined)?.subscriptions ?? {}) as NonNullable<SubsDoc["subscriptions"]>;
+  const key = subKey(subscription.endpoint);
+  const next = {
+    ...existing,
+    [key]: {
+      endpoint: subscription.endpoint,
+      keys: { p256dh: subscription.keys.p256dh, auth: subscription.keys.auth },
+      savedAt: new Date().toISOString(),
+    },
+  };
+  const entries = Object.entries(next).sort((a, b) => b[1].savedAt.localeCompare(a[1].savedAt)).slice(0, MAX_DEVICES_PER_USER);
+  await ref.set({ subscriptions: Object.fromEntries(entries), updatedAt: new Date().toISOString() });
+}
 
-  const data = snap.data() as { subscription: StoredPushSubscription };
-  const payload = JSON.stringify({
-    title: ok ? "Your Audityxe audit is ready" : "Your Audityxe audit hit a problem",
-    body: ok ? `The audit of ${hostname} finished — tap to see the full report.` : `The audit of ${hostname} couldn't complete. Tap to see why.`,
-    jobId,
-  });
+export interface AuditPushInput {
+  hostname: string;
+  ok: boolean;
+  score?: number | null;
+  /** Present only for background-job audits — lets the notification
+   * tap reopen that exact result. The push payload is end-to-end
+   * encrypted to the subscribing browser, so carrying the job token in
+   * it does not expose it to anyone else. */
+  jobId?: string;
+  token?: string;
+}
 
+/** Sends the "audit finished" push to every device the account has
+ * enabled notifications on. Never throws — a failed notification must
+ * never take down the audit it's reporting on. */
+export async function sendAuditPush(uid: string | null | undefined, input: AuditPushInput): Promise<void> {
+  if (!uid || !ensureConfigured()) return;
   try {
-    await webpush.sendNotification(data.subscription as unknown as webpush.PushSubscription, payload);
-  } catch (err) {
-    // A 404/410 means the browser unsubscribed (e.g. the user cleared
-    // site data) — expected and not worth logging as an error. Anything
-    // else is logged but never thrown: a failed notification must never
-    // take down the audit job it's reporting on.
-    const status = (err as { statusCode?: number })?.statusCode;
-    if (status !== 404 && status !== 410) {
-      console.error("[push] sendNotification failed:", err);
+    const db = adminDb();
+    const ref = db.collection(SUBS_COLLECTION).doc(uid);
+    const snap = await ref.get();
+    if (!snap.exists) return;
+    const subs = (snap.data() as SubsDoc).subscriptions ?? {};
+    const entries = Object.entries(subs);
+    if (entries.length === 0) return;
+
+    const url = input.jobId && input.token ? `/?job=${encodeURIComponent(input.jobId)}&token=${encodeURIComponent(input.token)}` : "/";
+    const payload = JSON.stringify({
+      title: input.ok ? "Your Audityxe audit is ready" : "Your Audityxe audit hit a problem",
+      body: input.ok
+        ? input.score != null
+          ? `${input.hostname} scored ${input.score.toFixed(1)}/10 — tap to see the full report.`
+          : `The audit of ${input.hostname} finished — tap to see the full report.`
+        : `The audit of ${input.hostname} couldn't complete. Tap to see why.`,
+      tag: `audit-${input.jobId || Date.now()}`,
+      url,
+    });
+
+    const dead: string[] = [];
+    await Promise.all(
+      entries.map(async ([key, sub]) => {
+        try {
+          await webpush.sendNotification({ endpoint: sub.endpoint, keys: sub.keys } as webpush.PushSubscription, payload);
+        } catch (err) {
+          const status = (err as { statusCode?: number })?.statusCode;
+          if (status === 404 || status === 410) dead.push(key);
+          else console.error("[push] sendNotification failed:", err);
+        }
+      })
+    );
+
+    if (dead.length) {
+      const update: Record<string, unknown> = {};
+      for (const key of dead) update[`subscriptions.${key}`] = FieldValue.delete();
+      await ref.update(update).catch(() => {});
     }
-  } finally {
-    await ref.delete();
+  } catch (err) {
+    console.error("[push] sendAuditPush failed:", err);
   }
+}
+
+export async function deletePushSubscriptions(uid: string): Promise<void> {
+  await adminDb().collection(SUBS_COLLECTION).doc(uid).delete();
 }

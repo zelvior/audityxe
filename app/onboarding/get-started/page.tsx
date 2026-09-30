@@ -33,8 +33,8 @@ const STEPS = [
   {
     icon: Bell,
     title: "Get Notified",
-    description: "Enable push notifications to get alerted when your background audit finishes — no need to keep the tab open.",
-    action: { label: "Enable Notifications", href: "/settings" },
+    description: "Notifications are on for every account — you're alerted each time an audit completes, even if the tab is closed.",
+    action: { label: "Check Notification Setup", href: "/onboarding/notifications" },
   },
   {
     icon: Download,
@@ -56,8 +56,8 @@ export default function OnboardingGetStartedPage() {
       <Header />
       <div className="flex-1 px-4 sm:px-6 py-8 sm:py-12">
         <div className="max-w-3xl mx-auto">
-          <Link href="/onboarding/features" className="inline-flex items-center gap-2 text-sm text-text-secondary hover:text-text-primary mb-6">
-            <ArrowLeft size={16} /> Back to features
+          <Link href="/onboarding/notifications" className="inline-flex items-center gap-2 text-sm text-text-secondary hover:text-text-primary mb-6">
+            <ArrowLeft size={16} /> Back to notifications
           </Link>
 
           <div className="flex items-center gap-3 mb-3">

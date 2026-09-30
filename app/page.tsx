@@ -124,6 +124,70 @@ export default function Home() {
   const userPlan: PlanId = (result?._usage?.plan as PlanId) || accountPlan;
   const canCompare = PLANS[userPlan].competitorAudits;
 
+  // Poll every 3s — cheap, plain HTTP polling rather than a streaming
+  // connection, so it costs nothing extra if the tab is backgrounded and
+  // keeps working after a page reload. Shared by a freshly started
+  // background job and by reopening one from a notification tap.
+  function pollJob(jobId: string, jobToken: string) {
+    if (jobPollRef.current) clearInterval(jobPollRef.current);
+    jobPollRef.current = setInterval(async () => {
+      const poll = await fetchJson<{ status: "running" | "done" | "error"; progress: string[]; result: AuditResult | null; error: string | null; hostname?: string }>(
+        `/api/audit/status/${jobId}?token=${encodeURIComponent(jobToken)}`
+      );
+      if (!poll.ok || !poll.data) return; // transient network hiccup — just try again next tick
+
+      setJobProgress(poll.data.progress || []);
+
+      if (poll.data.status === "done" && poll.data.result) {
+        if (jobPollRef.current) clearInterval(jobPollRef.current);
+        setActiveStep(SCAN_STEPS.length - 1);
+        setResult(poll.data.result);
+        setBackgroundJob(null);
+        setPhase("results");
+      } else if (poll.data.status === "error") {
+        if (jobPollRef.current) clearInterval(jobPollRef.current);
+        setErrorMsg(poll.data.error || "Failed to fetch and analyze the site.");
+        setBackgroundJob(null);
+        setPhase("error");
+      }
+    }, 3000);
+  }
+
+  // Notification tap → /?job=ID&token=TOKEN: reopen that audit's result
+  // (or resume watching it if it's still running).
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const jobId = params.get("job");
+    const jobToken = params.get("token");
+    if (!jobId || !jobToken) return;
+    window.history.replaceState(null, "", window.location.pathname);
+    (async () => {
+      const first = await fetchJson<{ status: "running" | "done" | "error"; progress: string[]; result: AuditResult | null; error: string | null; hostname?: string }>(
+        `/api/audit/status/${jobId}?token=${encodeURIComponent(jobToken)}`
+      );
+      if (!first.ok || !first.data) {
+        setErrorMsg(first.error || "That audit couldn't be found — it may have expired.");
+        setPhase("error");
+        return;
+      }
+      if (first.data.status === "done" && first.data.result) {
+        setResult(first.data.result);
+        setPhase("results");
+      } else if (first.data.status === "error") {
+        setErrorMsg(first.data.error || "Failed to fetch and analyze the site.");
+        setPhase("error");
+      } else {
+        setScanningUrl(first.data.hostname || "");
+        setJobProgress(first.data.progress || []);
+        setBackgroundJob({ jobId, token: jobToken });
+        setActiveStep(1);
+        setPhase("scanning");
+        pollJob(jobId, jobToken);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   async function handleAnalyze(url: string, competitorUrl?: string) {
     if (needsEmailVerification) return;
 
@@ -199,33 +263,7 @@ export default function Home() {
         setBackgroundJob({ jobId: data.jobId, token: data.token });
         setActiveStep(1);
 
-        // Poll every 3s — cheap, plain HTTP polling rather than a
-        // streaming connection, so it costs nothing extra if the tab is
-        // backgrounded/throttled by the browser, and keeps working
-        // exactly the same after a page reload (a real SSE/WebSocket
-        // connection wouldn't survive that without extra reconnect
-        // logic this doesn't need).
-        jobPollRef.current = setInterval(async () => {
-          const poll = await fetchJson<{ status: "running" | "done" | "error"; progress: string[]; result: AuditResult | null; error: string | null }>(
-            `/api/audit/status/${data.jobId}?token=${encodeURIComponent(data.token)}`
-          );
-          if (!poll.ok || !poll.data) return; // transient network hiccup — just try again next tick
-
-          setJobProgress(poll.data.progress || []);
-
-          if (poll.data.status === "done" && poll.data.result) {
-            if (jobPollRef.current) clearInterval(jobPollRef.current);
-            setActiveStep(SCAN_STEPS.length - 1);
-            setResult(poll.data.result);
-            setBackgroundJob(null);
-            setPhase("results");
-          } else if (poll.data.status === "error") {
-            if (jobPollRef.current) clearInterval(jobPollRef.current);
-            setErrorMsg(poll.data.error || "Failed to fetch and analyze the site.");
-            setBackgroundJob(null);
-            setPhase("error");
-          }
-        }, 3000);
+        pollJob(data.jobId, data.token);
         return;
       }
 

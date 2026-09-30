@@ -182,5 +182,9 @@ export async function getByokInfo(uid: string): Promise<ByokInfo> {
  */
 export async function deleteAllUserData(uid: string): Promise<void> {
   const db = adminDb();
-  await Promise.all([db.collection("users").doc(uid).delete(), db.collection("usage").doc(uid).delete()]);
+  await Promise.all([
+    db.collection("users").doc(uid).delete(),
+    db.collection("usage").doc(uid).delete(),
+    db.collection("pushSubscriptions").doc(uid).delete(),
+  ]);
 }

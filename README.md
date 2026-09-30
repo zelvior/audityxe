@@ -287,13 +287,16 @@ tab"** checkbox (shown whenever one of those is requested) exists for that.
 - The audit engine itself (`lib/analyze.ts`) reports real checkpoints as it actually reaches them
   via an `onProgress` callback — not a simulated step list — which the live-preview iframe overlays
   directly on top of the site being audited.
-- **"Notify me when it's ready"** (`components/NotifyMeButton.tsx`) is the part that survives the
-  browser being fully closed, not just the tab being backgrounded — polling alone can't do that,
-  since there's no JS left running once every tab is closed. It registers a minimal service worker
-  (`public/sw.js`), subscribes via the browser's `PushManager`, and `lib/push.ts` sends a real Web
-  Push message through the browser's own push service once the job finishes. Requires the
-  `WEB_PUSH_VAPID_*` env vars below — degrades to a clean no-op (the checkbox/polling flow still
-  works fine) if they're unset.
+- **Audit-complete notifications are required, not opt-in.** Onboarding includes a mandatory
+  notification step (`/onboarding/notifications`, also the last step of the home-page onboarding
+  modal), and `components/PushGate.tsx` sends any signed-in, verified account without notification
+  permission to that step. Each account's browser subscriptions are stored per user
+  (`pushSubscriptions/{uid}`, re-synced on every session), and `lib/push.ts` sends a real Web Push
+  message to all of them every time an audit completes — quick, background, or bulk — so it works
+  even with every tab closed. Tapping a background-audit notification reopens that result
+  (`/?job=…&token=…`). Requires the `WEB_PUSH_VAPID_*` env vars below; if unset (or the browser can't
+  do push, e.g. iOS Safari outside an installed PWA) the requirement is skipped rather than locking
+  anyone out.
 - Job documents are short-lived working data, not the permanent audit-history feature
   (`lib/audit-log.ts` already covers that) — `/api/cron/cleanup-jobs` prunes anything past its 24h
   TTL every few hours.
@@ -496,7 +499,7 @@ Summary:
 | `NEXT_PUBLIC_DONATION_URL` | ➖ | Footer Sponsor button target |
 | `ADMIN_EMAILS` / `ADMIN_PASSWORD` | ➖ | Enables `/admin`. Unset = admin panel disabled |
 | `CRON_SECRET` | ➖ | Protects `/api/cron/*` endpoints (now manual/fallback triggers — see [Infrastructure & scaling](#infrastructure--scaling)) |
-| `WEB_PUSH_VAPID_PUBLIC_KEY` / `WEB_PUSH_VAPID_PRIVATE_KEY` / `WEB_PUSH_VAPID_SUBJECT` | ➖ | Web Push notifications for background audit jobs ("notify me when it's ready" — see `lib/push.ts`). Generate with `npx web-push generate-vapid-keys`; subject is a `mailto:` or `https:` contact URL. Without these set, the notify-me button silently no-ops (polling/leaving the tab open still works). |
+| `WEB_PUSH_VAPID_PUBLIC_KEY` / `WEB_PUSH_VAPID_PRIVATE_KEY` / `WEB_PUSH_VAPID_SUBJECT` | ➖ | Web Push audit-complete notifications (see `lib/push.ts`). Generate with `npx web-push generate-vapid-keys`; subject is a `mailto:` or `https:` contact URL. Without these set, no notifications are sent and the onboarding notification step is skipped. |
 | `NEXT_PUBLIC_WEB_PUSH_VAPID_PUBLIC_KEY` | ➖ | Same public key as above, exposed client-side so the browser can call `pushManager.subscribe()` |
 | `GOOGLE_SITE_VERIFICATION` | ➖ | Search Console verification |
 | `AUDITYXE_KILL_SWITCH` / `*_MESSAGE` | ➖ | Emergency maintenance mode without redeploying code |
@@ -718,7 +721,8 @@ audityxe/
 │   ├── HoverRevealButton.tsx    IsometricLoader.tsx      LegalLayout.tsx
 │   ├── LiveScanPreview.tsx      # live-preview iframe + real progress overlay, shown while scanning
 │   ├── Logo.tsx                 ModerationGuard.tsx      NotFoundGame.tsx
-│   ├── NotifyMeButton.tsx       # Web Push opt-in for background audit jobs
+│   ├── NotificationEnabler.tsx  # Required notification-permission step (onboarding)
+│   ├── PushGate.tsx             # Redirects accounts without notifications to onboarding; syncs subscription
 │   ├── OAuthButtons.tsx         OfflineGame.tsx          Onboarding.tsx
 │   ├── PasswordInput.tsx        PerformanceMetrics.tsx   PromoKit.tsx
 │   ├── RenderProof.tsx          SampleReportView.tsx     ScanProgress.tsx

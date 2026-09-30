@@ -1,19 +1,16 @@
-// Minimal, standalone push-notification service worker for the
-// background-audit "notify me when it's ready" flow (see
-// lib/push.ts, components/NotifyMeButton.tsx). Deliberately does NOT
-// do any asset caching / offline-mode work — that's a separate concern
-// this project hasn't opted into, and mixing the two would risk this
-// worker serving stale cached pages, which is worse than no service
-// worker at all. Its only job is: receive a push, show a notification,
-// and take the person to the right report when they tap it.
+// Push-notification service worker: shows the "audit finished"
+// notification and takes the person to the right report on tap. No
+// asset caching on purpose — it must never serve stale pages.
+
+self.addEventListener("install", () => self.skipWaiting());
+self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()));
 
 self.addEventListener("push", (event) => {
-  let data = { title: "Audityxe", body: "Your audit is ready.", jobId: "" };
+  let data = { title: "Audityxe", body: "Your audit is ready.", url: "/", tag: "audit" };
   try {
     if (event.data) data = { ...data, ...event.data.json() };
   } catch {
-    // Malformed/empty push payload — fall back to the generic message
-    // above rather than showing nothing at all.
+    // Malformed payload — fall back to the generic message.
   }
 
   event.waitUntil(
@@ -21,23 +18,21 @@ self.addEventListener("push", (event) => {
       body: data.body,
       icon: "/logo-mark-192.png",
       badge: "/logo-mark-192.png",
-      tag: data.jobId ? `audit-job-${data.jobId}` : "audit-job",
-      data: { jobId: data.jobId },
+      tag: data.tag,
+      data: { url: data.url },
     })
   );
 });
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const jobId = event.notification.data && event.notification.data.jobId;
-  const url = jobId ? `/?job=${encodeURIComponent(jobId)}` : "/";
+  const url = (event.notification.data && event.notification.data.url) || "/";
 
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
       for (const client of clients) {
-        if (client.url.includes(self.location.origin) && "focus" in client) {
-          client.navigate(url);
-          return client.focus();
+        if (client.url.startsWith(self.location.origin) && "focus" in client) {
+          return client.focus().then(() => client.navigate(url));
         }
       }
       return self.clients.openWindow(url);

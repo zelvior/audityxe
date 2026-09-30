@@ -6,6 +6,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    version: "3.16.0",
+    date: "October 2026",
+    changes: [
+      "New: audit-complete notifications are now automatic and required \u2014 every account is notified each time an audit finishes (quick, background, or bulk), with nothing to enable per audit. Onboarding gained a mandatory notification step (/onboarding/notifications and the final step of the home-page onboarding).",
+      "Fixed: tapping a background-audit notification now reopens that audit's result; previously the link carried no way to load it.",
+      "Fixed: .env.example was missing the WEB_PUSH_VAPID_* variables entirely, so notifications could never work on a fresh deployment.",
+    ],
+  },
+  {
     version: "3.15.2",
     date: "September 2026",
     changes: [

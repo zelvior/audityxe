@@ -139,7 +139,7 @@ export default function OnboardingFeaturesPage() {
 
           <div className="flex flex-col sm:flex-row gap-3">
             <Link
-              href="/onboarding/get-started"
+              href="/onboarding/notifications"
               className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-card bg-secondary font-semibold text-sm hover:brightness-110 transition"
             >
               Get Started

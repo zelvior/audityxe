@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Loader2, Eye, AlertTriangle, Activity } from "lucide-react";
-import NotifyMeButton from "@/components/NotifyMeButton";
 
 /** Best-effort normalization only — this is a display iframe, not a
  * security boundary, and the real URL validation happens server-side
@@ -171,11 +170,10 @@ export default function LiveScanPreview({ url, progressLog, backgroundJob }: Liv
       </div>
 
       {backgroundJob && (
-        <div className="flex items-center justify-between gap-3 px-1">
+        <div className="px-1">
           <p className="text-[11px] text-text-secondary">
-            This audit is running in the background — you can leave this page or close the tab.
+            This audit is running in the background — you can leave this page or close the tab. We'll notify you the moment it finishes.
           </p>
-          <NotifyMeButton jobId={backgroundJob.jobId} token={backgroundJob.token} />
         </div>
       )}
     </div>
