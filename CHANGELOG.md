@@ -10,6 +10,27 @@ The CLI (`audityxe-cli`) and VS Code extension share the audit engine with the w
 versioned separately — see `cli/CHANGELOG.md` and `vscode-extension/CHANGELOG.md` for their own
 release notes.
 
+## 3.16.0 — September 2026
+
+- Removed: the "1 free audit without signup" feature — anonymous (unauthenticated) users can no
+  longer run audits. All audit requests now require authentication (Firebase ID token or API key).
+  Unauthenticated requests to `/api/audit` or `/api/audit/start` return `401`. This removes the
+  `ANON_DAILY_LIMIT` constant, `checkAndIncrementAnonymousUsage()`, `hashIp()`, `getClientIp()`,
+  and all associated IP-based rate-limiting logic.
+- Fixed: Firestore `undefined` value error — `AuditModuleFinding.evidence` and `.confidence` are
+  optional fields, and when omitted, the helper functions (`pass`, `warn`, `fail`, `unknown`) returned
+  `undefined`, which Firestore rejects. Fixed by converting `undefined` to `null` in the helper
+  functions and adding a `stripUndefined()` recursive sanitizer in `completeAuditJob()` as a safety
+  net.
+- Fixed: OpenGraph image build error — Next.js 14.2.35's bundled `@vercel/og` has a known bug
+  (`TypeError: Invalid URL`) that occurs at module load time during static generation. Replaced the
+  dynamic `app/opengraph-image.tsx` route with a static `public/opengraph.png` image referenced via
+  the `openGraph.images` metadata field.
+- New: proper onboarding pages — added `/onboarding/welcome`, `/onboarding/features`, and
+  `/onboarding/get-started` with detailed feature breakdowns, step-by-step guides, and links to
+  all key features. Connected via the homepage onboarding card ("View full guide"), header
+  navigation ("Guide" link), and sitemap.
+
 ## 3.15.2 — September 2026
 
 - Fixed: `/api/push/subscribe` would silently accept and store a push subscription even when the
