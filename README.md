@@ -395,6 +395,11 @@ Not GitHub-specific? [`cli/examples/pre-commit-audit-gate.sh`](./cli/examples/pr
 is a copy-pasteable script for a git hook (e.g. via [husky](https://typicode.github.io/husky/)) or
 any other CI's pre-deploy step.
 
+## Media & promotional assets
+
+- `public/brag.mp4` — 20-second launch video (1920×1080, 30fps) showing the full audit flow: URL input → score reveal → evidence panel → fix card → outro
+- `public/brag.jpg` — Poster frame extracted at 3.2s (the score reveal moment)
+
 ## Tech stack
 
 - **[Next.js 14](https://nextjs.org)** (App Router) · **[React 18](https://react.dev)** · **[TypeScript](https://www.typescriptlang.org)**

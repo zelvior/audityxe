@@ -10,6 +10,10 @@ The CLI (`audityxe-cli`) and VS Code extension share the audit engine with the w
 versioned separately — see `cli/CHANGELOG.md` and `vscode-extension/CHANGELOG.md` for their own
 release notes.
 
+## 3.17.0 — September 2026
+
+- New: brag video assets — `public/brag.mp4` (20s launch video) and `public/brag.jpg` (poster frame at 3.2s score reveal). Created via Hyperframes composition with 5 scenes: URL input → score reveal → evidence panel → fix card → outro.
+
 ## 3.16.0 — September 2026
 
 - Removed: the "1 free audit without signup" feature — anonymous (unauthenticated) users can no
