@@ -24,6 +24,22 @@ import { adminDb } from "./firebase/admin";
 let configured = false;
 let warnedOnce = false;
 
+/**
+ * Exported so /api/push/subscribe can check this *before* accepting a
+ * subscription, rather than only discovering the misconfiguration later
+ * inside sendJobReadyPush (by which point the client has already shown
+ * the person a false "you're all set, we'll notify you" success state
+ * that can never actually fire — a subscription record would exist,
+ * but no push would ever be sent). Two separate env vars can each be
+ * missing independently (the public key is also read by the client via
+ * NEXT_PUBLIC_WEB_PUSH_VAPID_PUBLIC_KEY, so it's easy to set that one
+ * and forget the two server-only ones), so this needs to be checked at
+ * the point of subscribing, not assumed from the client-side key alone.
+ */
+export function isPushConfigured(): boolean {
+  return ensureConfigured();
+}
+
 function ensureConfigured(): boolean {
   if (configured) return true;
   const publicKey = process.env.WEB_PUSH_VAPID_PUBLIC_KEY || process.env.NEXT_PUBLIC_WEB_PUSH_VAPID_PUBLIC_KEY;

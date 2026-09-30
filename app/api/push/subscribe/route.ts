@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuditJob } from "@/lib/audit-jobs";
-import { savePushSubscription, StoredPushSubscription } from "@/lib/push";
+import { savePushSubscription, isPushConfigured, StoredPushSubscription } from "@/lib/push";
 import { isTrustedOrigin } from "@/lib/security";
 
 export const runtime = "nodejs";
@@ -16,6 +16,20 @@ export const dynamic = "force-dynamic";
 export async function POST(req: NextRequest) {
   if (!isTrustedOrigin(req)) {
     return NextResponse.json({ error: "Cross-site request rejected." }, { status: 403 });
+  }
+
+  // Fail loudly here, not silently later. Without this check, a server
+  // missing WEB_PUSH_VAPID_PRIVATE_KEY/SUBJECT (while still exposing a
+  // valid NEXT_PUBLIC_WEB_PUSH_VAPID_PUBLIC_KEY to the client) would
+  // accept and store a subscription that can never actually be
+  // delivered to — the client shows "you're all set", the person closes
+  // the tab, and no notification ever arrives, with nothing having told
+  // them why.
+  if (!isPushConfigured()) {
+    return NextResponse.json(
+      { error: "Push notifications aren't configured on this server yet.", code: "PUSH_NOT_CONFIGURED" },
+      { status: 503 }
+    );
   }
 
   let body: { jobId?: string; token?: string; subscription?: StoredPushSubscription };

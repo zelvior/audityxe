@@ -6,6 +6,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    version: "3.15.2",
+    date: "September 2026",
+    changes: [
+      "Fixed: /api/push/subscribe would silently accept and store a push subscription even when the server's WEB_PUSH_VAPID_PRIVATE_KEY/SUBJECT weren't configured (only the client-exposed NEXT_PUBLIC_WEB_PUSH_VAPID_PUBLIC_KEY was actually being checked, client-side, by components/NotifyMeButton.tsx) \u2014 someone could see \"you're all set, we'll notify you\" and never receive a notification, with no error ever surfaced. lib/push.ts's config check is now exported and enforced server-side before a subscription is accepted, returning a clear error instead of a false success.",
+    ],
+  },
+  {
     version: "3.15.1",
     date: "September 2026",
     changes: [

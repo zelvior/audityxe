@@ -10,6 +10,13 @@ The CLI (`audityxe-cli`) and VS Code extension share the audit engine with the w
 versioned separately — see `cli/CHANGELOG.md` and `vscode-extension/CHANGELOG.md` for their own
 release notes.
 
+## 3.15.2 — September 2026
+
+- Fixed: `/api/push/subscribe` would silently accept and store a push subscription even when the
+  server's `WEB_PUSH_VAPID_PRIVATE_KEY`/`WEB_PUSH_VAPID_SUBJECT` weren't configured — someone
+  could see "you're all set, we'll notify you" and never receive a notification, with no error
+  ever surfaced. The config check is now enforced server-side before a subscription is accepted.
+
 ## 3.15.1 — September 2026
 
 - Fixed: the PDF's "Vector metrics" section title and the radar chart's own topmost category
