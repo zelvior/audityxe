@@ -709,106 +709,416 @@ there.
 ## Project structure
 
 ```
-audityxe/
-├── README.md
-├── firestore.rules
-├── LICENSE.md
-├── middleware.ts
-├── next-env.d.ts
-├── next.config.js
-├── package.json
-├── postcss.config.js
-├── tailwind.config.ts
-├── tsconfig.json
-├── vercel.json
-├── .env.example
-├── .eslintrc.json
-├── app/
-│   ├── error.tsx / global-error.tsx / loading.tsx / not-found.tsx
-│   ├── layout.tsx, page.tsx, globals.css
-│   ├── robots.ts, sitemap.ts
-│   ├── about/  acceptable-use/  account/  admin/
-│   │   ├── activity/  announcement/  dashboard/  redeem-codes/  users/
-│   ├── api/
-│   │   ├── account/            # profile, delete, redeem-code
-│   │   ├── admin/               # activity, announcement, api-keys/[id], audits, redeem-codes, search, stats, users
-│   │   ├── announcement/
-│   │   ├── audit/               # the main (synchronous) audit endpoint (+ bulk/)
-│   │   ├── audit/start/  audit/status/[jobId]/   # background-job flow — see Infrastructure & scaling
-│   │   ├── badge/[domain]/  badge/qualys/  badge/mdn/
-│   │   ├── banner-bg/
-│   │   ├── cron/cleanup-unverified/  cron/cleanup-jobs/  cron/security-badges/  # first two are now manual/fallback only — see Infrastructure & scaling
-│   │   ├── payments/nowpayments/ # create, ipn, status, subscribe
-│   │   ├── push/subscribe/      # Web Push subscription registration for background jobs
-│   │   └── settings/
-│   ├── audit-verification/  badge/  bulk/  changelog/  contact/  cookies/
-│   ├── crash-reports/  credits/  disclaimer/  donate/  dpa/  faq/
-│   ├── forgot-password/  guide/  license/  login/  maintenance/  methodology/
-│   ├── offline/  payment/status/  pricing/  privacy/  refund-policy/
-│   ├── register/  sample-report/  settings/  status/  terms/
-│   ├── third-party-services/  trust-center/  verify-email/
-├── components/
-│   ├── AnnouncementBanner.tsx   AuditActionBar.tsx      AuditDefenderGame.tsx
-│   ├── AuditModules.tsx         AuthSidePanel.tsx        BannerCanvas.tsx
-│   ├── CompetitorBattle.tsx     DiffFixes.tsx            Footer.tsx
-│   ├── Header.tsx               Hero.tsx                 HomepageSeoContent.tsx
-│   ├── HoverRevealButton.tsx    IsometricLoader.tsx      LegalLayout.tsx
-│   ├── LiveScanPreview.tsx      # live-preview iframe + real progress overlay, shown while scanning
-│   ├── Logo.tsx                 ModerationGuard.tsx      NotFoundGame.tsx
-│   ├── NotificationEnabler.tsx  # Required notification-permission step (onboarding)
-│   ├── PushGate.tsx             # Redirects accounts without notifications to onboarding; syncs subscription
-│   ├── OAuthButtons.tsx         OfflineGame.tsx          Onboarding.tsx
-│   ├── PasswordInput.tsx        PerformanceMetrics.tsx   PromoKit.tsx
-│   ├── RenderProof.tsx          SampleReportView.tsx     ScanProgress.tsx
-│   ├── ScoreCard.tsx            TrustBadges.tsx          TrustSection.tsx
-│   ├── VectorMetricsVisualizer.tsx  # radar chart of the 6 category scores, toggle under ScoreCard
-│   └── VerifyEmailBanner.tsx
-├── context/
-│   └── AuthContext.tsx
-├── lib/
-│   ├── analyze.ts            # orchestrates a full audit (onProgress callback powers the live overlay)
-│   ├── audit-modules.ts      # turns signals into scored modules + findings
-│   ├── audit-defender-data.ts   audit-log.ts             admin.ts / admin-log.ts
-│   ├── audit-jobs.ts         # Firestore-backed background-job store (create/progress/complete/fail)
-│   ├── audit-request.ts      # shared auth/quota/BYOK resolution — used by both /api/audit and /api/audit/start
-│   ├── ai.ts                    announcement.ts          badge-store.ts
-│   ├── api-keys.ts           # Pro-linked API key issuance/validation for /api/audit
-│   ├── bloom-filter.ts          breadcrumb.ts            constants.ts
-│   ├── counters.ts              crypto.ts                currency.ts
-│   ├── crux.ts                # real-user Core Web Vitals (Chrome UX Report)
-│   ├── deep-signals.ts       # HTML/DOM signal extraction
-│   ├── discount-codes.ts     # redeem/giveaway codes only — percent-off codes removed
-│   ├── dns-email-auth.ts        dns-security.ts
-│   ├── export-payload.ts     # JSON report builder (schemaVersion, summary block, banner)
-│   ├── fetch-json.ts            gemini.ts
-│   ├── legal-pages.ts           network-checks.ts
-│   ├── nowpayments.ts        # invoice creation + IPN HMAC verification
-│   ├── ops.ts                   pagespeed.ts             pdf-export.ts  # radar chart, pie chart, donuts, stacked bar
-│   ├── plans.ts                 rate-limit.ts            security.ts
-│   ├── push.ts                # Web Push (VAPID) — sends the "your audit is ready" notification
-│   ├── security-badges.ts     # cached SSL Labs / MDN Observatory grades (refreshed by cron)
-│   ├── security-badge-svg.ts  # shared SVG renderer for those two badges
-│   ├── seo.ts                   site-context.ts
-│   ├── site-crawl.ts         # multi-page crawl, link graph, JS-render heuristic
-│   ├── tls-check.ts          # live TLS handshake inspection
-│   ├── types.ts                 url-safety.ts            user-moderation.ts
-│   ├── user-settings.ts
-│   └── firebase/
-│       ├── admin.ts
-│       └── client.ts
-├── public/
-│   ├── google08dd6d11c7637a2e.html
-│   ├── llms.txt / llms-full.txt
-│   ├── manifest.webmanifest
-│   ├── security.txt
-│   └── sw.js                 # service worker — receives Web Push, shows the notification
-├── cli/                       # audityxe-cli (npm) — same audit engine, local-first, no account needed
-├── vscode-extension/          # shells out to `npx audityxe-cli@latest` for every command
-├── cloudflare-worker/         # scheduled cleanup (expired jobs, orphaned push subs, unverified accounts) — see its own README.md
-├── CHANGELOG.md  SECURITY.md  CODE_OF_CONDUCT.md  CONTRIBUTING.md
-└── .github/
-    ├── ISSUE_TEMPLATE/  PULL_REQUEST_TEMPLATE.md  FUNDING.yml
-    └── workflows/ci.yml
+Directory structure:
+└── zelvior-audityxe/
+    ├── README.md
+    ├── action.yml
+    ├── CHANGELOG.md
+    ├── CODE_OF_CONDUCT.md
+    ├── CONTRIBUTING.md
+    ├── firestore.rules
+    ├── LICENSE.md
+    ├── middleware.ts
+    ├── next-env.d.ts
+    ├── next.config.js
+    ├── openapi.yaml
+    ├── package.json
+    ├── postcss.config.js
+    ├── SECURITY.md
+    ├── tailwind.config.ts
+    ├── tsconfig.json
+    ├── tsconfig.strict.tsbuildinfo
+    ├── tsconfig.tsbuildinfo
+    ├── vercel.json
+    ├── .env.example
+    ├── .eslintrc.json
+    ├── app/
+    │   ├── error.tsx
+    │   ├── global-error.tsx
+    │   ├── globals.css
+    │   ├── layout.tsx
+    │   ├── loading.tsx
+    │   ├── not-found.tsx
+    │   ├── page.tsx
+    │   ├── robots.ts
+    │   ├── sitemap.ts
+    │   ├── about/
+    │   │   └── page.tsx
+    │   ├── acceptable-use/
+    │   │   └── page.tsx
+    │   ├── account/
+    │   │   ├── layout.tsx
+    │   │   └── page.tsx
+    │   ├── admin/
+    │   │   ├── layout.tsx
+    │   │   ├── page.tsx
+    │   │   ├── abuse/
+    │   │   │   ├── layout.tsx
+    │   │   │   └── page.tsx
+    │   │   ├── activity/
+    │   │   │   ├── layout.tsx
+    │   │   │   └── page.tsx
+    │   │   ├── announcement/
+    │   │   │   ├── layout.tsx
+    │   │   │   └── page.tsx
+    │   │   ├── dashboard/
+    │   │   │   ├── layout.tsx
+    │   │   │   └── page.tsx
+    │   │   ├── redeem-codes/
+    │   │   │   ├── layout.tsx
+    │   │   │   └── page.tsx
+    │   │   └── users/
+    │   │       ├── layout.tsx
+    │   │       └── page.tsx
+    │   ├── api/
+    │   │   ├── account/
+    │   │   │   ├── route.ts
+    │   │   │   ├── delete/
+    │   │   │   │   └── route.ts
+    │   │   │   └── redeem-code/
+    │   │   │       └── route.ts
+    │   │   ├── admin/
+    │   │   │   ├── abuse/
+    │   │   │   │   └── route.ts
+    │   │   │   ├── activity/
+    │   │   │   │   └── route.ts
+    │   │   │   ├── announcement/
+    │   │   │   │   └── route.ts
+    │   │   │   ├── api-keys/
+    │   │   │   │   ├── route.ts
+    │   │   │   │   └── [id]/
+    │   │   │   │       └── route.ts
+    │   │   │   ├── audits/
+    │   │   │   │   ├── route.ts
+    │   │   │   │   └── [id]/
+    │   │   │   │       └── route.ts
+    │   │   │   ├── redeem-codes/
+    │   │   │   │   ├── route.ts
+    │   │   │   │   ├── [code]/
+    │   │   │   │   │   └── route.ts
+    │   │   │   │   └── batch/
+    │   │   │   │       └── route.ts
+    │   │   │   ├── search/
+    │   │   │   │   └── route.ts
+    │   │   │   ├── stats/
+    │   │   │   │   └── route.ts
+    │   │   │   └── users/
+    │   │   │       ├── route.ts
+    │   │   │       └── [uid]/
+    │   │   │           └── route.ts
+    │   │   ├── announcement/
+    │   │   │   └── route.ts
+    │   │   ├── audit/
+    │   │   │   ├── route.ts
+    │   │   │   ├── bulk/
+    │   │   │   │   └── route.ts
+    │   │   │   ├── start/
+    │   │   │   │   └── route.ts
+    │   │   │   └── status/
+    │   │   │       └── [jobId]/
+    │   │   │           └── route.ts
+    │   │   ├── badge/
+    │   │   │   ├── [domain]/
+    │   │   │   │   └── route.ts
+    │   │   │   ├── mdn/
+    │   │   │   │   └── route.ts
+    │   │   │   └── qualys/
+    │   │   │       └── route.ts
+    │   │   ├── banner-bg/
+    │   │   │   └── route.ts
+    │   │   ├── cron/
+    │   │   │   ├── abuse-cleanup/
+    │   │   │   │   └── route.ts
+    │   │   │   ├── cleanup-jobs/
+    │   │   │   │   └── route.ts
+    │   │   │   ├── cleanup-unverified/
+    │   │   │   │   └── route.ts
+    │   │   │   └── security-badges/
+    │   │   │       └── route.ts
+    │   │   ├── device/
+    │   │   │   └── register/
+    │   │   │       └── route.ts
+    │   │   ├── payments/
+    │   │   │   └── nowpayments/
+    │   │   │       ├── create/
+    │   │   │       │   └── route.ts
+    │   │   │       ├── ipn/
+    │   │   │       │   └── route.ts
+    │   │   │       ├── status/
+    │   │   │       │   └── route.ts
+    │   │   │       └── subscribe/
+    │   │   │           └── route.ts
+    │   │   ├── push/
+    │   │   │   └── subscribe/
+    │   │   │       └── route.ts
+    │   │   ├── settings/
+    │   │   │   └── route.ts
+    │   │   └── showcase/
+    │   │       └── route.ts
+    │   ├── api-docs/
+    │   │   └── page.tsx
+    │   ├── audit-verification/
+    │   │   └── page.tsx
+    │   ├── badge/
+    │   │   ├── layout.tsx
+    │   │   └── page.tsx
+    │   ├── bulk/
+    │   │   ├── layout.tsx
+    │   │   └── page.tsx
+    │   ├── changelog/
+    │   │   ├── page.tsx
+    │   │   └── rss.xml/
+    │   │       └── route.ts
+    │   ├── contact/
+    │   │   ├── layout.tsx
+    │   │   └── page.tsx
+    │   ├── cookies/
+    │   │   └── page.tsx
+    │   ├── crash-reports/
+    │   │   └── page.tsx
+    │   ├── credits/
+    │   │   └── page.tsx
+    │   ├── disclaimer/
+    │   │   └── page.tsx
+    │   ├── donate/
+    │   │   └── page.tsx
+    │   ├── dpa/
+    │   │   └── page.tsx
+    │   ├── faq/
+    │   │   └── page.tsx
+    │   ├── forgot-password/
+    │   │   ├── layout.tsx
+    │   │   └── page.tsx
+    │   ├── guide/
+    │   │   └── page.tsx
+    │   ├── license/
+    │   │   └── page.tsx
+    │   ├── login/
+    │   │   ├── layout.tsx
+    │   │   └── page.tsx
+    │   ├── maintenance/
+    │   │   └── page.tsx
+    │   ├── methodology/
+    │   │   └── page.tsx
+    │   ├── offline/
+    │   │   └── page.tsx
+    │   ├── onboarding/
+    │   │   ├── features/
+    │   │   │   └── page.tsx
+    │   │   ├── get-started/
+    │   │   │   └── page.tsx
+    │   │   ├── notifications/
+    │   │   │   ├── NotificationsStep.tsx
+    │   │   │   └── page.tsx
+    │   │   └── welcome/
+    │   │       └── page.tsx
+    │   ├── payment/
+    │   │   └── status/
+    │   │       └── page.tsx
+    │   ├── pricing/
+    │   │   ├── layout.tsx
+    │   │   └── page.tsx
+    │   ├── privacy/
+    │   │   └── page.tsx
+    │   ├── refund-policy/
+    │   │   └── page.tsx
+    │   ├── register/
+    │   │   ├── layout.tsx
+    │   │   └── page.tsx
+    │   ├── roadmap/
+    │   │   └── page.tsx
+    │   ├── sample-report/
+    │   │   └── page.tsx
+    │   ├── settings/
+    │   │   ├── layout.tsx
+    │   │   └── page.tsx
+    │   ├── showcase/
+    │   │   ├── layout.tsx
+    │   │   └── page.tsx
+    │   ├── status/
+    │   │   └── page.tsx
+    │   ├── terms/
+    │   │   └── page.tsx
+    │   ├── third-party-services/
+    │   │   └── page.tsx
+    │   ├── trust-center/
+    │   │   └── page.tsx
+    │   └── verify-email/
+    │       ├── layout.tsx
+    │       └── page.tsx
+    ├── cli/
+    │   ├── README.md
+    │   ├── CHANGELOG.md
+    │   ├── package.json
+    │   ├── tsconfig.json
+    │   ├── examples/
+    │   │   └── pre-commit-audit-gate.sh
+    │   └── src/
+    │       ├── history.ts
+    │       ├── index.ts
+    │       └── engine/
+    │           ├── ai.ts
+    │           ├── analyze.ts
+    │           ├── audit-modules.ts
+    │           ├── crux.ts
+    │           ├── deep-signals.ts
+    │           ├── dns-email-auth.ts
+    │           ├── dns-security.ts
+    │           ├── legal-pages.ts
+    │           ├── network-checks.ts
+    │           ├── pagespeed.ts
+    │           ├── site-context.ts
+    │           ├── site-crawl-deep.ts
+    │           ├── site-crawl-max.ts
+    │           ├── site-crawl.ts
+    │           ├── tls-check.ts
+    │           ├── types.ts
+    │           └── url-safety.ts
+    ├── cloudflare-worker/
+    │   ├── README.md
+    │   ├── package.json
+    │   ├── tsconfig.json
+    │   ├── wrangler.toml
+    │   ├── .dev.vars.example
+    │   └── src/
+    │       ├── firestore.ts
+    │       ├── google-auth.ts
+    │       ├── identity-toolkit.ts
+    │       └── index.ts
+    ├── components/
+    │   ├── AnnouncementBanner.tsx
+    │   ├── AuditActionBar.tsx
+    │   ├── AuditModules.tsx
+    │   ├── AuthSidePanel.tsx
+    │   ├── BannerCanvas.tsx
+    │   ├── CompetitorBattle.tsx
+    │   ├── CruxFieldData.tsx
+    │   ├── DeviceGuard.tsx
+    │   ├── DiffFixes.tsx
+    │   ├── FeaturedOn.tsx
+    │   ├── Footer.tsx
+    │   ├── Header.tsx
+    │   ├── Hero.tsx
+    │   ├── HomepageSeoContent.tsx
+    │   ├── HoverRevealButton.tsx
+    │   ├── IsometricLoader.tsx
+    │   ├── LegalLayout.tsx
+    │   ├── LiveScanPreview.tsx
+    │   ├── Logo.tsx
+    │   ├── ModerationGuard.tsx
+    │   ├── NotFoundGame.tsx
+    │   ├── NotificationEnabler.tsx
+    │   ├── NotifyMeButton.tsx
+    │   ├── OAuthButtons.tsx
+    │   ├── OfflineGame.tsx
+    │   ├── Onboarding.tsx
+    │   ├── PasswordInput.tsx
+    │   ├── PerformanceMetrics.tsx
+    │   ├── PromoKit.tsx
+    │   ├── PushGate.tsx
+    │   ├── RenderProof.tsx
+    │   ├── SampleReportView.tsx
+    │   ├── ScanProgress.tsx
+    │   ├── ScoreCard.tsx
+    │   ├── TrustBadges.tsx
+    │   ├── TrustSection.tsx
+    │   ├── VectorMetricsVisualizer.tsx
+    │   └── VerifyEmailBanner.tsx
+    ├── context/
+    │   └── AuthContext.tsx
+    ├── lib/
+    │   ├── admin-email.ts
+    │   ├── admin-log.ts
+    │   ├── admin.ts
+    │   ├── ai.ts
+    │   ├── analyze.ts
+    │   ├── announcement.ts
+    │   ├── api-keys.ts
+    │   ├── audit-defender-data.ts
+    │   ├── audit-jobs.ts
+    │   ├── audit-log.ts
+    │   ├── audit-modes.ts
+    │   ├── audit-modules.ts
+    │   ├── audit-request.ts
+    │   ├── auth-server.ts
+    │   ├── badge-store.ts
+    │   ├── bloom-filter.ts
+    │   ├── breadcrumb.ts
+    │   ├── changelog-data.ts
+    │   ├── constants.ts
+    │   ├── counters.ts
+    │   ├── crux.ts
+    │   ├── crypto.ts
+    │   ├── currency.ts
+    │   ├── deep-signals.ts
+    │   ├── device-client.ts
+    │   ├── discount-codes.ts
+    │   ├── dns-email-auth.ts
+    │   ├── dns-security.ts
+    │   ├── export-payload.ts
+    │   ├── fetch-json.ts
+    │   ├── gemini.ts
+    │   ├── ip.ts
+    │   ├── legal-pages.ts
+    │   ├── network-checks.ts
+    │   ├── nowpayments.ts
+    │   ├── ops.ts
+    │   ├── pagespeed.ts
+    │   ├── pdf-export.ts
+    │   ├── plans.ts
+    │   ├── push-client.ts
+    │   ├── push.ts
+    │   ├── rate-limit.ts
+    │   ├── security-badge-svg.ts
+    │   ├── security-badges.ts
+    │   ├── security.ts
+    │   ├── seo.ts
+    │   ├── showcase.ts
+    │   ├── site-context.ts
+    │   ├── site-crawl-deep.ts
+    │   ├── site-crawl-max.ts
+    │   ├── site-crawl.ts
+    │   ├── tls-check.ts
+    │   ├── types.ts
+    │   ├── url-safety.ts
+    │   ├── user-moderation.ts
+    │   ├── user-settings.ts
+    │   ├── abuse/
+    │   │   ├── core.ts
+    │   │   ├── enforce.ts
+    │   │   ├── graph.ts
+    │   │   ├── risk.ts
+    │   │   └── store.ts
+    │   └── firebase/
+    │       ├── admin.ts
+    │       └── client.ts
+    ├── public/
+    │   ├── google08dd6d11c7637a2e.html
+    │   ├── hero-background.webp
+    │   ├── humans.txt
+    │   ├── llms-full.txt
+    │   ├── llms.txt
+    │   ├── manifest.webmanifest
+    │   ├── openapi.yaml
+    │   ├── security.txt
+    │   ├── sw.js
+    │   └── .well-known/
+    │       └── security.txt
+    ├── scripts/
+    │   └── test-abuse.ts
+    ├── vscode-extension/
+    │   ├── README.md
+    │   ├── audityxe-1.3.1.vsix
+    │   ├── CHANGELOG.md
+    │   ├── LICENSE.md
+    │   ├── package.json
+    │   ├── tsconfig.json
+    │   ├── .vscodeignore
+    │   └── src/
+    │       └── extension.ts
+    └── .github/
+        └── workflows/
+            └── ci.yml
 ```
 
 Regenerate this block whenever routes or top-level modules are added or removed — it's meant to
