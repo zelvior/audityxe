@@ -89,7 +89,14 @@ export async function POST(req: NextRequest) {
       // Stack onto remaining time rather than overwriting it, so paying
       // again before expiry extends access instead of throwing away
       // days the person already paid for.
-      const base = currentExpiry && new Date(currentExpiry) > now ? new Date(currentExpiry) : now;
+      const currentExpiryDate: Date | null =
+        currentExpiry && typeof currentExpiry.toDate === "function"
+          ? currentExpiry.toDate()
+          : currentExpiry
+          ? new Date(currentExpiry)
+          : null;
+      const base =
+        currentExpiryDate && !isNaN(currentExpiryDate.getTime()) && currentExpiryDate > now ? currentExpiryDate : now;
       const newExpiry = new Date(base.getTime() + grant.days * 24 * 60 * 60 * 1000);
 
       tx.set(userRef, { plan: order.plan, planExpiresAt: newExpiry.toISOString() }, { merge: true });

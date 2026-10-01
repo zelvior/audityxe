@@ -91,7 +91,6 @@ function friendlyAuthError(err: unknown): string {
 // correct on the console side.
 const POPUP_FALLBACK_CODES = new Set([
   "auth/popup-blocked",
-  "auth/popup-closed-by-user",
   "auth/cancelled-popup-request",
   "auth/internal-error",
 ]);
