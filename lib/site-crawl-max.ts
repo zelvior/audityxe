@@ -93,7 +93,7 @@ function resolveInternal(href: string, base: string, origin: string): string | n
   }
 }
 
-async function fetchWithRetry(url: string, attempt = 0): Promise<{ html: string; status: number; ok: boolean; retried: boolean } | null> {
+async function fetchWithRetry(url: string, attempt = 0, maxRetries = 2): Promise<{ html: string; status: number; ok: boolean; retried: boolean } | null> {
   try {
     await assertSafeUrl(url);
   } catch {
@@ -113,16 +113,16 @@ async function fetchWithRetry(url: string, attempt = 0): Promise<{ html: string;
       res.body?.cancel().catch(() => {});
       return { html: "", status: res.status, ok: false, retried: attempt > 0 };
     }
-    if ((res.status === 429 || res.status === 503) && attempt < 2) {
+    if ((res.status === 429 || res.status === 503) && attempt < maxRetries) {
       await new Promise((r) => setTimeout(r, 400 * (attempt + 1)));
-      return fetchWithRetry(url, attempt + 1);
+      return fetchWithRetry(url, attempt + 1, maxRetries);
     }
     const html = await res.text();
     return { html, status: res.status, ok: res.ok, retried: attempt > 0 };
   } catch {
-    if (attempt < 2) {
+    if (attempt < maxRetries) {
       await new Promise((r) => setTimeout(r, 300 * (attempt + 1)));
-      return fetchWithRetry(url, attempt + 1);
+      return fetchWithRetry(url, attempt + 1, maxRetries);
     }
     return null;
   } finally {
@@ -191,7 +191,13 @@ async function seedUrlsFromSitemap(origin: string): Promise<string[]> {
   }
 }
 
-export async function crawlSiteMax(homepageHtml: string, homepageUrl: string): Promise<MaxCrawlResult> {
+export async function crawlSiteMax(homepageHtml: string, homepageUrl: string, mode: "max" | "ultra" = "max"): Promise<MaxCrawlResult> {
+  const maxPages = mode === "ultra" ? 100 : MAX_MAX_PAGES;
+  const maxDepth = mode === "ultra" ? 8 : MAX_MAX_DEPTH;
+  const maxConcurrent = mode === "ultra" ? 16 : MAX_MAX_CONCURRENT_FETCHES;
+  const maxRetries = mode === "ultra" ? 3 : 2;
+  const crawlBudget = mode === "ultra" ? 120000 : MAX_CRAWL_BUDGET_MS;
+
   const empty = (error: string | null): MaxCrawlResult => ({
     crawled: false,
     error,
@@ -229,14 +235,14 @@ export async function crawlSiteMax(homepageHtml: string, homepageUrl: string): P
   let maxDepthReached = 0;
   let budgetExceeded = false;
 
-  while (queue.length > 0 && visited.size < MAX_MAX_PAGES) {
-    if (Date.now() - startedAt > MAX_CRAWL_BUDGET_MS) {
+  while (queue.length > 0 && visited.size < maxPages) {
+    if (Date.now() - startedAt > crawlBudget) {
       budgetExceeded = true;
       break;
     }
 
-    const batch = queue.splice(0, Math.max(1, MAX_MAX_PAGES - visited.size));
-    const fetchedBatch = await runWithConcurrency(batch, MAX_MAX_CONCURRENT_FETCHES, async ({ url, depth }) => {
+    const batch = queue.splice(0, Math.max(1, maxPages - visited.size));
+    const fetchedBatch = await runWithConcurrency(batch, maxConcurrent, async ({ url, depth }) => {
       maxDepthReached = Math.max(maxDepthReached, depth);
       const isHomepage = url === homepageUrl;
       const fetched = isHomepage
@@ -290,7 +296,7 @@ export async function crawlSiteMax(homepageHtml: string, homepageUrl: string): P
       visited.set(url, page);
       outLinksByPage.set(url, links);
 
-      if (depth < MAX_MAX_DEPTH) {
+      if (depth < maxDepth) {
         for (const link of links) {
           if (queued.has(link) || visited.has(link)) continue;
           const path = (() => {
@@ -304,7 +310,7 @@ export async function crawlSiteMax(homepageHtml: string, homepageUrl: string): P
             disallowedUrlsSkipped++;
             continue;
           }
-          if (visited.size + queue.length >= MAX_MAX_PAGES) continue;
+          if (visited.size + queue.length >= maxPages) continue;
           queued.add(link);
           queue.push({ url: link, depth: depth + 1 });
         }

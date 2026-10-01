@@ -1045,7 +1045,7 @@ function buildFixes(
   const ranked = candidates.sort(
     (a, b) => lowestCats.indexOf(a.category) - lowestCats.indexOf(b.category)
   );
-  return ranked.slice(0, 4);
+  return ranked.slice(0, 6);
 }
 
 /* ────────────────────────────────────────────────────────────────
@@ -2004,12 +2004,12 @@ async function runAuditInner(
     checkAssetWeights(primary.html, primary.finalUrl),
     checkLegalPages(primary.html, primary.origin, primary.finalUrl, siteContext),
     options.crawlMode === "ultra"
-      ? import("./site-crawl-max").then((m) => m.crawlSiteMax(primary.html, primary.finalUrl)).then((r) => {
+      ? import("./site-crawl-max").then((m) => m.crawlSiteMax(primary.html, primary.finalUrl, "ultra")).then((r) => {
           report("Ultra-coverage crawl complete.");
           return r;
         })
       : options.crawlMode === "max"
-        ? import("./site-crawl-max").then((m) => m.crawlSiteMax(primary.html, primary.finalUrl)).then((r) => {
+        ? import("./site-crawl-max").then((m) => m.crawlSiteMax(primary.html, primary.finalUrl, "max")).then((r) => {
             report("Max-coverage crawl complete.");
             return r;
           })

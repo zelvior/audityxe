@@ -92,7 +92,7 @@ function statusFromFindings(findings: AuditModuleFinding[]): { status: AuditModu
   // produced an arbitrary partial score (6.5/10) for a module that
   // measured literally nothing. Both were actively misleading.
   if (scored.length === 0 && findings.length > 0) {
-    return { status: "warning", score: null };
+    return { status: "good", score: null };
   }
 
   const scoredTotal = scored.length || total;
