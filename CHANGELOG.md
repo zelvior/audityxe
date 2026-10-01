@@ -10,6 +10,30 @@ The CLI (`audityxe-cli`) and VS Code extension share the audit engine with the w
 versioned separately — see `cli/CHANGELOG.md` and `vscode-extension/CHANGELOG.md` for their own
 release notes.
 
+## 3.17.1 — September 2026
+
+- Fixed: CLI `--max` and `--ultra` flags were documented in the help text but never
+  actually parsed — `ParsedArgs` was missing the fields and `parseArgs` had no `case`
+  for them, so the flags were silently ignored and every `--max`/`--ultra` run fell
+  back to fast mode. Added the missing fields and switch cases.
+- Fixed: CLI engine's timeout matrix only handled `fast` and `deep` — `max` and `ultra`
+  modes had no timeout constants wired in, so they used the 30s default (far too small
+  for a 50–100 page crawl). Added the full set of `MAX_*` and `ULTRA_*` timeout
+  constants and the complete timeout-matrix branching, kept in sync with `lib/analyze.ts`.
+- Fixed: CLI engine's `runAuditInner` only dispatched `deep` vs `fast` for the crawl —
+  `max` and `ultra` modes fell through to the fast `crawlSite()`. Added the full
+  four-way dispatch with lazy `import("./site-crawl-max")` for both modes.
+- Fixed: CLI engine was missing `site-crawl-max.ts` entirely (the web app had it).
+  Created `cli/src/engine/site-crawl-max.ts` as a mirror of `lib/site-crawl-max.ts`.
+- Fixed: CLI `AuditOptions` was missing `cruxByokKey`, `onProgress`, and
+  `pageSpeedLockReason`; `AuditResult` was missing `crawlMode`. Added all four.
+- Fixed: README's Site Crawl module table was malformed (3-column header, 4-column
+  rows) and only covered Fast/Deep/Max with Ultra crammed into parentheticals.
+  Rewrote as a proper 5-column table with a dedicated Ultra column.
+- Fixed: README project structure still referenced deleted files (`lib/ip.ts`,
+  `app/opengraph-image.tsx`). Removed both.
+- Fixed: README environment variables table was missing `CRUX_API_KEY`. Added it.
+
 ## 3.17.0 — September 2026
 
 - New: brag video assets — `public/brag.mp4` (20s launch video) and `public/brag.jpg` (poster frame at 3.2s score reveal). Created via Hyperframes composition with 5 scenes: URL input → score reveal → evidence panel → fix card → outro.

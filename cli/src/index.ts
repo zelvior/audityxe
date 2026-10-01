@@ -62,6 +62,8 @@ https://github.com/zelvior/audityxe/blob/main/LICENSE.md
 interface ParsedArgs {
   url?: string;
   deep: boolean;
+  max: boolean;
+  ultra: boolean;
   compareUrl?: string;
   psiKey?: string;
   minScore?: number;
@@ -73,7 +75,7 @@ interface ParsedArgs {
 }
 
 function parseArgs(argv: string[]): ParsedArgs {
-  const args: ParsedArgs = { deep: false, track: false, json: false, color: true, help: false, version: false };
+  const args: ParsedArgs = { deep: false, max: false, ultra: false, track: false, json: false, color: true, help: false, version: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     switch (a) {
@@ -87,6 +89,12 @@ function parseArgs(argv: string[]): ParsedArgs {
         break;
       case "--deep":
         args.deep = true;
+        break;
+      case "--max":
+        args.max = true;
+        break;
+      case "--ultra":
+        args.ultra = true;
         break;
       case "--track":
         args.track = true;

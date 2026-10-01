@@ -50,6 +50,10 @@ audityxe history [url]
 
   --deep                 Real multi-hop crawl (up to 25 pages, 3 hops) instead
                           of the default fast crawl (homepage sample only).
+  --max                  Max-coverage crawl (up to 50 pages, 5 hops).
+  --ultra                Ultra-coverage crawl (up to 100 pages, 8 hops,
+                          16 concurrent, 3 retries) — pushes past normal
+                          auditing limits.
   --compare <url>        Also audit a second URL and print a head-to-head
                           comparison, category by category.
   --psi-key <key>        Your own free Google PageSpeed Insights API key — adds

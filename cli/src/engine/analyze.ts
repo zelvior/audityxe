@@ -1798,6 +1798,19 @@ const PSI_OVERALL_AUDIT_TIMEOUT_MS = 82000;
 const DEEP_PSI_OVERALL_AUDIT_TIMEOUT_MS = 85000;
 const COMPETITOR_PSI_OVERALL_AUDIT_TIMEOUT_MS = 88000;
 const COMPETITOR_DEEP_PSI_OVERALL_AUDIT_TIMEOUT_MS = 88000;
+// Max crawl mode — the most demanding option. 50 pages, 5 hops, 80s
+// crawl budget, 2 retries. Timeouts sized for the worst case while
+// staying under the route's maxDuration=300 (background job path).
+const MAX_OVERALL_AUDIT_TIMEOUT_MS = 90000;
+const COMPETITOR_MAX_OVERALL_AUDIT_TIMEOUT_MS = 105000;
+const MAX_PSI_OVERALL_AUDIT_TIMEOUT_MS = 115000;
+const COMPETITOR_MAX_PSI_OVERALL_AUDIT_TIMEOUT_MS = 120000;
+// Ultra crawl mode — pushes past normal auditing limits. 100 pages, 8 hops,
+// 120s crawl budget, 3 retries. Timeouts sized for the absolute worst case.
+const ULTRA_OVERALL_AUDIT_TIMEOUT_MS = 150000;
+const COMPETITOR_ULTRA_OVERALL_AUDIT_TIMEOUT_MS = 165000;
+const ULTRA_PSI_OVERALL_AUDIT_TIMEOUT_MS = 175000;
+const COMPETITOR_ULTRA_PSI_OVERALL_AUDIT_TIMEOUT_MS = 180000;
 
 function withOverallTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
   let timer: ReturnType<typeof setTimeout>;
@@ -1815,6 +1828,9 @@ export interface AuditOptions {
   promoLockReason?: "plan" | "byok_missing";
   /** PageSpeed Insights (real Lighthouse/browser run) — gated to Pro. */
   includePageSpeed?: boolean;
+  /** Why PageSpeed is off, when it is — passed through to the result so
+   * the UI can show the right message. */
+  pageSpeedLockReason?: "not_confirmed" | "weekly_limit" | "byok_required";
   /** User's own AI credentials — required for includePromo to actually
    * produce AI copy; without it, promo falls back to the deterministic
    * template even if includePromo is true. */
@@ -1822,11 +1838,18 @@ export interface AuditOptions {
   /** User's own PageSpeed Insights (Google Cloud) API key — raises PSI's
    * own quota; independent of the AI byok above. */
   psiByokKey?: string | null;
+  /** Optional separate Google Cloud key for CrUX only, for users who want
+   * two distinct keys for PSI vs. CrUX instead of one shared key. Falls
+   * back to psiByokKey when not set. */
+  cruxByokKey?: string | null;
   /** "fast" (default) crawls a bounded sample from the homepage's own
    * links + sitemap seeds. "deep" runs a real multi-hop request queue
    * (site-crawl-deep.ts). "max" runs the maximum-coverage crawler
    * (site-crawl-max.ts). Lazy-imported only when requested. */
   crawlMode?: "fast" | "deep" | "max" | "ultra";
+  /** Optional real-time progress reporter — called at genuine checkpoints
+   * as the audit actually reaches them. No-op by default. */
+  onProgress?: (step: string) => void;
 }
 
 export async function runAudit(
@@ -1844,25 +1867,44 @@ export async function runAudit(
     throw new Error("The competitor URL is too long.");
   }
 
-  const isDeep = options.crawlMode === "deep";
+  const crawlMode = options.crawlMode ?? "fast";
+  const isDeep = crawlMode === "deep";
+  const isMax = crawlMode === "max";
+  const isUltra = crawlMode === "ultra";
   const hasCompetitor = !!(competitorRawUrl && competitorRawUrl.trim());
   const wantsPsi = !!options.includePageSpeed;
 
-  const timeoutMs = hasCompetitor && isDeep && wantsPsi
-    ? COMPETITOR_DEEP_PSI_OVERALL_AUDIT_TIMEOUT_MS
-    : isDeep && wantsPsi
-      ? DEEP_PSI_OVERALL_AUDIT_TIMEOUT_MS
-      : hasCompetitor && wantsPsi
-        ? COMPETITOR_PSI_OVERALL_AUDIT_TIMEOUT_MS
-        : hasCompetitor && isDeep
-          ? COMPETITOR_DEEP_OVERALL_AUDIT_TIMEOUT_MS
-          : wantsPsi
-            ? PSI_OVERALL_AUDIT_TIMEOUT_MS
-            : isDeep
-              ? DEEP_OVERALL_AUDIT_TIMEOUT_MS
-              : hasCompetitor
-                ? COMPETITOR_OVERALL_AUDIT_TIMEOUT_MS
-                : OVERALL_AUDIT_TIMEOUT_MS;
+  const timeoutMs = hasCompetitor && isUltra && wantsPsi
+    ? COMPETITOR_ULTRA_PSI_OVERALL_AUDIT_TIMEOUT_MS
+    : isUltra && wantsPsi
+      ? ULTRA_PSI_OVERALL_AUDIT_TIMEOUT_MS
+      : hasCompetitor && isUltra
+        ? COMPETITOR_ULTRA_OVERALL_AUDIT_TIMEOUT_MS
+        : hasCompetitor && isMax && wantsPsi
+          ? COMPETITOR_MAX_PSI_OVERALL_AUDIT_TIMEOUT_MS
+          : isMax && wantsPsi
+            ? MAX_PSI_OVERALL_AUDIT_TIMEOUT_MS
+            : hasCompetitor && isMax
+              ? COMPETITOR_MAX_OVERALL_AUDIT_TIMEOUT_MS
+              : hasCompetitor && isDeep && wantsPsi
+                ? COMPETITOR_DEEP_PSI_OVERALL_AUDIT_TIMEOUT_MS
+                : isDeep && wantsPsi
+                  ? DEEP_PSI_OVERALL_AUDIT_TIMEOUT_MS
+                  : hasCompetitor && wantsPsi
+                    ? COMPETITOR_PSI_OVERALL_AUDIT_TIMEOUT_MS
+                    : hasCompetitor && isDeep
+                      ? COMPETITOR_DEEP_OVERALL_AUDIT_TIMEOUT_MS
+                      : wantsPsi
+                        ? PSI_OVERALL_AUDIT_TIMEOUT_MS
+                        : isUltra
+                          ? ULTRA_OVERALL_AUDIT_TIMEOUT_MS
+                          : isMax
+                            ? MAX_OVERALL_AUDIT_TIMEOUT_MS
+                            : isDeep
+                              ? DEEP_OVERALL_AUDIT_TIMEOUT_MS
+                              : hasCompetitor
+                                ? COMPETITOR_OVERALL_AUDIT_TIMEOUT_MS
+                                : OVERALL_AUDIT_TIMEOUT_MS;
 
   return withOverallTimeout(
     runAuditInner(rawUrl, competitorRawUrl, options),
@@ -1878,10 +1920,22 @@ async function runAuditInner(
 ): Promise<AuditResult> {
   const includePromo = options.includePromo ?? true;
   const includePageSpeed = options.includePageSpeed ?? true;
+  // Swallow reporter errors — a broken progress sink must never fail an
+  // actual audit; it's a nice-to-have side channel, not load-bearing.
+  const report = (step: string) => {
+    try {
+      options.onProgress?.(step);
+    } catch {
+      /* progress reporting is best-effort only */
+    }
+  };
 
+  report("Fetching the target page and reading its response headers…");
   const primary = await auditOne(rawUrl);
+  report(`Page fetched (${primary.signals.security.responseTimeMs}ms) — extracting HTML structure, headings, and metadata…`);
   const deepSignals = extractDeepSignals(primary.html, primary.signals.security.serverHeaderValue, primary.signals.security.xRobotsTagValue);
   const fixes = buildFixes(primary.signals, primary.categories, deepSignals);
+  report("Structure parsed — classifying site type and queuing the deep-check batch (SEO, security, DNS, accessibility, and more)…");
 
   // Classified synchronously from signals already on hand — no extra
   // network calls — then used to make the legal/trust page check below
@@ -1900,31 +1954,62 @@ async function runAuditInner(
     includePromo
       ? generateBannerDesign(primary.host, primary.overall, primary.categories, options.byok)
       : Promise.resolve(null),
-    checkBrokenLinks(primary.html, primary.finalUrl),
+    checkBrokenLinks(primary.html, primary.finalUrl).then((r) => {
+      report(`Checked ${r.checked} internal link(s) for breakage…`);
+      return r;
+    }),
     checkImageSample(primary.html, primary.finalUrl),
     checkAdsTxt(primary.origin),
     checkOgImage(deepSignals.socialMeta.ogImageUrl, primary.finalUrl),
-    includePageSpeed ? fetchPageSpeedInsights(primary.finalUrl, options.psiByokKey) : Promise.resolve(EMPTY_PAGESPEED_SUMMARY),
+    includePageSpeed
+      ? fetchPageSpeedInsights(primary.finalUrl, options.psiByokKey).then((r) => {
+          report(r.attempted ? "Real-browser Lighthouse pass complete." : "Lighthouse pass skipped (not requested or not available).");
+          return r;
+        })
+      : Promise.resolve(EMPTY_PAGESPEED_SUMMARY),
     // Independent of includePageSpeed/confirmPageSpeed on purpose — CrUX
     // is a separate, much cheaper Google API (a single fast lookup, not
     // a full Lighthouse run) and reuses the same BYOK/shared key. It
     // degrades to a clean "not configured" or "no data" result on its
     // own, same as PSI, so there's no hard dependency being added here.
-    fetchCruxSummary(primary.finalUrl, options.psiByokKey),
-    checkEmailAuthDns(new URL(primary.finalUrl).hostname),
-    checkServerHardening(primary.origin),
-    checkDnsSecurity(new URL(primary.finalUrl).hostname),
+    fetchCruxSummary(primary.finalUrl, options.cruxByokKey ?? options.psiByokKey),
+    checkEmailAuthDns(new URL(primary.finalUrl).hostname).then((r) => {
+      report("Checked email-auth DNS records (SPF/DKIM/DMARC)…");
+      return r;
+    }),
+    checkServerHardening(primary.origin).then((r) => {
+      report("Probed for exposed .env/.git files and dangerous HTTP methods…");
+      return r;
+    }),
+    checkDnsSecurity(new URL(primary.finalUrl).hostname).then((r) => {
+      report("Checked CAA records, DNSSEC signing, and subdomain-takeover risk…");
+      return r;
+    }),
     checkSourceMapExposure(primary.html, primary.finalUrl),
     checkSecurityTxt(primary.origin),
     checkFaviconManifest(primary.origin, primary.html, primary.finalUrl),
     checkAssetWeights(primary.html, primary.finalUrl),
     checkLegalPages(primary.html, primary.origin, primary.finalUrl, siteContext),
-    options.crawlMode === "deep"
-      ? import("./site-crawl-deep").then((m) => m.crawlSiteDeep(primary.html, primary.finalUrl))
-      : crawlSite(primary.html, primary.finalUrl),
+    options.crawlMode === "ultra"
+      ? import("./site-crawl-max").then((m) => m.crawlSiteMax(primary.html, primary.finalUrl)).then((r) => {
+          report("Ultra-coverage crawl complete.");
+          return r;
+        })
+      : options.crawlMode === "max"
+        ? import("./site-crawl-max").then((m) => m.crawlSiteMax(primary.html, primary.finalUrl)).then((r) => {
+            report("Max-coverage crawl complete.");
+            return r;
+          })
+        : options.crawlMode === "deep"
+          ? import("./site-crawl-deep").then((m) => m.crawlSiteDeep(primary.html, primary.finalUrl)).then((r) => {
+              report("Deep multi-hop crawl complete.");
+              return r;
+            })
+          : crawlSite(primary.html, primary.finalUrl),
     checkCookieFlags(primary.origin),
     checkRedirectChain(rawUrl),
   ]);
+  report("All checks complete — scoring modules and compiling the final report…");
 
   const modules = buildAuditModules({
     signals: primary.signals,
@@ -2003,6 +2088,7 @@ async function runAuditInner(
     verdict,
     categories: primary.categories,
     fixes,
+    crawlMode: options.crawlMode ?? "fast",
     xPost,
     linkedinPost,
     siteContext,
@@ -2017,6 +2103,7 @@ async function runAuditInner(
     promoLocked: !includePromo,
     promoLockReason: !includePromo ? options.promoLockReason ?? "plan" : promoCopy ? undefined : "byok_failed",
     pageSpeedLocked: !includePageSpeed,
+    pageSpeedLockReason: !includePageSpeed ? options.pageSpeedLockReason ?? "not_confirmed" : undefined,
     competitor,
   };
 }

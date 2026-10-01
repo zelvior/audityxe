@@ -488,6 +488,7 @@ Summary:
 | `BYOK_ENCRYPTION_KEY` | ✅ | Encrypts user-supplied API keys at rest |
 
 | `PAGESPEED_API_KEY` | ➖ | Lighthouse module. Without it PSI uses a shared quota that rate-limits hard |
+| `CRUX_API_KEY` | ➖ | Real-User Experience (CrUX) module — aggregated Core Web Vitals from real Chrome users. Falls back to `PAGESPEED_API_KEY` if unset |
 | `AI_API_KEY` / `AI_BASE_URL` / `AI_MODEL` | ➖ | Written verdict + promo copy. Scores never depend on this |
 | `GEMINI_API_KEY` / `GEMINI_MODEL` | ➖ | Alternative AI provider |
 | `NOWPAYMENTS_API_KEY` | ➖ | Enables crypto checkout |
@@ -613,17 +614,17 @@ pages) past the single page the rest of the audit is scoped to, by crawling a bo
 sample of pages starting from the homepage. As of 3.5.0 there are **two crawl modes**, user-selectable
 per audit from a toggle under the URL field ("Site crawl: Fast / Deep"):
 
-| | Fast (default) | Deep |
-|---|---|---|
-| Source file | `lib/site-crawl.ts` | `lib/site-crawl-deep.ts` (lazy-imported) | `lib/site-crawl-max.ts` (lazy-imported) |
-| Discovery | Homepage's own links + `/sitemap.xml` seeds | Real multi-hop request queue | Multi-hop queue + sitemap seeding |
-| Pages | Up to 6 | Up to 25 | Up to 50 (ultra: 100) |
-| Depth | 1 hop from homepage | Up to 3 hops | Up to 5 hops (ultra: 8) |
-| HTML parsing | Regex-based | Real DOM traversal via `cheerio` | Real DOM traversal via `cheerio` |
-| robots.txt | Not checked | Fetched once, Disallow rules enforced | Fetched once, Disallow rules enforced |
-| Retries | None | One retry with backoff | Two retries (ultra: three) |
-| Concurrency | 3 in flight | 5 in flight | 8 in flight (ultra: 16) |
-| Typical cost | A few seconds | Up to ~40s internal budget | Up to ~80s (ultra: ~120s) |
+| | Fast (default) | Deep | Max | Ultra |
+|---|---|---|---|---|
+| Source file | `lib/site-crawl.ts` | `lib/site-crawl-deep.ts` (lazy-imported) | `lib/site-crawl-max.ts` (lazy-imported) | `lib/site-crawl-max.ts` (lazy-imported) |
+| Discovery | Homepage's own links + `/sitemap.xml` seeds | Real multi-hop request queue | Multi-hop queue + sitemap seeding | Multi-hop queue + sitemap seeding |
+| Pages | Up to 6 | Up to 25 | Up to 50 | Up to 100 |
+| Depth | 1 hop from homepage | Up to 3 hops | Up to 5 hops | Up to 8 hops |
+| HTML parsing | Regex-based | Real DOM traversal via `cheerio` | Real DOM traversal via `cheerio` | Real DOM traversal via `cheerio` |
+| robots.txt | Not checked | Fetched once, Disallow rules enforced | Fetched once, Disallow rules enforced | Fetched once, Disallow rules enforced |
+| Retries | None | One retry with backoff | Two retries | Three retries |
+| Concurrency | 3 in flight | 5 in flight | 8 in flight | 16 in flight |
+| Typical cost | A few seconds | Up to ~40s internal budget | Up to ~80s | Up to ~120s |
 
 **On the standalone Crawlee-based crawler package supplied for review:** we evaluated merging it in
 directly instead of building `site-crawl-deep.ts`. Verdict: **it cannot be built as delivered.**
@@ -688,7 +689,7 @@ audityxe/
 ├── app/
 │   ├── error.tsx / global-error.tsx / loading.tsx / not-found.tsx
 │   ├── layout.tsx, page.tsx, globals.css
-│   ├── opengraph-image.tsx, robots.ts, sitemap.ts
+│   ├── robots.ts, sitemap.ts
 │   ├── about/  acceptable-use/  account/  admin/
 │   │   ├── activity/  announcement/  dashboard/  redeem-codes/  users/
 │   ├── api/
@@ -741,7 +742,7 @@ audityxe/
 │   ├── discount-codes.ts     # redeem/giveaway codes only — percent-off codes removed
 │   ├── dns-email-auth.ts        dns-security.ts
 │   ├── export-payload.ts     # JSON report builder (schemaVersion, summary block, banner)
-│   ├── fetch-json.ts            gemini.ts                ip.ts
+│   ├── fetch-json.ts            gemini.ts
 │   ├── legal-pages.ts           network-checks.ts
 │   ├── nowpayments.ts        # invoice creation + IPN HMAC verification
 │   ├── ops.ts                   pagespeed.ts             pdf-export.ts  # radar chart, pie chart, donuts, stacked bar
