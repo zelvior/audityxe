@@ -7,6 +7,12 @@ scoring changes, new checks) reaches this extension automatically, with no exten
 required. This file tracks changes to the *extension* itself (commands, UI, packaging) plus the
 CLI version it was tested against at time of release.
 
+## 1.3.0
+
+- Repackaged and version-bumped alongside `audityxe-cli@1.3.0` (max/ultra crawl modes, full
+  timeout matrix, `cruxByokKey` option, `crawlMode` in JSON output — see `cli/CHANGELOG.md`).
+- No changes to the extension's own commands or UI in this release.
+
 ## 1.2.1
 
 - Repackaged and version-bumped alongside `audityxe-cli@1.2.1` (deepened, more accurate

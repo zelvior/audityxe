@@ -2,7 +2,7 @@ import { runAudit, AuditOptions } from "./engine/analyze";
 import type { AuditResult, AuditModule } from "./engine/types";
 import { appendHistoryEntry, readHistoryForUrl, readAllTrackedUrls, getHistoryFilePath, HistoryEntry } from "./history";
 
-const VERSION = "1.2.1";
+const VERSION = "1.3.0";
 
 const HELP = `
 audityxe — free, unlimited, local-first website audit

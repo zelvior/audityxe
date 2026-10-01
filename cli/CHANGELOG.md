@@ -7,6 +7,18 @@ every scoring change, every fix) lives in one place: the web app's in-product ch
 (`/changelog` on the site, sourced from `lib/changelog-data.ts`). This file only tracks the CLI
 package's own version number against that shared history.
 
+## 1.3.0
+
+Engine parity with web app release 3.17.1. New features:
+
+- **Max and Ultra crawl modes** — `--max` (50 pages, 5 hops, 8 concurrent, 2 retries) and
+  `--ultra` (100 pages, 8 hops, 16 concurrent, 3 retries) flags now work. Previously these
+  were documented in `--help` but silently ignored (fell back to fast mode).
+- Full timeout matrix for all crawl mode × competitor × PSI combinations.
+- `cruxByokKey` option for a separate CrUX API key.
+- `crawlMode` field in JSON output.
+- `pageSpeedLockReason` includes `"byok_required"` variant.
+
 ## 1.2.1
 
 Engine parity with web app release 3.15.0. Deepened, more accurate checks — no new modules:
