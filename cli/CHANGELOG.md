@@ -7,6 +7,13 @@ every scoring change, every fix) lives in one place: the web app's in-product ch
 (`/changelog` on the site, sourced from `lib/changelog-data.ts`). This file only tracks the CLI
 package's own version number against that shared history.
 
+## 1.3.1
+
+Engine parity with web app release 3.17.1. Packaging fix:
+
+- `dist/` is now committed to the repo (removed from `.gitignore`) so the CLI
+  ships prebuilt — no `npm install` + `npm run build` needed to run it.
+
 ## 1.3.0
 
 Engine parity with web app release 3.17.1. New features:
