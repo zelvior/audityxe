@@ -24,6 +24,42 @@ import { useAuth } from "@/context/AuthContext";
 import { PLANS, PlanId } from "@/lib/plans";
 import { fetchJson } from "@/lib/fetch-json";
 
+const FAQ_SCHEMA = [
+  {
+    q: "How do I audit a website for free?",
+    a: "Paste any URL into Audityxe's website checker and click Analyze. It's a free website audit tool — sign up for a free account and you'll get a website quality score out of 10 across 6 categories: SEO, performance, accessibility, security, UX, and technical health.",
+  },
+  {
+    q: "How are Audityxe's scores actually calculated?",
+    a: "All category scores come from parsing the real, live HTML and HTTP response of the page being audited — heading structure, meta tags, security headers, redirect chains, robots.txt and sitemap.xml fetched live, and sampled broken-link/image checks. The same strict benchmark and weighting is applied to every website, so scores are comparable across audits and over time.",
+  },
+  {
+    q: "What does Audityxe check in a website audit?",
+    a: "Audityxe runs a technical SEO audit (titles, meta tags, headings, canonical tags, structured data), a website accessibility audit (alt text, contrast, form labels), a website security audit (HTTPS, HSTS, CSP, security headers), a website UX and conversion audit (mobile viewport, tap targets, broken links/images), and on Pro, a real browser-rendered performance audit via Google PageSpeed Insights covering Core Web Vitals.",
+  },
+  {
+    q: "What's the difference between the Free, Standard, and Pro plans?",
+    a: "Free gives a limited number of audits per day with the full 6-category score and multi-area breakdown. Standard adds more daily audits and competitor head-to-head comparison. Pro adds real browser-rendered PageSpeed performance auditing, bulk audits for agencies, and AI-generated promo copy using your own API key.",
+  },
+  {
+    q: "Is Audityxe's audit data stored?",
+    a: "No — full audit results are computed fresh per request and returned directly to your browser, with no public report page or cross-account history. The one exception is a minimal per-domain score-and-date record used only to power the embeddable Audityxe badge.",
+  },
+];
+
+const faqJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: FAQ_SCHEMA.map((item) => ({
+    "@type": "Question",
+    name: item.q,
+    acceptedAnswer: {
+      "@type": "Answer",
+      text: item.a,
+    },
+  })),
+};
+
 type Phase = "idle" | "scanning" | "results" | "error";
 
 export default function Home() {
@@ -235,6 +271,16 @@ export default function Home() {
 
   return (
     <main>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd).replace(/</g, "\\u003c") }}
+      />
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-primary focus:text-white focus:rounded-lg focus:outline-none"
+      >
+        Skip to main content
+      </a>
       <div className="relative">
         {/* Full-bleed hero background. The source image DOES carry real
             alpha transparency at its own edges — but its fade-to-clear
@@ -262,6 +308,8 @@ export default function Home() {
             <img
               src="/hero-background.png"
               alt=""
+              width={1920}
+              height={1080}
               className="w-full h-full object-cover object-top opacity-90 dark:opacity-25"
             />
           </picture>
@@ -273,6 +321,7 @@ export default function Home() {
 
         <Header />
         <Onboarding />
+        <div id="main-content">
         <Hero
           onAnalyze={handleAnalyze}
           disabled={phase === "scanning"}
@@ -290,9 +339,10 @@ export default function Home() {
         />
         {(wantsPageSpeed || crawlMode === "deep" || crawlMode === "max" || crawlMode === "ultra") && phase !== "scanning" && (
           <div className="max-w-xl mx-auto px-4 -mt-2 mb-2 relative">
-            <label className="flex items-center justify-center gap-2 text-xs text-text-secondary cursor-pointer select-none">
+            <label htmlFor="run-in-background" className="flex items-center justify-center gap-2 text-xs text-text-secondary cursor-pointer select-none">
               <input
                 type="checkbox"
+                id="run-in-background"
                 checked={runInBackground}
                 onChange={(e) => setRunInBackground(e.target.checked)}
                 className="accent-primary w-3.5 h-3.5"
@@ -301,6 +351,7 @@ export default function Home() {
             </label>
           </div>
         )}
+        </div>
       </div>
 
       {user && needsEmailVerification && <VerifyEmailBanner />}

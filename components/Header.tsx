@@ -32,7 +32,7 @@ export default function Header() {
           <span className="font-display font-bold text-lg tracking-tight hand-underline">Audityxe</span>
         </Link>
 
-        <div className="flex items-center gap-2 sm:gap-3">
+        <nav aria-label="Main navigation" className="flex items-center gap-2 sm:gap-3">
           <Link
             href="/pricing"
             className="hidden sm:inline-block text-sm font-medium text-text-secondary hover:text-primary transition px-2"
@@ -122,7 +122,7 @@ export default function Header() {
           >
             {mobileOpen ? <X size={18} /> : <Menu size={18} />}
           </button>
-        </div>
+        </nav>
       </div>
 
       {mobileOpen && (

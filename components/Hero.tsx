@@ -171,19 +171,20 @@ export default function Hero({
           )}
         </div>
 
-        <label className="mt-3 flex items-center justify-center gap-2 text-xs text-text-secondary cursor-pointer select-none">
+        <label htmlFor="pagespeed-checkbox" className="mt-3 flex items-center justify-center gap-2 text-xs text-text-secondary cursor-pointer select-none">
           <input
             type="checkbox"
+            id="pagespeed-checkbox"
             checked={wantsPageSpeed}
             onChange={(e) => onWantsPageSpeedChange(e.target.checked)}
             className="accent-primary w-3.5 h-3.5"
           />
           Real-browser PageSpeed & CrUX (Lighthouse) pass
           {hasPsiByokKey
-            ? " — unlimited with your key"
+            ? " (unlimited with your key)"
             : userPlan === "pro"
-              ? " — weekly shared-key quota applies, or add your own key for unlimited"
-              : " — bring your own free Google Cloud key to unlock (Settings)"}
+              ? " (weekly shared-key quota applies, or add your own key for unlimited)"
+              : " (bring your own free Google Cloud key to unlock in Settings)"}
         </label>
 
         <div className="mt-3 flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1 text-xs text-text-secondary" role="radiogroup" aria-label="Site crawl depth">
@@ -236,6 +237,7 @@ export default function Hero({
             aria-checked={crawlMode === "ultra"}
             onClick={() => onCrawlModeChange("ultra")}
             title="100 pages, 8 hops, 16 concurrent — pushes past normal limits"
+            aria-label="Ultra: 100 pages, 8 hops, 16 concurrent, pushes past normal limits"
             className={`px-2.5 py-1 rounded-full border transition ${
               crawlMode === "ultra"
                 ? "bg-primary/10 border-primary/40 text-primary font-semibold"

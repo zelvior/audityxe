@@ -116,14 +116,14 @@ export default function TrustSection() {
           <motion.div className="glass rounded-card p-5 flex-1 flex items-start gap-3" whileHover={{ y: -3 }}>
             <Users size={16} className="text-primary shrink-0 mt-0.5" />
             <p>
-              <span className="font-semibold text-text-primary">Built for people who ship</span> — indie
+              <span className="font-semibold text-text-primary">Built for people who ship</span>: indie
               makers, marketers, and agencies who need a repeatable report, not a retainer.
             </p>
           </motion.div>
           <motion.div className="glass rounded-card p-5 flex-1 flex items-start gap-3" whileHover={{ y: -3 }}>
             <Check size={16} className="text-emerald shrink-0 mt-0.5" />
             <p>
-              <span className="font-semibold text-text-primary">Nothing dumbed down on Free</span> —
+              <span className="font-semibold text-text-primary">Nothing dumbed down on Free</span>:
               every plan runs the identical engine.{" "}
               <Link href="/pricing" className="text-primary hover:underline inline-flex items-center gap-1">
                 Compare plans <ArrowRight size={12} />
