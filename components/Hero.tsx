@@ -1,0 +1,253 @@
+"use client";
+
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useRouter } from "next/navigation";
+import { ArrowRight, Plus, X, Lock, Loader2 } from "lucide-react";
+import { PlanId } from "@/lib/plans";
+
+interface HeroProps {
+  onAnalyze: (url: string, competitorUrl?: string) => void;
+  disabled: boolean;
+  isAuthed: boolean;
+  hasAccount: boolean;
+  authLoading: boolean;
+  canCompare: boolean;
+  prefillUrl?: string;
+  userPlan: PlanId;
+  hasPsiByokKey: boolean;
+  wantsPageSpeed: boolean;
+  onWantsPageSpeedChange: (value: boolean) => void;
+  crawlMode: "fast" | "deep" | "max" | "ultra";
+  onCrawlModeChange: (value: "fast" | "deep" | "max" | "ultra") => void;
+}
+
+export default function Hero({
+  onAnalyze,
+  disabled,
+  isAuthed,
+  hasAccount,
+  authLoading,
+  canCompare,
+  prefillUrl,
+  userPlan,
+  hasPsiByokKey,
+  wantsPageSpeed,
+  onWantsPageSpeedChange,
+  crawlMode,
+  onCrawlModeChange,
+}: HeroProps) {
+  const router = useRouter();
+  const [url, setUrl] = useState(prefillUrl || "");
+  const [showCompetitor, setShowCompetitor] = useState(false);
+  const [competitorUrl, setCompetitorUrl] = useState("");
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!url.trim() || disabled) return;
+    if (hasAccount && !isAuthed) {
+      // Logged in but unverified: do nothing — the verify-email banner
+      // above already tells them exactly what to do next.
+      return;
+    }
+    onAnalyze(url, showCompetitor ? competitorUrl : undefined);
+  }
+
+  return (
+    <section className="relative pt-16 sm:pt-24 pb-12 sm:pb-16 px-4 sm:px-6">
+      <div className="max-w-2xl mx-auto text-center">
+        {/* Plain h1, no entrance animation — this is the page's primary
+            heading, and shipping it at opacity:0 in the initial HTML
+            (as framer-motion's fade-in would) reads as invisible content
+            to headless-Chrome SEO auditors even though real crawlers
+            that don't execute JS/CSS don't care either way. Not worth
+            the risk for the one heading that matters most. */}
+        <h1 className="font-display font-medium text-[32px] leading-[1.1] sm:text-[48px] sm:leading-[1.05] md:text-[52px] md:leading-[1.03] tracking-tight text-gradient px-1">
+          <span className="hand-highlight">Instant Site Audit</span> &<br className="hidden sm:block" />{" "}
+          <span className="hand-underline">Fix Report</span>
+        </h1>
+
+        <motion.p
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="mt-4 sm:mt-5 text-text-secondary text-sm sm:text-base md:text-lg max-w-xl mx-auto px-2"
+        >
+          <span className="font-semibold text-text-primary">Build better. Launch faster.</span> Drop
+          a URL, get a real score and exact fixes in under a minute.
+        </motion.p>
+
+        <motion.form
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          onSubmit={handleSubmit}
+          className="mt-7 sm:mt-9 glass rounded-card p-2 flex flex-col sm:flex-row gap-2"
+        >
+          <input
+            type="text"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            placeholder="Enter a website URL, e.g. yoursite.com"
+            aria-label="Website URL to audit"
+            className="flex-1 min-w-0 bg-transparent px-3.5 sm:px-4 py-3 text-sm sm:text-base placeholder:text-text-secondary/60 outline-none"
+            disabled={disabled}
+          />
+          <button
+            type="submit"
+            disabled={disabled || !url.trim() || authLoading || (hasAccount && !isAuthed)}
+            className="flex items-center justify-center gap-2 px-5 py-3 rounded-card bg-secondary font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed hover:brightness-110 hover:scale-[1.02] active:scale-[0.98] transition shrink-0"
+          >
+            {hasAccount && !isAuthed && !authLoading ? (
+              <>
+                <Lock size={15} />
+                Verify email first
+              </>
+            ) : disabled ? (
+              <>
+                <Loader2 size={16} className="animate-spin" />
+                Analyzing...
+              </>
+            ) : (
+              <>
+                Analyze Now
+                <ArrowRight size={16} />
+              </>
+            )}
+          </button>
+        </motion.form>
+
+        {!hasAccount && !authLoading && (
+          <p className="mt-3 text-xs text-text-secondary">
+            <button type="button" onClick={() => router.push("/login?redirect=/")} className="text-primary hover:underline">
+              Sign up free
+            </button>{" "}
+            to run an audit.
+          </p>
+        )}
+
+        <div className="mt-3 flex justify-center">
+          {!showCompetitor ? (
+            <button
+              type="button"
+              onClick={() => setShowCompetitor(true)}
+              disabled={!canCompare}
+              className="inline-flex items-center gap-1.5 text-xs font-mono text-text-secondary hover:text-primary transition mt-2 disabled:opacity-40 disabled:cursor-not-allowed"
+              title={canCompare ? undefined : "Competitor comparison is available on Standard and Pro plans"}
+            >
+              <Plus size={13} /> Compare with Competitor
+              {!canCompare && <Lock size={11} />}
+            </button>
+          ) : (
+            <AnimatePresence>
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="mt-2 flex items-center gap-2 w-full max-w-md"
+              >
+                <input
+                  type="text"
+                  value={competitorUrl}
+                  onChange={(e) => setCompetitorUrl(e.target.value)}
+                  placeholder="Competitor URL"
+                  aria-label="Competitor website URL"
+                  className="flex-1 glass rounded-card px-4 py-2.5 text-sm outline-none placeholder:text-text-secondary/60"
+                  disabled={disabled}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCompetitor(false);
+                    setCompetitorUrl("");
+                  }}
+                  className="p-2.5 rounded-card glass hover:text-rose transition"
+                  aria-label="Remove competitor field"
+                >
+                  <X size={14} />
+                </button>
+              </motion.div>
+            </AnimatePresence>
+          )}
+        </div>
+
+        <label htmlFor="pagespeed-checkbox" className="mt-3 flex items-center justify-center gap-2 text-xs text-text-secondary cursor-pointer select-none">
+          <input
+            type="checkbox"
+            id="pagespeed-checkbox"
+            checked={wantsPageSpeed}
+            onChange={(e) => onWantsPageSpeedChange(e.target.checked)}
+            className="accent-primary w-3.5 h-3.5"
+          />
+          Real-browser PageSpeed & CrUX (Lighthouse) pass
+          {hasPsiByokKey
+            ? " (unlimited with your key)"
+            : userPlan === "pro"
+              ? " (weekly shared-key quota applies, or add your own key for unlimited)"
+              : " (bring your own free Google Cloud key to unlock in Settings)"}
+        </label>
+
+        <div className="mt-3 flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1 text-xs text-text-secondary" role="radiogroup" aria-label="Site crawl depth">
+          <span className="mr-1">Site crawl:</span>
+          <button
+            type="button"
+            role="radio"
+            aria-checked={crawlMode === "fast"}
+            onClick={() => onCrawlModeChange("fast")}
+            title="Homepage sample, fastest"
+            className={`px-2.5 py-1 rounded-full border transition ${
+              crawlMode === "fast"
+                ? "bg-primary/10 border-primary/40 text-primary font-semibold"
+                : "border-border glass hover:text-text-primary"
+            }`}
+          >
+            Fast
+          </button>
+          <button
+            type="button"
+            role="radio"
+            aria-checked={crawlMode === "deep"}
+            onClick={() => onCrawlModeChange("deep")}
+            title="Up to 25 pages, 3 hops, slower"
+            className={`px-2.5 py-1 rounded-full border transition ${
+              crawlMode === "deep"
+                ? "bg-primary/10 border-primary/40 text-primary font-semibold"
+                : "border-border glass hover:text-text-primary"
+            }`}
+          >
+            Deep
+          </button>
+          <button
+            type="button"
+            role="radio"
+            aria-checked={crawlMode === "max"}
+            onClick={() => onCrawlModeChange("max")}
+            title="Up to 50 pages, 5 hops, maximum coverage"
+            className={`px-2.5 py-1 rounded-full border transition ${
+              crawlMode === "max"
+                ? "bg-primary/10 border-primary/40 text-primary font-semibold"
+                : "border-border glass hover:text-text-primary"
+            }`}
+          >
+            Max
+          </button>
+          <button
+            type="button"
+            role="radio"
+            aria-checked={crawlMode === "ultra"}
+            onClick={() => onCrawlModeChange("ultra")}
+            title="100 pages, 8 hops, 16 concurrent — pushes past normal limits"
+            aria-label="Ultra: 100 pages, 8 hops, 16 concurrent, pushes past normal limits"
+            className={`px-2.5 py-1 rounded-full border transition ${
+              crawlMode === "ultra"
+                ? "bg-primary/10 border-primary/40 text-primary font-semibold"
+                : "border-border glass hover:text-text-primary"
+            }`}
+          >
+            Ultra
+          </button>
+        </div>
+      </div>
+    </section>
+  );
+}

@@ -1,0 +1,232 @@
+import type { Metadata, Viewport } from "next";
+import Script from "next/script";
+import { Analytics } from "@vercel/analytics/react";
+import "./globals.css";
+import { AuthProvider } from "@/context/AuthContext";
+import ModerationGuard from "@/components/ModerationGuard";
+import AnnouncementBanner from "@/components/AnnouncementBanner";
+import PushGate from "@/components/PushGate";
+import DeviceGuard from "@/components/DeviceGuard";
+
+const SITE_URL = "https://audityxe.vercel.app";
+const SITE_NAME = "Audityxe";
+const SITE_TAGLINE = "Build better. Launch faster.";
+const SITE_TITLE = "Audityxe: Free Website Audit & Fix Report";
+const SITE_DESCRIPTION =
+  "Free website audit tool: instant SEO, performance, accessibility, security & UX scores with evidence-based fixes, the same strict benchmark for every site.";
+const SITE_KEYWORDS = [
+  "Audityxe",
+  "website audit tool",
+  "website auditor",
+  "free website audit",
+  "website audit online",
+  "website analysis tool",
+  "website checker",
+  "website quality checker",
+  "website health checker",
+  "website performance checker",
+  "free seo audit",
+  "technical seo audit tool",
+  "website seo checker",
+  "seo website analyzer",
+  "website performance audit",
+  "website speed checker",
+  "website accessibility checker",
+  "accessibility audit tool",
+  "website accessibility audit tool",
+  "website security checker",
+  "website security audit",
+  "security headers checker",
+  "website ux audit",
+  "website usability checker",
+  "website ux checker",
+  "website conversion audit",
+  "website cro audit",
+  "landing page audit",
+  "how to audit a website",
+  "how to check website quality",
+  "how to audit a website for seo",
+  "website audit checklist",
+  "website quality checklist",
+  "website launch checklist",
+  "production ready website checklist",
+  "website technical audit checklist",
+  "website audit report example",
+  "free website audit report",
+  "website quality score",
+  "website quality benchmark",
+  "website benchmark tool",
+  "website quality audit",
+  "production ready quality audit",
+  "website quality standards",
+  "website audit score",
+  "website audit benchmark",
+  "website compliance checklist",
+  "Audityxe Standard",
+  "Audityxe Verified",
+  "Audityxe Score",
+];
+
+export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
+  title: SITE_TITLE,
+  description: SITE_DESCRIPTION,
+  keywords: SITE_KEYWORDS,
+  generator: "Next.js",
+  alternates: { canonical: "/" },
+  openGraph: {
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    type: "website",
+    url: SITE_URL,
+    siteName: SITE_NAME,
+    images: [
+      {
+        url: "/opengraph.png",
+        width: 1200,
+        height: 630,
+        alt: SITE_TITLE,
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    site: "@audityxe",
+  },
+  manifest: "/manifest.webmanifest",
+  robots: {
+    // Explicit (not just the Next.js default) so AI Overviews / SGE can
+    // quote long-form snippets and full-size images from this site —
+    // `max-snippet`/`max-image-preview` control exactly that, separate
+    // from the plain index/follow directive.
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-snippet": -1,
+      "max-image-preview": "large",
+      "max-video-preview": -1,
+    },
+  },
+  verification: {
+    google: process.env.GOOGLE_SITE_VERIFICATION || "hUqXugrHc_xzhUYio3bjW6G1dcc87Iyi8IL4fpCIiN0",
+  },
+  // No manual `icons` block: app/icon.png + app/apple-icon.png already
+  // auto-generate hashed, cache-busting <link rel="icon"> tags. A
+  // manual block pinning the static /favicon.ico path fought with
+  // that and let browsers keep serving the old cached favicon.
+};
+
+export const viewport: Viewport = {
+  themeColor: "#FBF7EF",
+  viewportFit: "cover",
+};
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": `${SITE_URL}/#organization`,
+      name: SITE_NAME,
+      legalName: SITE_NAME,
+      url: SITE_URL,
+      email: "zelvior@proton.me",
+      slogan: SITE_TAGLINE,
+      description: SITE_DESCRIPTION,
+      logo: {
+        "@type": "ImageObject",
+        url: `${SITE_URL}/logo-mark-192.png`,
+      },
+      sameAs: [
+        "https://github.com/zelvior",
+        "https://github.com/zelvior/audityxe",
+        "https://www.npmjs.com/package/audityxe-cli",
+        "https://orcid.org/0009-0009-2376-367X",
+        "https://youtube.com/@zelviorhere",
+        "https://linktr.ee/zelvior",
+        "https://www.npmjs.com/~zelnpm",
+        "https://viberank.dev/apps/Audityxe",
+        "https://programmerneeds.com/tools/audityxe-a2486b",
+        "https://www.producthunt.com/products/audityxe",
+      ],
+    },
+    {
+      "@type": "WebSite",
+      "@id": `${SITE_URL}/#website`,
+      name: SITE_NAME,
+      alternateName: SITE_NAME,
+      url: SITE_URL,
+      description: SITE_DESCRIPTION,
+      publisher: { "@id": `${SITE_URL}/#organization` },
+      potentialAction: {
+        "@type": "SearchAction",
+        target: `${SITE_URL}/?url={search_term_string}`,
+        "query-input": "required name=search_term_string",
+      },
+    },
+    {
+      "@type": "SoftwareApplication",
+      "@id": `${SITE_URL}/#software`,
+      name: SITE_NAME,
+      publisher: { "@id": `${SITE_URL}/#organization` },
+      applicationCategory: "DeveloperApplication",
+      applicationSubCategory: "Website Audit Tool",
+      operatingSystem: "Web",
+      description: SITE_DESCRIPTION,
+      keywords: SITE_KEYWORDS.join(", "),
+      offers: {
+        "@type": "Offer",
+        price: "0",
+        priceCurrency: "USD",
+      },
+      featureList: [
+        "Free website audit tool and website analysis tool",
+        "Technical SEO audit and SEO website analyzer",
+        "Website performance audit and speed checker",
+        "Website accessibility audit tool",
+        "Website security audit and security headers checker",
+        "Website UX and conversion (CRO) audit",
+        "Evidence-based fixes with real code snippets",
+        "Shareable Audityxe Verified badge with live re-audit",
+        "Free command-line tool (audityxe-cli) with a CI score gate",
+        "GitHub Action with pull-request comments",
+        "REST API with an OpenAPI 3 specification",
+        "AI search readiness checks (llms.txt, AI-crawler access, FAQ schema)",
+      ],
+      softwareHelp: { "@type": "CreativeWork", url: `${SITE_URL}/docs` },
+      sameAs: ["https://github.com/zelvior/audityxe", "https://www.npmjs.com/package/audityxe-cli"],
+    },
+  ],
+};
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <head>
+        <link type="text/plain" rel="author" href="/humans.txt" />
+        <script
+          type="application/ld+json"
+          // eslint-disable-next-line react/no-danger
+          // JSON.stringify never emits unescaped "<", so this can't be
+          // used to break out of the script tag even if a future field
+          // contains user-influenced text; the replace is defense-in-depth.
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
+        />
+      </head>
+      <body className="font-body antialiased min-h-screen">
+        <AuthProvider>
+          <ModerationGuard />
+          <PushGate />
+          <DeviceGuard />
+          <AnnouncementBanner />
+          {children}
+        </AuthProvider>
+        <Analytics />
+      </body>
+    </html>
+  );
+}

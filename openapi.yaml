@@ -1,0 +1,269 @@
+openapi: 3.0.3
+info:
+  title: Audityxe API
+  description: |
+    The hosted API behind [audityxe.vercel.app](https://audityxe.vercel.app)'s own audit UI.
+
+    **Important — read before integrating:** this endpoint is subject to the same per-plan daily
+    limits as the website (see the README's "Plans and limits" section). Two credential types work:
+
+    - A **Firebase ID token** (`Authorization: Bearer <token>`), obtained by signing in via the
+      Firebase client SDK. Expires in about an hour and must be refreshed through Firebase —
+      straightforward from a browser, extra work from a plain script.
+    - An **API key** (`x-api-key: atx_live_...`) for Pro-plan accounts. Unlike the ID token, this
+      is a long-lived, revocable secret — but it is never self-serve: it can only be issued and
+      revoked from the admin panel, one key per request from a Pro user, and it rides on that
+      account's own daily limit (not a separate quota). If the linked account is ever downgraded
+      from Pro, the key stops working immediately on the next request, without needing to be
+      separately revoked.
+
+    **For unlimited, key-free, script/CI-friendly usage, use [`audityxe-cli`](../cli/README.md)
+    instead** — the same audit engine, running on your own machine, with no auth and no limit at
+    all. This REST API exists to document what the website itself calls, not as the primary way to
+    automate audits.
+  version: "1.0.0"
+  license:
+    name: See LICENSE.md
+    url: https://github.com/zelvior/audityxe/blob/main/LICENSE.md
+  contact:
+    name: Zelvior Labs
+    email: zelvior@proton.me
+servers:
+  - url: https://audityxe.vercel.app
+    description: Production
+
+paths:
+  /api/audit:
+    post:
+      summary: Run a website audit
+      description: |
+        Runs a full audit against `url` and returns the complete scored result.
+
+        **Auth / rate limits:**
+        - `x-api-key: atx_live_...` → a Pro-account-linked key issued from the admin panel. Uses
+          that account's own daily limit. Invalid, revoked, or no-longer-Pro keys are rejected
+          with 401. Skips the Origin/bot checks below, which exist for browser CSRF protection and
+          don't apply to a keyed, non-browser caller.
+        - `Authorization: Bearer <Firebase ID token>` → uses that account's plan limit instead
+          (Free/Standard/Pro — see the README).
+        - Neither header → rejected with 401. Authentication is required for all audits.
+
+        Competitor comparison (`competitorUrl`), the real-browser PageSpeed Insights pass
+        (`confirmPageSpeed`), and AI-generated promo copy all require specific plan tiers and are
+        silently ignored (not audited) rather than erroring if the caller's plan doesn't include
+        them — check `promoLockReason` / `pageSpeedLockReason` in the response to see why.
+      operationId: runAudit
+      security:
+        - {}
+        - bearerAuth: []
+        - apiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url]
+              properties:
+                url:
+                  type: string
+                  format: uri
+                  maxLength: 2048
+                  example: "https://example.com"
+                competitorUrl:
+                  type: string
+                  format: uri
+                  maxLength: 2048
+                  description: Standard/Pro plans only; ignored otherwise.
+                confirmPageSpeed:
+                  type: boolean
+                  description: >-
+                    Explicit opt-in for the real-browser Lighthouse pass (Pro only, capped to 1/week
+                    on the shared key — unlimited with your own PSI key configured on the account).
+                crawlMode:
+                  type: string
+                  enum: [fast, deep, max, ultra]
+                  default: fast
+                  description: >-
+                    "deep" runs a real multi-hop crawl (up to 25 pages, 3 hops).
+                    "max" runs the maximum-coverage crawl (up to 50 pages, 5 hops).
+                    "ultra" pushes past normal limits (up to 100 pages, 8 hops,
+                    16 concurrent, 3 retries). All available on every plan.
+      responses:
+        "200":
+          description: Audit completed successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditResult"
+        "400":
+          description: Invalid request (missing/malformed URL, oversized body).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Invalid or expired Firebase ID token.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Cross-site request rejected, or automated-traffic pattern detected.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "413":
+          description: Request body too large.
+        "429":
+          description: Daily/weekly quota exhausted for this account or IP.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ErrorResponse"
+                  - type: object
+                    properties:
+                      code:
+                        type: string
+                        example: RATE_LIMITED
+                      plan:
+                        type: string
+                      limit:
+                        type: integer
+        "502":
+          description: The audit itself failed partway through (target site unreachable, timed out, etc).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: "Firebase ID token"
+      description: Obtained via the Firebase client SDK after signing in.
+    apiKeyAuth:
+      type: apiKey
+      in: header
+      name: x-api-key
+      description: >-
+        Pro-plan-linked key issued from the admin panel. Not self-serve — see
+        the README's "API keys" section.
+
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        code:
+          type: string
+
+    CategoryScore:
+      type: object
+      properties:
+        key:
+          type: string
+        label:
+          type: string
+        score:
+          type: number
+
+    AuditModuleFinding:
+      type: object
+      properties:
+        label:
+          type: string
+        status:
+          type: string
+          enum: [pass, warn, fail]
+        severity:
+          type: string
+          enum: [critical, high, medium, low]
+        detail:
+          type: string
+        evidence:
+          type: string
+
+    AuditModule:
+      type: object
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+        status:
+          type: string
+          enum: [good, warning, critical]
+        score:
+          type: number
+          nullable: true
+        summary:
+          type: string
+        findings:
+          type: array
+          items:
+            $ref: "#/components/schemas/AuditModuleFinding"
+
+    FixItem:
+      type: object
+      properties:
+        id:
+          type: string
+        category:
+          type: string
+        target:
+          type: string
+        problem:
+          type: string
+        evidence:
+          type: string
+        fix:
+          type: string
+
+    AuditResult:
+      type: object
+      properties:
+        url:
+          type: string
+        overall:
+          type: number
+        verdict:
+          type: string
+        categories:
+          type: array
+          items:
+            $ref: "#/components/schemas/CategoryScore"
+        modules:
+          type: array
+          items:
+            $ref: "#/components/schemas/AuditModule"
+        fixes:
+          type: array
+          items:
+            $ref: "#/components/schemas/FixItem"
+        xPost:
+          type: string
+        linkedinPost:
+          type: string
+        scoringMethodology:
+          type: string
+        pageSpeedLockReason:
+          type: string
+          enum: [not_confirmed, weekly_limit]
+        _usage:
+          type: object
+          description: Not part of the audit itself — the caller's remaining quota after this request.
+          properties:
+            used:
+              type: integer
+            limit:
+              type: integer
+            remaining:
+              type: integer
+            plan:
+              type: string

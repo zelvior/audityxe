@@ -1,0 +1,19 @@
+/* TEAM */
+Maker: Zelvior Labs
+Site: https://audityxe.vercel.app
+Contact: zelvior [at] proton.me
+ORCID: https://orcid.org/0009-0009-2376-367X
+YouTube: https://youtube.com/@zelviorhere
+Linktree: https://linktr.ee/zelvior
+GitHub: https://github.com/zelvior
+Location: Pakistan
+
+/* THANKS */
+Every open-source dependency listed in README.md and /credits.
+Everyone who's filed an issue, opened a PR, or sent a bug report.
+
+/* SITE */
+Last update: 2026/09
+Standards: HTML5, CSS3
+Components: Next.js, React, TypeScript, Tailwind CSS, Firebase
+Software: VS Code, Claude
