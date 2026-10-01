@@ -37,7 +37,6 @@ function LoginForm() {
     setBusy(true);
     try {
       await signInWithEmail(email, password);
-      router.replace(redirectTo);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
@@ -51,7 +50,6 @@ function LoginForm() {
     try {
       if (provider === "google") await signInWithGoogle();
       else await signInWithGithub();
-      router.replace(redirectTo);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {

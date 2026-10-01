@@ -103,6 +103,7 @@ export default function PricingPage() {
       router.push(`/register?redirect=/pricing`);
       return;
     }
+    // If we got here, user is guaranteed non-null
     setCryptoBusy(planId);
     setCryptoError("");
     try {
@@ -141,6 +142,7 @@ export default function PricingPage() {
       router.push(`/register?redirect=/pricing`);
       return;
     }
+    // If we got here, user is guaranteed non-null
     setSubBusy(planId);
     setSubMessage("");
     setCryptoError("");
@@ -171,6 +173,7 @@ export default function PricingPage() {
       router.push(`/register?redirect=/pricing`);
       return;
     }
+    // If we got here, user is guaranteed non-null
     const plan = PLANS[planId];
     const priceLabel = formatPrice(plan.priceUsd, currency);
 
