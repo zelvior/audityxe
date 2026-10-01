@@ -143,6 +143,8 @@ export interface AuditResult {
     verdict: string;
     categories: CategoryScore[];
     fixes: FixItem[];
+    /** Which crawl mode produced this result — "fast", "deep", "max", or "ultra". */
+    crawlMode: "fast" | "deep" | "max" | "ultra";
     xPost: string;
     linkedinPost: string;
     /** What kind of site this looks like (SaaS, e-commerce, blog, etc.)
@@ -182,7 +184,7 @@ export interface AuditResult {
     /** Why PageSpeed/Lighthouse data wasn't included, when it wasn't —
      * lets the UI (and exports) explain the gap instead of just showing
      * an empty performance section. */
-    pageSpeedLockReason?: "not_confirmed" | "weekly_limit";
+    pageSpeedLockReason?: "not_confirmed" | "weekly_limit" | "byok_required";
     _usage?: {
         used: number;
         limit: number;

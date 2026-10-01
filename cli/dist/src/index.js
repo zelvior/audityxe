@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.main = main;
 const analyze_1 = require("./engine/analyze");
 const history_1 = require("./history");
-const VERSION = "1.2.1";
+const VERSION = "1.3.0";
 const HELP = `
 audityxe — free, unlimited, local-first website audit
 
@@ -14,6 +14,10 @@ USAGE
 OPTIONS
   --deep                 Run the deep crawl (up to 25 pages, 3 hops) instead
                           of the default fast crawl (homepage sample only).
+  --max                  Run the max crawl (up to 50 pages, 5 hops).
+  --ultra                Run the ultra crawl (up to 100 pages, 8 hops,
+                          16 concurrent, 3 retries) — pushes past normal
+                          auditing limits.
   --compare <url>        Also audit a second URL and print a head-to-head
                           comparison (category-by-category and overall).
   --psi-key <key>        Your own free Google PageSpeed Insights API key —
@@ -55,7 +59,7 @@ engine as https://audityxe.vercel.app, MIT-equivalent licensed — see
 https://github.com/zelvior/audityxe/blob/main/LICENSE.md
 `.trim();
 function parseArgs(argv) {
-    const args = { deep: false, track: false, json: false, color: true, help: false, version: false };
+    const args = { deep: false, max: false, ultra: false, track: false, json: false, color: true, help: false, version: false };
     for (let i = 0; i < argv.length; i++) {
         const a = argv[i];
         switch (a) {
@@ -69,6 +73,12 @@ function parseArgs(argv) {
                 break;
             case "--deep":
                 args.deep = true;
+                break;
+            case "--max":
+                args.max = true;
+                break;
+            case "--ultra":
+                args.ultra = true;
                 break;
             case "--track":
                 args.track = true;
@@ -258,7 +268,7 @@ async function main(argv) {
         return;
     }
     const options = {
-        crawlMode: args.deep ? "deep" : "fast",
+        crawlMode: args.ultra ? "ultra" : args.max ? "max" : args.deep ? "deep" : "fast",
         includePageSpeed: !!args.psiKey,
         psiByokKey: args.psiKey || null,
         // The CLI doesn't (yet) support the AI-generated promo copy/banner

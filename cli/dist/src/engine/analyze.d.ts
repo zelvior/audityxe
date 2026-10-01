@@ -187,6 +187,9 @@ export interface AuditOptions {
     promoLockReason?: "plan" | "byok_missing";
     /** PageSpeed Insights (real Lighthouse/browser run) — gated to Pro. */
     includePageSpeed?: boolean;
+    /** Why PageSpeed is off, when it is — passed through to the result so
+     * the UI can show the right message. */
+    pageSpeedLockReason?: "not_confirmed" | "weekly_limit" | "byok_required";
     /** User's own AI credentials — required for includePromo to actually
      * produce AI copy; without it, promo falls back to the deterministic
      * template even if includePromo is true. */
@@ -198,11 +201,17 @@ export interface AuditOptions {
     /** User's own PageSpeed Insights (Google Cloud) API key — raises PSI's
      * own quota; independent of the AI byok above. */
     psiByokKey?: string | null;
+    /** Optional separate Google Cloud key for CrUX only, for users who want
+     * two distinct keys for PSI vs. CrUX instead of one shared key. Falls
+     * back to psiByokKey when not set. */
+    cruxByokKey?: string | null;
     /** "fast" (default) crawls a bounded sample from the homepage's own
      * links + sitemap seeds. "deep" runs a real multi-hop request queue
-     * (site-crawl-deep.ts) — slower, but reaches pages fast mode can't.
-     * Lazy-imported only when requested, so its dependency (cheerio)
-     * never loads on the default fast path. */
-    crawlMode?: "fast" | "deep";
+     * (site-crawl-deep.ts). "max" runs the maximum-coverage crawler
+     * (site-crawl-max.ts). Lazy-imported only when requested. */
+    crawlMode?: "fast" | "deep" | "max" | "ultra";
+    /** Optional real-time progress reporter — called at genuine checkpoints
+     * as the audit actually reaches them. No-op by default. */
+    onProgress?: (step: string) => void;
 }
 export declare function runAudit(rawUrl: string, competitorRawUrl?: string, options?: AuditOptions): Promise<AuditResult>;
