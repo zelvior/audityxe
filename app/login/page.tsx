@@ -27,9 +27,9 @@ function LoginForm() {
   }, [authError]);
   const [busy, setBusy] = useState(false);
 
-  if (user) {
-    router.replace(redirectTo);
-  }
+  useEffect(() => {
+    if (user) router.replace(redirectTo);
+  }, [user, redirectTo, router]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

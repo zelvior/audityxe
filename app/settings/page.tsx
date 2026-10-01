@@ -114,6 +114,25 @@ export default function SettingsPage() {
   const [byokSaved, setByokSaved] = useState(false);
   const [byokError, setByokError] = useState("");
 
+  // PSI BYOK (Pro-only PageSpeed Insights API key for higher quota)
+  const [psiByokConfigured, setPsiByokConfigured] = useState(false);
+  const [psiByokMasked, setPsiByokMasked] = useState<string | null>(null);
+  const [psiByokKeyInput, setPsiByokKeyInput] = useState("");
+  const [psiByokSaving, setPsiByokSaving] = useState(false);
+  const [psiByokSaved, setPsiByokSaved] = useState(false);
+  const [psiByokError, setPsiByokError] = useState("");
+  const [psiStepsOpen, setPsiStepsOpen] = useState(false);
+
+  // Optional, separate Google Cloud API key for CrUX only — off by
+  // default, since one key normally serves both PSI and CrUX.
+  const [cruxByokConfigured, setCruxByokConfigured] = useState(false);
+  const [cruxByokMasked, setCruxByokMasked] = useState<string | null>(null);
+  const [cruxByokKeyInput, setCruxByokKeyInput] = useState("");
+  const [cruxByokSaving, setCruxByokSaving] = useState(false);
+  const [cruxByokSaved, setCruxByokSaved] = useState(false);
+  const [cruxByokError, setCruxByokError] = useState("");
+  const [useSeparateCruxKey, setUseSeparateCruxKey] = useState(false);
+
   useEffect(() => {
     if (!user) return;
     (async () => {
@@ -194,25 +213,6 @@ export default function SettingsPage() {
       setByokSaving(false);
     }
   }
-
-  // PSI BYOK (Pro-only PageSpeed Insights API key for higher quota)
-  const [psiByokConfigured, setPsiByokConfigured] = useState(false);
-  const [psiByokMasked, setPsiByokMasked] = useState<string | null>(null);
-  const [psiByokKeyInput, setPsiByokKeyInput] = useState("");
-  const [psiByokSaving, setPsiByokSaving] = useState(false);
-  const [psiByokSaved, setPsiByokSaved] = useState(false);
-  const [psiByokError, setPsiByokError] = useState("");
-  const [psiStepsOpen, setPsiStepsOpen] = useState(false);
-
-  // Optional, separate Google Cloud API key for CrUX only — off by
-  // default, since one key normally serves both PSI and CrUX.
-  const [cruxByokConfigured, setCruxByokConfigured] = useState(false);
-  const [cruxByokMasked, setCruxByokMasked] = useState<string | null>(null);
-  const [cruxByokKeyInput, setCruxByokKeyInput] = useState("");
-  const [cruxByokSaving, setCruxByokSaving] = useState(false);
-  const [cruxByokSaved, setCruxByokSaved] = useState(false);
-  const [cruxByokError, setCruxByokError] = useState("");
-  const [useSeparateCruxKey, setUseSeparateCruxKey] = useState(false);
 
   async function handleSaveCruxByok(e: React.FormEvent) {
     e.preventDefault();
@@ -765,9 +765,10 @@ export default function SettingsPage() {
                     PSI and CrUX on two separate Google Cloud API keys
                     instead of sharing one. */}
                 <div className="mt-5 pt-4 border-t border-border/60">
-                  <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer select-none">
+                  <label htmlFor="use-separate-crux-key" className="flex items-center gap-2 text-xs font-semibold cursor-pointer select-none">
                     <input
                       type="checkbox"
+                      id="use-separate-crux-key"
                       checked={useSeparateCruxKey}
                       onChange={(e) => {
                         setUseSeparateCruxKey(e.target.checked);

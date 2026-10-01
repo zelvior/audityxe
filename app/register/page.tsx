@@ -28,9 +28,9 @@ function RegisterForm() {
     if (authError) setError(authError);
   }, [authError]);
 
-  if (user) {
-    router.replace(redirectTo);
-  }
+  useEffect(() => {
+    if (user) router.replace(redirectTo);
+  }, [user, redirectTo, router]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

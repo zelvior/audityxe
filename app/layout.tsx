@@ -214,11 +214,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {children}
         </AuthProvider>
         <Analytics />
-        {/* Zelvior Runtime — lightweight client-side performance instrumentation. */}
-        <Script src="https://cdn.jsdelivr.net/npm/zelvior-runtime/dist/zelvior.min.js" strategy="afterInteractive" />
-        <Script id="zelvior-enable" strategy="afterInteractive">
-          {`if (typeof Zelvior !== 'undefined') { Zelvior.enable(); }`}
-        </Script>
       </body>
     </html>
   );
