@@ -6,6 +6,7 @@ import { refundWeeklyFeatureUsage } from "@/lib/rate-limit";
 import { saveLastAuditScore } from "@/lib/badge-store";
 import { logAuditRecord } from "@/lib/audit-log";
 import { resolveAuditRequest } from "@/lib/audit-request";
+import { reportAbuse } from "@/lib/abuse/enforce";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -92,6 +93,11 @@ export async function POST(req: NextRequest) {
       error: message,
     }).catch(() => {});
     waitUntil(sendAuditPush(identity?.uid, { hostname: safeHostname(url), ok: false }));
+    // Repeatedly pointing the auditor at internal/private addresses is an
+    // SSRF probe — accrue strikes (auto-ban after enough of them).
+    if (/private or internal address|can't be audited/i.test(message)) {
+      waitUntil(reportAbuse(req, identity, "ssrf_probe", 2, safeHostname(url)));
+    }
     return NextResponse.json({ error: message }, { status: 502 });
   }
 }

@@ -7,6 +7,7 @@ import { logAuditRecord } from "@/lib/audit-log";
 import { resolveAuditRequest } from "@/lib/audit-request";
 import { createAuditJob, appendJobProgress, completeAuditJob, failAuditJob } from "@/lib/audit-jobs";
 import { sendAuditPush } from "@/lib/push";
+import { reportAbuse } from "@/lib/abuse/enforce";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -115,6 +116,9 @@ export async function POST(req: NextRequest) {
           error: message,
         }).catch(() => {});
         await failAuditJob(jobId, message).catch(() => {});
+        if (/private or internal address|can't be audited/i.test(message)) {
+          await reportAbuse(req, identity, "ssrf_probe", 2, hostname).catch(() => {});
+        }
         await sendAuditPush(identity?.uid, { hostname, ok: false, jobId, token }).catch(() => {});
       }
     })()

@@ -79,6 +79,19 @@ export default function PrivacyPage() {
         abuse prevention are periodically purged.
       </p>
 
+      <h2>5a. Abuse prevention &amp; device identifiers</h2>
+      <p>
+        To protect the service from fraud, automated abuse and free-plan circumvention, Audityxe
+        creates a random device identifier (stored in a first-party cookie, local storage and
+        IndexedDB) and computes a one-way hash of certain browser and hardware characteristics
+        (for example screen size, time zone, language, graphics and audio rendering behavior).
+        We also process your IP address, which is stored only as a salted one-way hash (plus a
+        partially masked form shown to administrators). These are used solely to rate-limit
+        requests, tie free-plan quotas to a device, detect multiple-account abuse, and apply or
+        lift temporary restrictions. They are never sold or used for advertising or cross-site
+        tracking, and short-lived records are deleted automatically (typically within 30 days).
+      </p>
+
       <h2>6. Cookies</h2>
       <p>
         Audityxe does not use tracking or advertising cookies. Any strictly necessary

@@ -4,7 +4,9 @@ import {
   ensureUserDoc,
   checkAndIncrementUsage,
   checkAndIncrementWeeklyFeatureUsage,
+  getUserPlan,
 } from "./rate-limit";
+import { enforceAbuseControls, consumeDeviceTrial, refundDeviceTrial, denyResponse, TrialDecision } from "./abuse/enforce";
 import { PLANS } from "./plans";
 import { isTrustedOrigin, looksLikeBot } from "./security";
 import { getByokCredentials, getPsiByokCredentials, getCruxByokCredentials } from "./user-settings";
@@ -79,6 +81,11 @@ export async function resolveAuditRequest(req: NextRequest): Promise<AuditReques
     return fail({ error: "Authentication required. Sign in to run an audit." }, 401);
   }
 
+  // Abuse protection: bans (device / IP / account / fingerprint), risk
+  // scoring, and risk-scaled rate limits. Admin accounts are exempt.
+  const gate = await enforceAbuseControls(req, { route: "audit", identity, viaApiKey: !!apiKeyHeader });
+  if (!gate.allowed) return { ok: false, response: denyResponse(gate) };
+
   let body: { url?: string; competitorUrl?: string; confirmPageSpeed?: boolean; crawlMode?: string };
   try {
     body = await req.json();
@@ -104,14 +111,29 @@ export async function resolveAuditRequest(req: NextRequest): Promise<AuditReques
 
   let used: number, limit: number, remaining: number, plan: string, competitorAllowed: boolean;
 
+  // Device-bound trial: free-plan audits are shared across every account
+  // on the same device / fingerprint+IP / (loosely) network, so extra
+  // accounts or cleared storage don't multiply the free quota.
+  let trial: TrialDecision | null = null;
+  try {
+    if ((await getUserPlan(identity.uid)) === "free") {
+      trial = await consumeDeviceTrial(req, gate, { viaApiKey: !!apiKeyHeader });
+      if (!trial.allowed) return fail({ error: trial.message, code: trial.code }, trial.status || 429);
+    }
+  } catch {
+    trial = null; // fail open — never block on bookkeeping errors
+  }
+
   let usage;
   try {
     usage = await checkAndIncrementUsage(identity.uid);
   } catch (err) {
+    await refundDeviceTrial(trial);
     const message = err instanceof Error ? err.message : "Failed to check your usage limit.";
     return fail({ error: message }, 500);
   }
   if (!usage.allowed) {
+    await refundDeviceTrial(trial);
     return fail(
       {
         error: `You've used all ${usage.limit} audits on your ${PLANS[usage.plan].name} plan today. It resets at midnight UTC, or upgrade for a higher limit.`,

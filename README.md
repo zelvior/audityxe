@@ -269,6 +269,40 @@ number — nudge a category's score and the shape moves with it.
 | **Badge** | Embeddable "Audited by Audityxe" SVG badge with live verification |
 | **Social** | Auto-generated X/LinkedIn post copy and a downloadable share banner |
 
+## Abuse protection
+
+Layered, server-enforced protection in `lib/abuse/` (all state in server-only Firestore
+collections `abuse_*`; raw IPs/fingerprints are never stored — only HMACs):
+
+- **Device identity** — `lib/device-client.ts` keeps a redundant id in cookie + localStorage +
+  IndexedDB (self-healing, majority vote) and the server issues a signed **HttpOnly** cookie
+  (`ax_dtk`) as a tamper-proof fourth copy. Ids are server-minted; a client-supplied id is only
+  honoured if the signed cookie agrees or its stored hardware parts match.
+- **Browser fingerprint** — hashed canvas (with anti-fingerprint-noise detection), WebGL
+  vendor/renderer/params, audio, fonts, screen, math, locale/timezone/hardware, plus automation
+  signals (webdriver, headless UA, automation globals, software renderer, patched native APIs).
+  Server cross-checks the declared UA/language against the real request headers.
+- **Account / device / IP graph** — every registration links account <-> device <-> network
+  (`/api/device/register`, called by `components/DeviceGuard.tsx`); the admin page
+  (`/admin/abuse`) renders it and finds rings, ban evasion and account farming.
+- **Risk scoring** (`lib/abuse/risk.ts`, pure + unit-tested) -> low / medium / high / critical.
+  Higher risk shrinks rate limits; critical blocks.
+- **Rate limits & quotas** — per-IP (IPv6 collapsed to /64), per-device and per-account
+  fixed-window counters on audit, bulk, redeem and payment routes, scaled by risk.
+- **Device-bound trial** — free-plan audits are shared across every account on a device, a
+  fingerprint+IP pair, and (looser) a network, so extra accounts or cleared storage don't multiply
+  free audits. Paid plans are unaffected.
+- **Auto ban / auto unban** — strike points (rate-limit hammering, SSRF probing of internal
+  addresses, ban evasion, account farming, critical risk) trip an escalating **temporary** ban
+  (1h -> 24h -> 7d -> 30d) on the account, its device, fingerprint and (if unshared) IP, and on
+  accounts farmed on the same device. Auto-bans expire by themselves; admins can unban in one
+  click (also lifts linked auto-bans). Permanent bans are admin-only.
+- **Admin safety** — verified `ADMIN_EMAILS` accounts bypass every control, can't be banned or
+  suspended by any code path (including by UID), and any device/IP an admin has used is never
+  auto-banned.
+- **Fail-open** — an internal error in the abuse engine never blocks a real user. Roll out with
+  `ABUSE_MODE=monitor` first (see `.env.example`).
+
 ## Background audit jobs & notifications
 
 A real-browser Lighthouse pass or a deep multi-hop crawl can take long enough that staying on the

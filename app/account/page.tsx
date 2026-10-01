@@ -305,6 +305,14 @@ function AccountPageInner() {
               <LayoutDashboard size={16} /> Admin Dashboard
             </Link>
           )}
+          {user.emailVerified && usage?.isAdmin && (
+            <Link
+              href="/admin/abuse"
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-card glass text-sm font-semibold hover:border-[rgb(var(--color-text-primary)/0.2)] transition mb-3"
+            >
+              <ShieldCheck size={16} /> Abuse Protection
+            </Link>
+          )}
 
           <Link
             href="/settings"

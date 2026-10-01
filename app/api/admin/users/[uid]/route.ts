@@ -4,6 +4,7 @@ import { requireAdmin, isAdminIdentity } from "@/lib/admin";
 import { banUser, suspendUser, unbanUser, adminSetUserPlan, adminResetUsage } from "@/lib/user-moderation";
 import { adminAuth } from "@/lib/firebase/admin";
 import { logAdminAction } from "@/lib/admin-log";
+import { isAdminEmail } from "@/lib/admin-email";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -36,6 +37,15 @@ export async function POST(req: NextRequest, { params }: { params: { uid: string
       return NextResponse.json({ error: "Admin accounts can't be moderated through this panel." }, { status: 400 });
     }
 
+    // The check above only catches email targets — also resolve a raw UID
+    // to its email so an admin can't be moderated by UID either.
+    if (!target.includes("@")) {
+      const byUid = await adminAuth().getUser(target).catch(() => null);
+      if (byUid?.email && isAdminEmail(byUid.email)) {
+        return NextResponse.json({ error: "Admin accounts can't be moderated through this panel." }, { status: 400 });
+      }
+    }
+
     let logDetails: string | null = null;
     if (action === "ban") {
       const reason = typeof body?.reason === "string" ? body.reason : "";
@@ -48,7 +58,10 @@ export async function POST(req: NextRequest, { params }: { params: { uid: string
       await suspendUser(target, until, reason, identity.email || "unknown");
       logDetails = `until ${until}${reason ? ` — ${reason}` : ""}`;
     } else if (action === "unban") {
+      const { unbanAllForUid } = await import("@/lib/abuse/graph");
+      const resolved = targetUser?.uid || (target.includes("@") ? (await adminAuth().getUserByEmail(target)).uid : target);
       await unbanUser(target, identity.email || "unknown");
+      await unbanAllForUid(resolved, identity.email || "unknown");
     } else if (action === "set-plan") {
       const plan = body?.plan;
       const expiresAt = typeof body?.expiresAt === "string" ? body.expiresAt : null;

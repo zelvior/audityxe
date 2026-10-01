@@ -67,12 +67,29 @@ export async function fetchJson<T = any>(input: string, init?: RequestInit): Pro
     return { ok: false, status: 0, data: null, error: "Blocked an API request to an untrusted host." };
   }
 
+  // Device id (from the redundant browser stores) rides along as a
+  // *comparison* signal only — the server trusts the signed HttpOnly
+  // cookie, never this header, and flags a mismatch as tampering.
+  let deviceHeader: Record<string, string> = {};
+  if (typeof window !== "undefined" && input.startsWith("/api/")) {
+    try {
+      const { currentDeviceId, ensureDeviceReadyFromContext } = await import("./device-client");
+      // Expensive/abusable endpoints need the signed device cookie to
+      // exist already — wait (bounded) for registration to finish.
+      if (/^\/api\/(audit|account\/redeem-code|payments)/.test(input)) await ensureDeviceReadyFromContext();
+      const id = currentDeviceId();
+      if (id) deviceHeader = { "x-device-id": id };
+    } catch {
+      /* ignore */
+    }
+  }
   const res = await fetch(url, {
     // Same-origin by default so a cookie/session never rides along to
     // an unexpected host even if a future call site passes a full URL
     // — explicit callers can still override this via init.credentials.
     credentials: "same-origin",
     ...init,
+    headers: { ...deviceHeader, ...(init?.headers as Record<string, string> | undefined) },
   });
   const contentType = res.headers.get("content-type") || "";
 

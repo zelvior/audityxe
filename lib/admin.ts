@@ -4,6 +4,7 @@ import { DecodedIdentity } from "./rate-limit";
 import { AuthError } from "./auth-server";
 import { adminDb } from "./firebase/admin";
 import { FieldValue, Transaction } from "firebase-admin/firestore";
+import { adminEmailList } from "./admin-email";
 
 /**
  * Comma-separated allowlist of admin emails — read strictly from
@@ -12,8 +13,7 @@ import { FieldValue, Transaction } from "firebase-admin/firestore";
  * granting access to some baked-in address.
  */
 function adminEmails(): string[] {
-  const raw = process.env.ADMIN_EMAILS || "";
-  return raw.split(",").map((e) => e.trim().toLowerCase()).filter(Boolean);
+  return adminEmailList();
 }
 
 export function isAdminIdentity(identity: DecodedIdentity): boolean {

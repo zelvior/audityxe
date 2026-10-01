@@ -6,6 +6,7 @@ import { AuthProvider } from "@/context/AuthContext";
 import ModerationGuard from "@/components/ModerationGuard";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
 import PushGate from "@/components/PushGate";
+import DeviceGuard from "@/components/DeviceGuard";
 
 const SITE_URL = "https://audityxe.vercel.app";
 const SITE_NAME = "Audityxe";
@@ -212,6 +213,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <AuthProvider>
           <ModerationGuard />
           <PushGate />
+          <DeviceGuard />
           <AnnouncementBanner />
           {children}
         </AuthProvider>

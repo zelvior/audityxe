@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth, AuthError } from "@/lib/auth-server";
 import { redeemCode } from "@/lib/discount-codes";
+import { enforceAbuseControls, denyResponse } from "@/lib/abuse/enforce";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -8,6 +9,8 @@ export const dynamic = "force-dynamic";
 export async function POST(req: NextRequest) {
   try {
     const identity = await requireAuth(req);
+    const gate = await enforceAbuseControls(req, { route: "redeem", identity });
+    if (!gate.allowed) return denyResponse(gate);
     const body = await req.json().catch(() => ({}));
     const code = typeof body?.code === "string" ? body.code.slice(0, 64) : "";
 

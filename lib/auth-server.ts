@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { adminAuth } from "./firebase/admin";
 import { DecodedIdentity } from "./rate-limit";
 import { getModerationStatus } from "./user-moderation";
+import { isAdminEmail } from "./admin-email";
 
 export class AuthError extends Error {
   status: number;
@@ -54,7 +55,10 @@ export async function requireAuth(req: NextRequest, options: RequireAuthOptions 
   // moderation doc says so, without needing to revoke every session
   // individually (Auth-level disable happens too, see banUser, but this
   // covers the window before a refreshed token would reflect that).
-  const moderation = await getModerationStatus(decoded.uid);
+  // Admin accounts are never subject to moderation — a stray moderation
+  // doc (manual edit, old data) must never lock the operator out.
+  const isAdmin = !!decoded.email_verified && isAdminEmail(decoded.email);
+  const moderation = isAdmin ? { status: "active" as const, reason: null, until: null } : await getModerationStatus(decoded.uid);
   if (moderation.status === "banned") {
     throw new AuthError(
       moderation.reason ? `Your account has been banned: ${moderation.reason}` : "Your account has been banned.",

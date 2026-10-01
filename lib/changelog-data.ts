@@ -6,6 +6,14 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    version: "3.17.0",
+    date: "October 2026",
+    changes: [
+      "New: abuse protection \u2014 redundant device ids (cookie/localStorage/IndexedDB + signed HttpOnly cookie), hashed browser fingerprinting with automation detection, an account/device/IP graph, risk scoring, risk-scaled rate limits, device-bound free trials, and automatic escalating temporary bans that lift themselves. Admin page at /admin/abuse. Admin accounts are exempt from everything.",
+      "Fixed: the admin moderation endpoint only protected admins addressed by email \u2014 an admin could still be banned by UID. Admin accounts can now never be banned or suspended by any path.",
+    ],
+  },
+  {
     version: "3.16.0",
     date: "October 2026",
     changes: [

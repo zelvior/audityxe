@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { waitUntil } from "@vercel/functions";
 import { runAudit } from "@/lib/analyze";
 import { sendAuditPush } from "@/lib/push";
+import { enforceAbuseControls, denyResponse } from "@/lib/abuse/enforce";
 import { requireAuth, AuthError } from "@/lib/auth-server";
 import { ensureUserDoc, checkAndIncrementUsage, getUsageSnapshot } from "@/lib/rate-limit";
 import { PLANS } from "@/lib/plans";
@@ -52,6 +53,9 @@ export async function POST(req: NextRequest) {
     }
     return NextResponse.json({ error: "Authentication failed." }, { status: 401 });
   }
+
+  const gate = await enforceAbuseControls(req, { route: "bulk", identity });
+  if (!gate.allowed) return denyResponse(gate);
 
   let body: { urls?: string[] };
   try {

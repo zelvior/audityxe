@@ -23,6 +23,15 @@ export default function CookiesPage() {
         correctly.
       </p>
 
+      <h2>2a. Security and abuse-prevention identifiers</h2>
+      <p>
+        Audityxe sets a strictly necessary, HttpOnly first-party security cookie
+        (<code>ax_dtk</code>, up to 2 years) and stores a random device identifier
+        (<code>__ax_did</code>) in a cookie, local storage and IndexedDB. They exist only to
+        enforce rate limits and free-plan quotas and to detect abuse; they are not used for
+        advertising or tracking across other sites.
+      </p>
+
       <h2>2. What we use</h2>
       <ul>
         <li>

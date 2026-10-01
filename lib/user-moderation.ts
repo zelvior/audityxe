@@ -4,6 +4,8 @@ import { PlanId, PLANS } from "./plans";
 import { getGlobalCounters, getDailyStats, DailyStatPoint } from "./counters";
 import { getAuditCounts } from "./audit-log";
 import { bloomMightContain, normalizeToken } from "./bloom-filter";
+import { isAdminEmail } from "./admin-email";
+import { noteUidModerated } from "./abuse/store";
 
 function todayKey(): string {
   return new Date().toISOString().slice(0, 10); // YYYY-MM-DD (UTC) — matches lib/rate-limit.ts
@@ -63,8 +65,17 @@ async function findUidByEmail(uidOrEmail: string): Promise<string> {
   return user.uid;
 }
 
+/** Defense in depth: admin accounts can never be banned or suspended,
+ * regardless of which code path (admin panel, auto-defense, scripts)
+ * asks for it. */
+async function assertNotAdmin(uid: string): Promise<void> {
+  const u = await adminAuth().getUser(uid).catch(() => null);
+  if (u && isAdminEmail(u.email)) throw new Error("Admin accounts can't be banned or suspended.");
+}
+
 export async function banUser(uidOrEmail: string, reason: string, actedByEmail: string): Promise<void> {
   const uid = await findUidByEmail(uidOrEmail);
+  await assertNotAdmin(uid);
   const db = adminDb();
   await db.collection("users").doc(uid).set(
     {
@@ -82,6 +93,7 @@ export async function banUser(uidOrEmail: string, reason: string, actedByEmail: 
   // ID token stops being mintable via refresh, not just blocked at the
   // API layer.
   await adminAuth().updateUser(uid, { disabled: true }).catch(() => {});
+  noteUidModerated(uid).catch(() => {});
 }
 
 export async function suspendUser(
@@ -95,6 +107,7 @@ export async function suspendUser(
     throw new Error("Suspension end date must be a valid date in the future.");
   }
   const uid = await findUidByEmail(uidOrEmail);
+  await assertNotAdmin(uid);
   const db = adminDb();
   await db.collection("users").doc(uid).set(
     {
@@ -108,6 +121,7 @@ export async function suspendUser(
     },
     { merge: true }
   );
+  noteUidModerated(uid).catch(() => {});
 }
 
 export async function unbanUser(uidOrEmail: string, actedByEmail: string): Promise<void> {
