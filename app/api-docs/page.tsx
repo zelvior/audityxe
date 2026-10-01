@@ -119,7 +119,7 @@ export default function ApiDocsPage() {
   "url": "https://example.com",        // required
   "competitorUrl": "https://...",      // Standard/Pro only, ignored otherwise
   "confirmPageSpeed": true,            // Pro only — opt-in real Lighthouse pass
-  "crawlMode": "fast" | "deep" | "max" // default "fast"
+  "crawlMode": "fast" | "deep" | "max" | "ultra" // default "fast"
 }`}
             </pre>
           </div>

@@ -16,7 +16,7 @@ const MAX_URL_LENGTH = 2048;
 export interface ResolvedAuditRequest {
   url: string;
   competitorUrl?: string;
-  crawlMode: "fast" | "deep" | "max";
+  crawlMode: "fast" | "deep" | "max" | "ultra";
   includePromo: boolean;
   promoLockReason?: "plan" | "byok_missing";
   byok?: { apiKey: string; baseUrl?: string | null; model?: string | null };
@@ -126,7 +126,7 @@ export async function resolveAuditRequest(req: NextRequest): Promise<AuditReques
   competitorAllowed = PLANS[usage.plan].competitorAudits;
 
   const competitorUrl = competitorAllowed ? body.competitorUrl : undefined;
-  const crawlMode: "fast" | "deep" | "max" = body.crawlMode === "deep" ? "deep" : body.crawlMode === "max" ? "max" : "fast";
+  const crawlMode: "fast" | "deep" | "max" | "ultra" = body.crawlMode === "deep" ? "deep" : body.crawlMode === "max" ? "max" : body.crawlMode === "ultra" ? "ultra" : "fast";
 
   let includePromo = false;
   let promoLockReason: "plan" | "byok_missing" | undefined;

@@ -1826,7 +1826,7 @@ export interface AuditOptions {
    * links + sitemap seeds. "deep" runs a real multi-hop request queue
    * (site-crawl-deep.ts). "max" runs the maximum-coverage crawler
    * (site-crawl-max.ts). Lazy-imported only when requested. */
-  crawlMode?: "fast" | "deep" | "max";
+  crawlMode?: "fast" | "deep" | "max" | "ultra";
 }
 
 export async function runAudit(

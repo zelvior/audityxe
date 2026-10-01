@@ -617,13 +617,13 @@ per audit from a toggle under the URL field ("Site crawl: Fast / Deep"):
 |---|---|---|
 | Source file | `lib/site-crawl.ts` | `lib/site-crawl-deep.ts` (lazy-imported) | `lib/site-crawl-max.ts` (lazy-imported) |
 | Discovery | Homepage's own links + `/sitemap.xml` seeds | Real multi-hop request queue | Multi-hop queue + sitemap seeding |
-| Pages | Up to 6 | Up to 25 | Up to 50 |
-| Depth | 1 hop from homepage | Up to 3 hops | Up to 5 hops |
+| Pages | Up to 6 | Up to 25 | Up to 50 (ultra: 100) |
+| Depth | 1 hop from homepage | Up to 3 hops | Up to 5 hops (ultra: 8) |
 | HTML parsing | Regex-based | Real DOM traversal via `cheerio` | Real DOM traversal via `cheerio` |
 | robots.txt | Not checked | Fetched once, Disallow rules enforced | Fetched once, Disallow rules enforced |
-| Retries | None | One retry with backoff | Two retries with backoff |
-| Concurrency | 3 in flight | 5 in flight | 8 in flight |
-| Typical cost | A few seconds | Up to ~40s internal budget | Up to ~80s internal budget |
+| Retries | None | One retry with backoff | Two retries (ultra: three) |
+| Concurrency | 3 in flight | 5 in flight | 8 in flight (ultra: 16) |
+| Typical cost | A few seconds | Up to ~40s internal budget | Up to ~80s (ultra: ~120s) |
 
 **On the standalone Crawlee-based crawler package supplied for review:** we evaluated merging it in
 directly instead of building `site-crawl-deep.ts`. Verdict: **it cannot be built as delivered.**

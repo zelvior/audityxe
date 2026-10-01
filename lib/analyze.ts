@@ -1815,6 +1815,12 @@ const MAX_OVERALL_AUDIT_TIMEOUT_MS = 90000;
 const COMPETITOR_MAX_OVERALL_AUDIT_TIMEOUT_MS = 105000;
 const MAX_PSI_OVERALL_AUDIT_TIMEOUT_MS = 115000;
 const COMPETITOR_MAX_PSI_OVERALL_AUDIT_TIMEOUT_MS = 120000;
+// Ultra crawl mode — pushes past normal auditing limits. 100 pages, 8 hops,
+// 120s crawl budget, 3 retries. Timeouts sized for the absolute worst case.
+const ULTRA_OVERALL_AUDIT_TIMEOUT_MS = 150000;
+const COMPETITOR_ULTRA_OVERALL_AUDIT_TIMEOUT_MS = 165000;
+const ULTRA_PSI_OVERALL_AUDIT_TIMEOUT_MS = 175000;
+const COMPETITOR_ULTRA_PSI_OVERALL_AUDIT_TIMEOUT_MS = 180000;
 
 function withOverallTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
   let timer: ReturnType<typeof setTimeout>;
@@ -1849,7 +1855,7 @@ export interface AuditOptions {
    * (site-crawl-deep.ts). "max" runs the maximum-coverage crawler
    * (site-crawl-max.ts) — the most thorough option. Lazy-imported only
    * when requested, so cheerio never loads on the default fast path. */
-  crawlMode?: "fast" | "deep" | "max";
+  crawlMode?: "fast" | "deep" | "max" | "ultra";
   /** Optional real-time progress reporter — called at genuine checkpoints
    * as the audit actually reaches them (not a simulated/fake step list).
    * Used by the background-job flow (app/api/audit/start) to persist a
@@ -1877,32 +1883,41 @@ export async function runAudit(
   const crawlMode = options.crawlMode ?? "fast";
   const isDeep = crawlMode === "deep";
   const isMax = crawlMode === "max";
+  const isUltra = crawlMode === "ultra";
   const hasCompetitor = !!(competitorRawUrl && competitorRawUrl.trim());
   const wantsPsi = !!options.includePageSpeed;
 
-  const timeoutMs = hasCompetitor && isMax && wantsPsi
-    ? COMPETITOR_MAX_PSI_OVERALL_AUDIT_TIMEOUT_MS
-    : isMax && wantsPsi
-      ? MAX_PSI_OVERALL_AUDIT_TIMEOUT_MS
-      : hasCompetitor && isMax
-        ? COMPETITOR_MAX_OVERALL_AUDIT_TIMEOUT_MS
-        : hasCompetitor && isDeep && wantsPsi
-          ? COMPETITOR_DEEP_PSI_OVERALL_AUDIT_TIMEOUT_MS
-          : isDeep && wantsPsi
-            ? DEEP_PSI_OVERALL_AUDIT_TIMEOUT_MS
-            : hasCompetitor && wantsPsi
-              ? COMPETITOR_PSI_OVERALL_AUDIT_TIMEOUT_MS
-              : hasCompetitor && isDeep
-                ? COMPETITOR_DEEP_OVERALL_AUDIT_TIMEOUT_MS
-                : wantsPsi
-                  ? PSI_OVERALL_AUDIT_TIMEOUT_MS
-                  : isMax
-                    ? MAX_OVERALL_AUDIT_TIMEOUT_MS
-                    : isDeep
-                      ? DEEP_OVERALL_AUDIT_TIMEOUT_MS
-                      : hasCompetitor
-                        ? COMPETITOR_OVERALL_AUDIT_TIMEOUT_MS
-                        : OVERALL_AUDIT_TIMEOUT_MS;
+  const timeoutMs = hasCompetitor && isUltra && wantsPsi
+    ? COMPETITOR_ULTRA_PSI_OVERALL_AUDIT_TIMEOUT_MS
+    : isUltra && wantsPsi
+      ? ULTRA_PSI_OVERALL_AUDIT_TIMEOUT_MS
+      : hasCompetitor && isUltra
+        ? COMPETITOR_ULTRA_OVERALL_AUDIT_TIMEOUT_MS
+        : hasCompetitor && isMax && wantsPsi
+          ? COMPETITOR_MAX_PSI_OVERALL_AUDIT_TIMEOUT_MS
+          : isMax && wantsPsi
+            ? MAX_PSI_OVERALL_AUDIT_TIMEOUT_MS
+            : hasCompetitor && isMax
+              ? COMPETITOR_MAX_OVERALL_AUDIT_TIMEOUT_MS
+              : hasCompetitor && isDeep && wantsPsi
+                ? COMPETITOR_DEEP_PSI_OVERALL_AUDIT_TIMEOUT_MS
+                : isDeep && wantsPsi
+                  ? DEEP_PSI_OVERALL_AUDIT_TIMEOUT_MS
+                  : hasCompetitor && wantsPsi
+                    ? COMPETITOR_PSI_OVERALL_AUDIT_TIMEOUT_MS
+                    : hasCompetitor && isDeep
+                      ? COMPETITOR_DEEP_OVERALL_AUDIT_TIMEOUT_MS
+                      : wantsPsi
+                        ? PSI_OVERALL_AUDIT_TIMEOUT_MS
+                        : isUltra
+                          ? ULTRA_OVERALL_AUDIT_TIMEOUT_MS
+                          : isMax
+                            ? MAX_OVERALL_AUDIT_TIMEOUT_MS
+                            : isDeep
+                              ? DEEP_OVERALL_AUDIT_TIMEOUT_MS
+                              : hasCompetitor
+                                ? COMPETITOR_OVERALL_AUDIT_TIMEOUT_MS
+                                : OVERALL_AUDIT_TIMEOUT_MS;
 
   return withOverallTimeout(
     runAuditInner(rawUrl, competitorRawUrl, options),
@@ -1988,17 +2003,22 @@ async function runAuditInner(
     checkFaviconManifest(primary.origin, primary.html, primary.finalUrl),
     checkAssetWeights(primary.html, primary.finalUrl),
     checkLegalPages(primary.html, primary.origin, primary.finalUrl, siteContext),
-    options.crawlMode === "max"
+    options.crawlMode === "ultra"
       ? import("./site-crawl-max").then((m) => m.crawlSiteMax(primary.html, primary.finalUrl)).then((r) => {
-          report("Max-coverage crawl complete.");
+          report("Ultra-coverage crawl complete.");
           return r;
         })
-      : options.crawlMode === "deep"
-        ? import("./site-crawl-deep").then((m) => m.crawlSiteDeep(primary.html, primary.finalUrl)).then((r) => {
-            report("Deep multi-hop crawl complete.");
+      : options.crawlMode === "max"
+        ? import("./site-crawl-max").then((m) => m.crawlSiteMax(primary.html, primary.finalUrl)).then((r) => {
+            report("Max-coverage crawl complete.");
             return r;
           })
-        : crawlSite(primary.html, primary.finalUrl),
+        : options.crawlMode === "deep"
+          ? import("./site-crawl-deep").then((m) => m.crawlSiteDeep(primary.html, primary.finalUrl)).then((r) => {
+              report("Deep multi-hop crawl complete.");
+              return r;
+            })
+          : crawlSite(primary.html, primary.finalUrl),
     checkCookieFlags(primary.origin),
     checkRedirectChain(rawUrl),
   ]);

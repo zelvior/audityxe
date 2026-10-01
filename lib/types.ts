@@ -152,8 +152,8 @@ export interface AuditResult {
   verdict: string;
   categories: CategoryScore[];
   fixes: FixItem[];
-  /** Which crawl mode produced this result — "fast", "deep", or "max". */
-  crawlMode: "fast" | "deep" | "max";
+  /** Which crawl mode produced this result — "fast", "deep", "max", or "ultra". */
+  crawlMode: "fast" | "deep" | "max" | "ultra";
   xPost: string;
   linkedinPost: string;
   /** What kind of site this looks like (SaaS, e-commerce, blog, etc.)
