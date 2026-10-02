@@ -4,7 +4,7 @@ import { CHANGELOG_ENTRIES } from "@/lib/changelog-data";
 export const dynamic = "force-static";
 export const revalidate = 3600;
 
-const SITE_URL = "https://audityxe.vercel.app";
+const SITE_URL = "https://audityxe.xyz";
 
 function escapeXml(s: string): string {
   return s

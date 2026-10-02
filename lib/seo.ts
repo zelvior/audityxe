@@ -10,7 +10,7 @@ import type { Metadata } from "next";
  * and can get them dropped from the index entirely in favor of the
  * homepage, regardless of how good their own content is.
  */
-export const SITE_URL = "https://audityxe.vercel.app";
+export const SITE_URL = "https://audityxe.xyz";
 
 /** Canonical + OG url for a normal, public, indexable page. */
 export function canonicalMeta(path: string): Pick<Metadata, "alternates" | "openGraph" | "twitter"> {

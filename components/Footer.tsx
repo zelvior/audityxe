@@ -310,6 +310,19 @@ export default function Footer() {
           </ul>
         </nav>
 
+        <div className="mt-6 flex justify-center">
+          <a href="https://websitelaunches.com/site/audityxe.xyz" target="_blank" rel="noopener">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="https://websitelaunches.com/badge/audityxe.xyz.svg?theme=dark"
+              alt="Established online - Public launch record"
+              width={255}
+              height={55}
+              loading="lazy"
+            />
+          </a>
+        </div>
+
         <p className="mt-4 text-[9px] font-mono text-text-secondary/40 text-center">
           Open-source work of{" "}
           <a

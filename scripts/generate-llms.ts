@@ -9,7 +9,7 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { CAPABILITIES, CHECK_PAGES, CLI_FLAGS, COMPARISON_PAGES, GLOSSARY, NPM_URL, GITHUB_URL, SEO_REVIEWED, STATUS_LABEL, TROUBLESHOOTING } from "../lib/seo-content";
 
-const BASE = "https://audityxe.vercel.app";
+const BASE = "https://audityxe.xyz";
 const u = (p: string) => `${BASE}${p}`;
 
 const core = `# Audityxe

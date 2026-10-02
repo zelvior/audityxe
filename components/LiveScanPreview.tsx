@@ -91,7 +91,7 @@ export default function LiveScanPreview({ url, progressLog, backgroundJob }: Liv
           // first combination together is the well-known sandbox-escape
           // pattern (a framed page can strip its own sandbox if it's
           // actually same-origin with the parent) — which would matter
-          // here specifically if someone audits audityxe.vercel.app
+          // here specifically if someone audits audityxe.xyz
           // itself. The rest are each independently capable of letting
           // the framed page hijack the parent tab, pop up new windows,
           // or submit data somewhere — none of which this decorative

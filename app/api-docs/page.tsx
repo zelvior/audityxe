@@ -127,7 +127,7 @@ export default function ApiDocsPage() {
           <h3 className="font-display font-semibold text-base mb-2">Example</h3>
           <div className="glass rounded-card p-4 mb-2 overflow-x-auto">
             <pre className="text-xs font-mono text-text-secondary whitespace-pre">
-{`curl -X POST https://audityxe.vercel.app/api/audit \\
+{`curl -X POST https://audityxe.xyz/api/audit \\
   -H "Content-Type: application/json" \\
   -d '{"url": "https://example.com"}'`}
             </pre>

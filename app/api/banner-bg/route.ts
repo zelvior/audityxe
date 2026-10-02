@@ -80,7 +80,7 @@ export async function GET(req: NextRequest) {
   try {
     const res = await fetch(upstreamUrl, {
       signal: controller.signal,
-      headers: { "User-Agent": "Mozilla/5.0 (compatible; AudityxeBot/1.0; +https://audityxe.vercel.app)" },
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; AudityxeBot/1.0; +https://audityxe.xyz)" },
     });
 
     if (!res.ok) {

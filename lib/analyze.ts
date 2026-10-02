@@ -1439,7 +1439,7 @@ interface FetchOutcome {
 }
 
 const MAX_HTML_BYTES = 8 * 1024 * 1024; // 8MB — generous for real pages, protects against a hostile/oversized response
-const USER_AGENT = "Mozilla/5.0 (compatible; AudityxeBot/1.0; +https://audityxe.vercel.app)";
+const USER_AGENT = "Mozilla/5.0 (compatible; AudityxeBot/1.0; +https://audityxe.xyz)";
 
 async function readBodyCapped(res: Response, maxBytes: number): Promise<string> {
   const reader = res.body?.getReader();

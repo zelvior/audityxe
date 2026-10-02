@@ -46,8 +46,8 @@ export default function robots(): MetadataRoute.Robots {
       { userAgent: "*", allow, disallow },
       ...aiAndSearchAgents.map((userAgent) => ({ userAgent, allow, disallow })),
     ],
-    sitemap: "https://audityxe.vercel.app/sitemap.xml",
-    host: "https://audityxe.vercel.app",
+    sitemap: "https://audityxe.xyz/sitemap.xml",
+    host: "https://audityxe.xyz",
   };
 }
 

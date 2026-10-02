@@ -73,9 +73,9 @@ const DEEP_CRAWL_BUDGET_MS = 40000;
 // token so origin servers that special-case "no UA" or oddly-shaped
 // bots don't drop the request outright.
 const UA_POOL = [
-  "Mozilla/5.0 (compatible; AudityxeBot/1.0; +https://audityxe.vercel.app) DeepCrawl/1",
-  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) AudityxeBot/1.0 (+https://audityxe.vercel.app)",
-  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) AudityxeBot/1.0 (+https://audityxe.vercel.app)",
+  "Mozilla/5.0 (compatible; AudityxeBot/1.0; +https://audityxe.xyz) DeepCrawl/1",
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) AudityxeBot/1.0 (+https://audityxe.xyz)",
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) AudityxeBot/1.0 (+https://audityxe.xyz)",
 ];
 
 export interface DeepCrawlResult extends SiteCrawlResult {

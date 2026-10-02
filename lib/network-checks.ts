@@ -14,7 +14,7 @@
 import { assertSafeUrl } from "./url-safety";
 
 const PROBE_TIMEOUT_MS = 5000;
-const UA = "Mozilla/5.0 (compatible; AudityxeBot/1.0; +https://audityxe.vercel.app)";
+const UA = "Mozilla/5.0 (compatible; AudityxeBot/1.0; +https://audityxe.xyz)";
 const MAX_PROBE_REDIRECTS = 5;
 
 export async function probe(url: string, method: "HEAD" | "GET" = "HEAD"): Promise<{ ok: boolean; status: number; contentType: string; contentLength: number | null }> {

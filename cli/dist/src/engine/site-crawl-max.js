@@ -53,10 +53,10 @@ const MAX_REQUEST_TIMEOUT_MS = 8000;
 const MAX_MAX_LINKS_SAMPLED_PER_PAGE = 100;
 const MAX_CRAWL_BUDGET_MS = 80000;
 const UA_POOL = [
-    "Mozilla/5.0 (compatible; AudityxeBot/1.0; +https://audityxe.vercel.app) MaxCrawl/1",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) AudityxeBot/1.0 (+https://audityxe.vercel.app)",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) AudityxeBot/1.0 (+https://audityxe.vercel.app)",
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) AudityxeBot/1.0 (+https://audityxe.vercel.app)",
+    "Mozilla/5.0 (compatible; AudityxeBot/1.0; +https://audityxe.xyz) MaxCrawl/1",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) AudityxeBot/1.0 (+https://audityxe.xyz)",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) AudityxeBot/1.0 (+https://audityxe.xyz)",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) AudityxeBot/1.0 (+https://audityxe.xyz)",
 ];
 function parseRobots(txt, botToken) {
     const lines = txt.split(/\r?\n/).map((l) => l.trim());

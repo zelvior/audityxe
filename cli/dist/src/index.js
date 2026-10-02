@@ -55,7 +55,7 @@ Everything runs on your own machine — the only network requests made are
 to the URL(s) you're auditing (and Google's PageSpeed API, only if you pass
 --psi-key). --track writes only to a local file on your own disk — nothing
 is ever sent anywhere. No account, no signup, no rate limit. Same audit
-engine as https://audityxe.vercel.app, MIT-equivalent licensed — see
+engine as https://audityxe.xyz, MIT-equivalent licensed — see
 https://github.com/zelvior/audityxe/blob/main/LICENSE.md
 `.trim();
 function parseArgs(argv) {

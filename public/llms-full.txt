@@ -4,7 +4,7 @@
 
 ## What it is
 - Category: website audit and analysis tool (SEO, Core Web Vitals, accessibility, security headers, TLS/DNS, UX/CRO, AI-search readiness)
-- Official site: https://audityxe.vercel.app
+- Official site: https://audityxe.xyz
 - Source: https://github.com/zelvior/audityxe
 - npm package: audityxe-cli (command: audityxe; run with: npx audityxe-cli <url>; needs Node.js 18.17+) — https://www.npmjs.com/package/audityxe-cli
 - Maintainer: Zelvior Labs
@@ -17,21 +17,21 @@
 - No Docker image, Homebrew formula, Helm chart, SARIF output, config file, Slack/Jira/webhook integrations
 
 ## Key pages
-- [What is Audityxe?](https://audityxe.vercel.app/what-is-audityxe)
-- [Documentation](https://audityxe.vercel.app/docs)
-- [CLI guide](https://audityxe.vercel.app/cli)
-- [Integrations (GitHub Actions, GitLab, Jenkins, CircleCI, Bitbucket, Azure DevOps, Docker, VS Code)](https://audityxe.vercel.app/integrations)
-- [Capabilities & limitations](https://audityxe.vercel.app/capabilities)
-- [What Audityxe checks](https://audityxe.vercel.app/checks)
-- [Compared with other tools](https://audityxe.vercel.app/compare)
-- [Glossary](https://audityxe.vercel.app/glossary)
-- [Troubleshooting](https://audityxe.vercel.app/troubleshooting)
-- [Pricing](https://audityxe.vercel.app/pricing)
-- [Sample report](https://audityxe.vercel.app/sample-report)
-- [Methodology](https://audityxe.vercel.app/methodology)
-- [FAQ](https://audityxe.vercel.app/faq)
-- [API docs](https://audityxe.vercel.app/api-docs) · [OpenAPI spec](https://audityxe.vercel.app/openapi.yaml)
-- [Changelog](https://audityxe.vercel.app/changelog) · [Roadmap](https://audityxe.vercel.app/roadmap)
+- [What is Audityxe?](https://audityxe.xyz/what-is-audityxe)
+- [Documentation](https://audityxe.xyz/docs)
+- [CLI guide](https://audityxe.xyz/cli)
+- [Integrations (GitHub Actions, GitLab, Jenkins, CircleCI, Bitbucket, Azure DevOps, Docker, VS Code)](https://audityxe.xyz/integrations)
+- [Capabilities & limitations](https://audityxe.xyz/capabilities)
+- [What Audityxe checks](https://audityxe.xyz/checks)
+- [Compared with other tools](https://audityxe.xyz/compare)
+- [Glossary](https://audityxe.xyz/glossary)
+- [Troubleshooting](https://audityxe.xyz/troubleshooting)
+- [Pricing](https://audityxe.xyz/pricing)
+- [Sample report](https://audityxe.xyz/sample-report)
+- [Methodology](https://audityxe.xyz/methodology)
+- [FAQ](https://audityxe.xyz/faq)
+- [API docs](https://audityxe.xyz/api-docs) · [OpenAPI spec](https://audityxe.xyz/openapi.yaml)
+- [Changelog](https://audityxe.xyz/changelog) · [Roadmap](https://audityxe.xyz/roadmap)
 
 ## FAQ
 Q: What is Audityxe?
@@ -57,7 +57,7 @@ Audityxe's functional code is source-available (attribution-required): https://g
 ---
 # Capability matrix (last reviewed 2026-10-01)
 
-- Is there a hosted Audityxe web app? [Available] Yes — Audityxe is a hosted web app at audityxe.vercel.app where you paste a URL and get a scored website audit. Free accounts get a limited number of audits per day; Standard and Pro raise the limits and unlock competitor comparison, PageSpeed Insights, and bulk audits.
+- Is there a hosted Audityxe web app? [Available] Yes — Audityxe is a hosted web app at audityxe.xyz where you paste a URL and get a scored website audit. Free accounts get a limited number of audits per day; Standard and Pro raise the limits and unlock competitor comparison, PageSpeed Insights, and bulk audits.
 - Is Audityxe on npm? [Available] Yes — the npm package is named audityxe-cli (not audityxe), and it installs a command called audityxe. Run it without installing via npx audityxe-cli <url>, or install it globally or as a dev dependency. It needs Node.js 18.17 or newer.
 - Can I install Audityxe with Homebrew? [Not available] No — there is no Homebrew formula. Install it with npm, or run it without installing using npx. On macOS, Linux, and Windows the supported route is Node.js plus npm/npx.
 - Are there standalone binaries on GitHub Releases? [Not available] No — Audityxe is distributed as an npm package and a hosted web app, not as prebuilt binaries. The CLI is plain Node.js; there is no separate binary download.
@@ -114,7 +114,7 @@ Exit codes: 0 ok; 1 audit failed or score below --min-score; 2 invalid arguments
 
 ## Security Headers, CSP & HSTS Checker
 Audityxe reads the live HTTP response and TLS handshake of a URL and checks Content-Security-Policy, HSTS, the other standard security headers, CORS, cookie flags, certificate health, and a few safe read-only server probes — it does not attack or fuzz the site.
-https://audityxe.vercel.app/checks/security-headers-checker
+https://audityxe.xyz/checks/security-headers-checker
 - Security Headers: HTTPS and HTTPS→HTTP redirect downgrade; Strict-Transport-Security, including max-age, includeSubDomains, and HSTS preload-list eligibility; Content-Security-Policy: script-src, style-src, object-src, base-uri, frame-ancestors, and enforcement vs. report-only mode; X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy; Cross-Origin-Opener-Policy, Cross-Origin-Embedder-Policy, Cross-Origin-Resource-Policy; CORS configuration; Server header exposure and X-Powered-By; Cache-Control on a sensitive path; Cookie security and cookie classification; Mixed content and form-action security
 - SSL / TLS Certificate: Certificate expiration; Certificate issuer; Hostname / SAN match; TLS protocol version; Cipher suite; Key strength
 - Server Hardening: Dangerous HTTP methods; Exposed configuration files; Directory listing
@@ -123,7 +123,7 @@ https://audityxe.vercel.app/checks/security-headers-checker
 
 ## Core Web Vitals & Performance Audit
 Audityxe reports Core Web Vitals through Google's PageSpeed Insights (a real-browser Lighthouse run) and the Chrome UX Report (real-user data) — on the Pro plan in the web app, or in the free CLI when you supply your own PageSpeed Insights API key with --psi-key.
-https://audityxe.vercel.app/checks/core-web-vitals-audit
+https://audityxe.xyz/checks/core-web-vitals-audit
 - Lighthouse Audit (via PageSpeed Insights): LCP (Largest Contentful Paint); CLS (Cumulative Layout Shift); TBT (Total Blocking Time); FCP (First Contentful Paint); Speed Index; Lighthouse Performance, Accessibility, Best Practices, and SEO category scores
 - Real-User Experience (CrUX): 75th-percentile real-user values with good / needs-improvement / poor verdicts; Clear "no data" reporting for low-traffic sites
 - Performance: Server response time; HTML document size; Render-blocking stylesheets; External scripts; Lazy-loaded images; Redirect chain; Response compression; Sampled image weight and asset payload distribution; Layout-shift risk from embeds
@@ -132,7 +132,7 @@ https://audityxe.vercel.app/checks/core-web-vitals-audit
 
 ## Technical SEO Audit
 Audityxe's technical SEO audit checks the title tag, meta description, canonical tag, H1, robots.txt, sitemap.xml, structured data (JSON-LD), Open Graph and Twitter cards, broken links, image optimization, and — in deep crawls — internal linking and orphan pages.
-https://audityxe.vercel.app/checks/seo-audit
+https://audityxe.xyz/checks/seo-audit
 - SEO: Title tag and single-title check; Meta description; Canonical tag and single-canonical check; H1 heading; robots.txt; sitemap.xml; Structured data; robots↔sitemap link
 - Sitemap & Robots.txt: robots.txt exists; Crawler access; sitemap.xml exists; Freshness data; Cross-reference between robots.txt and the sitemap
 - Structured Data: JSON-LD present; Valid JSON; Schema types found; Required fields; Organization / WebSite schema
@@ -143,26 +143,26 @@ https://audityxe.vercel.app/checks/seo-audit
 
 ## Website Accessibility Audit
 Audityxe's automated accessibility audit checks document language, form labels, button and link names, descriptive link text, image alt text, landmark regions, skip-to-content links, iframe titles, ARIA misuse, and keyboard-focus visibility — plus mobile viewport and zoom settings.
-https://audityxe.vercel.app/checks/accessibility-audit
+https://audityxe.xyz/checks/accessibility-audit
 - Accessibility: Document language; Form labels; Button names and link names; Descriptive link text; Skip-to-content link; Image alt text; tabindex usage; aria-hidden misuse; Landmark regions; iframe titles; Keyboard focus visibility
 - Mobile Responsiveness: Viewport meta tag; Pinch-to-zoom not disabled; Responsive CSS; Apple touch icon; Theme color
 - UX / UI: Above-the-fold CTA; Primary heading clarity; Heading nesting; Markup semantics; Form length; Placeholder text
 
 ## AI Search Readiness (GEO / AEO / llms.txt) Audit
 AI search readiness is an Audityxe module that checks whether AI crawlers can access a site and whether its pages are structured for answer engines — covering AI-crawler rules, llms.txt, FAQPage/HowTo/Speakable schema, question-style headings, and direct-answer opening paragraphs.
-https://audityxe.vercel.app/checks/ai-search-readiness
+https://audityxe.xyz/checks/ai-search-readiness
 - AI Search & Agent Optimization (AIO / AEO / GEO / LLMO / AAO / ACO): AI crawler access in robots.txt; llms.txt; X-Robots-Tag header and meta-robots vs. header conflicts; AI-training opt-out signal; FAQPage schema; HowTo schema; Speakable schema; Author / entity schema; Question-phrased headings; Direct-answer opening paragraph; Agent navigation landmarks; Agent form-fill reliability
 
 ## DNS, TLS & Email Authentication (SPF/DKIM/DMARC) Audit
 Audityxe runs live DNS lookups for CAA records, DNSSEC, dangling CNAME subdomain-takeover risk, nameserver diversity, SOA and MX records, and checks SPF, DKIM, and DMARC — alongside a live TLS handshake that inspects the certificate chain.
-https://audityxe.vercel.app/checks/dns-tls-and-email-authentication
+https://audityxe.xyz/checks/dns-tls-and-email-authentication
 - DNS Security (CAA, DNSSEC, Subdomain Takeover & Zone Health): CAA record; DNSSEC; Dangling CNAME / subdomain takeover; Nameserver provider diversity; Nameserver records; SOA record; MX records
 - Email Authentication (SPF/DKIM/DMARC): SPF record; SPF lookup limit; DMARC policy; DKIM
 - SSL / TLS Certificate: Certificate expiration; Certificate issuer; Hostname / SAN match; TLS protocol version; Cipher suite; Key strength
 
 ## Legal & Trust Pages Check (Not a Compliance Audit)
 No — Audityxe does not audit or certify compliance with GDPR, SOC 2, HIPAA, or PCI-DSS; it only checks whether legal and trust pages (such as privacy policy, terms, and cookie policy) are present and discoverable, plus trust signals like security.txt.
-https://audityxe.vercel.app/checks/legal-and-trust-pages
+https://audityxe.xyz/checks/legal-and-trust-pages
 - Legal & Trust Pages: Detected site type (with a confidence level) used to rank which legal pages are expected; Each legal page found via navigation/footer links or conventional URLs, or reported missing; Privacy policy, terms, and cookie-policy presence
 - Trust Signals: security.txt vulnerability disclosure policy; Favicon; Web app manifest; Safari pinned-tab icon
 - Cookies & Redirects: Secure, HttpOnly, and SameSite flags; Redirect chain and hop count; HTTP→HTTPS upgrade
@@ -173,31 +173,31 @@ https://audityxe.vercel.app/checks/legal-and-trust-pages
 
 ## Audityxe vs Lighthouse
 Audityxe and Lighthouse overlap but are not substitutes: Lighthouse runs a page in a real Chrome and measures lab metrics, while Audityxe audits a URL's HTTP response, DNS, TLS, and content signals — and can include a Lighthouse run itself through Google's PageSpeed Insights (Pro plan, or --psi-key in the CLI).
-https://audityxe.vercel.app/compare/audityxe-vs-lighthouse
+https://audityxe.xyz/compare/audityxe-vs-lighthouse
 
 ## Audityxe vs SonarQube
 Audityxe and SonarQube solve different problems: SonarQube statically analyzes your source code for bugs and vulnerabilities, while Audityxe audits a deployed website's HTTP response, SEO, accessibility, TLS, and DNS from the outside without ever seeing your code.
-https://audityxe.vercel.app/compare/audityxe-vs-sonarqube
+https://audityxe.xyz/compare/audityxe-vs-sonarqube
 
 ## Audityxe vs Snyk
 Audityxe and Snyk address different layers: Snyk looks for vulnerabilities in your dependencies, code, and containers, while Audityxe audits the deployed website's security headers, TLS, DNS, SEO, and accessibility from the outside — it does not scan dependencies or code.
-https://audityxe.vercel.app/compare/audityxe-vs-snyk
+https://audityxe.xyz/compare/audityxe-vs-snyk
 
 ## Audityxe vs ESLint
 Audityxe is not a linter: ESLint statically analyzes your JavaScript/TypeScript source files, while Audityxe audits a deployed URL's HTTP headers, SEO, accessibility, TLS, and DNS from the outside.
-https://audityxe.vercel.app/compare/audityxe-vs-eslint
+https://audityxe.xyz/compare/audityxe-vs-eslint
 
 ## Audityxe vs Semgrep
 Audityxe is not a SAST tool: Semgrep scans source code with pattern rules to find security bugs, while Audityxe audits a deployed website's headers, TLS, DNS, SEO, and accessibility without reading any code.
-https://audityxe.vercel.app/compare/audityxe-vs-semgrep
+https://audityxe.xyz/compare/audityxe-vs-semgrep
 
 ## Audityxe vs OWASP ZAP
 Audityxe and OWASP ZAP differ in depth and intent: ZAP is a DAST tool that can actively attack-test a web application you own to find exploitable flaws, while Audityxe only performs passive, read-only checks of headers, TLS, DNS, and page content, plus SEO and accessibility.
-https://audityxe.vercel.app/compare/audityxe-vs-owasp-zap
+https://audityxe.xyz/compare/audityxe-vs-owasp-zap
 
 ## Audityxe vs Code Climate
 Audityxe is not a code-quality platform: Code Climate analyzes the maintainability of your repository's source code, while Audityxe audits a live website's SEO, accessibility, performance signals, and security configuration.
-https://audityxe.vercel.app/compare/audityxe-vs-codeclimate
+https://audityxe.xyz/compare/audityxe-vs-codeclimate
 
 ---
 # Glossary

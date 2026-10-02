@@ -1,5 +1,7 @@
 "use client";
 
+import { validatePassword } from "@/lib/password-policy";
+import PasswordRequirements from "@/components/PasswordRequirements";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -326,8 +328,9 @@ export default function SettingsPage() {
 
   async function handleChangePassword(e: React.FormEvent) {
     e.preventDefault();
-    if (newPassword.length < 6) {
-      setPasswordError("New password must be at least 6 characters.");
+    const passwordProblem = validatePassword(newPassword);
+    if (passwordProblem) {
+      setPasswordError(passwordProblem);
       return;
     }
     setPasswordSaving(true);
@@ -881,13 +884,14 @@ export default function SettingsPage() {
                   className="w-full bg-surface2 border border-border rounded-card px-3.5 py-2.5 text-sm outline-none focus-visible:border-primary"
                 />
                 <PasswordInput
-                  placeholder="New password (min. 6 characters)"
+                  placeholder="New password (6–10 characters)"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   required
-                  minLength={6}
+                  autoComplete="new-password"
                   className="w-full bg-surface2 border border-border rounded-card px-3.5 py-2.5 text-sm outline-none focus-visible:border-primary"
                 />
+                <PasswordRequirements password={newPassword} />
                 {passwordError && <p className="text-xs text-rose">{passwordError}</p>}
                 <button
                   type="submit"

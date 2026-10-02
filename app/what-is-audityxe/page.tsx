@@ -126,7 +126,7 @@ export default function WhatIsAudityxePage() {
         <dl className="grid sm:grid-cols-2 gap-3 text-sm">
           {[
             ["Category", "Website audit and analysis tool"],
-            ["Official site", "audityxe.vercel.app"],
+            ["Official site", "audityxe.xyz"],
             ["Source code", "github.com/zelvior/audityxe"],
             ["npm package", "audityxe-cli (command: audityxe)"],
             ["Maintainer", "Zelvior Labs"],

@@ -10,7 +10,7 @@ GitHub issue or discussing it publicly first:
   potential impact. Include "SECURITY" in the subject line so it isn't missed among general
   contact/support email.
 - If you'd rather not email, the Contact page on the site
-  ([audityxe.vercel.app](https://audityxe.vercel.app)) also reaches the same inbox.
+  ([audityxe.xyz](https://audityxe.xyz)) also reaches the same inbox.
 
 Please give a reasonable amount of time to investigate and address a report before any public
 disclosure. This is a small, largely self-funded project (see the License and Sponsor pages) —
@@ -27,7 +27,7 @@ older maintained release branches — see `CHANGELOG.md` for what's currently sh
 
 In scope:
 
-- The web app at `audityxe.vercel.app` and its API routes (`app/api/**`)
+- The web app at `audityxe.xyz` and its API routes (`app/api/**`)
 - `audityxe-cli` (the npm package and its GitHub Action usage)
 - The VS Code extension
 - This repository's source code generally (`lib/`, `components/`, `cli/`, `vscode-extension/`)

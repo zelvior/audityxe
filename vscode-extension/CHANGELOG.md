@@ -9,6 +9,9 @@ CLI version it was tested against at time of release.
 
 ## 1.3.1
 
+- Marketplace-ready: rewrote the README for Marketplace installs (the old install-from-.vsix
+  instructions are gone), added a Marketplace icon, gallery banner, issues link, and extra search
+  keywords.
 - Repackaged and version-bumped alongside `audityxe-cli@1.3.1`.
 - No changes to the extension's own commands or UI in this release.
 

@@ -1,6 +1,6 @@
 /* TEAM */
 Maker: Zelvior Labs
-Site: https://audityxe.vercel.app
+Site: https://audityxe.xyz
 Contact: zelvior [at] proton.me
 ORCID: https://orcid.org/0009-0009-2376-367X
 YouTube: https://youtube.com/@zelviorhere

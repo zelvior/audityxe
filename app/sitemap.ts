@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 import { allSeoPages, SEO_REVIEWED } from "@/lib/seo-content";
 
-const BASE_URL = "https://audityxe.vercel.app";
+const BASE_URL = "https://audityxe.xyz";
 
 interface RouteEntry {
   path: string;

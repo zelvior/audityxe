@@ -32,7 +32,7 @@ const known = new Set(["/", ...allSeoPages().map((p) => p.path)]);
 const staticOk = ["/pricing", "/sample-report", "/methodology", "/faq", "/api-docs", "/openapi.yaml", "/changelog", "/roadmap", "/llms-full.txt", "/license", "/guide", "/about"];
 for (const f of ["public/llms.txt", "public/llms-full.txt"]) {
   const txt = readFileSync(join(root, f), "utf8");
-  for (const m of Array.from(txt.matchAll(/https:\/\/audityxe\.vercel\.app(\/[^\s)]*)?/g))) {
+  for (const m of Array.from(txt.matchAll(/https:\/\/audityxe\.xyz(\/[^\s)]*)?/g))) {
     const path = (m[1] || "/").replace(/[.,;]$/, "");
     if (known.has(path) || staticOk.includes(path)) continue;
     const dir = path.split("/").filter(Boolean);

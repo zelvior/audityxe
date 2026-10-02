@@ -59,7 +59,7 @@ export default function TrustCenterPage() {
 
       <h2>5. Live third-party verification signals</h2>
       <p>
-        Independently run scans against audityxe.vercel.app — not self-reported. Click any badge
+        Independently run scans against audityxe.xyz — not self-reported. Click any badge
         to see the live report from that provider.
       </p>
       <div className="my-6">

@@ -60,7 +60,8 @@ function friendlyAuthError(err: unknown): string {
   const map: Record<string, string> = {
     "auth/email-already-in-use": "That email is already registered. Try signing in instead.",
     "auth/invalid-email": "That doesn't look like a valid email address.",
-    "auth/weak-password": "Password must be at least 6 characters.",
+    "auth/weak-password": "Password must be 6–10 characters with an uppercase letter, lowercase letter, number, and special character.",
+    "auth/password-does-not-meet-requirements": "Password must be 6–10 characters with an uppercase letter, lowercase letter, number, and special character.",
     "auth/user-not-found": "No account found with that email.",
     "auth/wrong-password": "Incorrect password.",
     "auth/invalid-credential": "Incorrect email or password.",

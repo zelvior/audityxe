@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: Audityxe API
   description: |
-    The hosted API behind [audityxe.vercel.app](https://audityxe.vercel.app)'s own audit UI.
+    The hosted API behind [audityxe.xyz](https://audityxe.xyz)'s own audit UI.
 
     **Important — read before integrating:** this endpoint is subject to the same per-plan daily
     limits as the website (see the README's "Plans and limits" section), and authenticated access
@@ -23,7 +23,7 @@ info:
     name: Zelvior Labs
     email: zelvior@proton.me
 servers:
-  - url: https://audityxe.vercel.app
+  - url: https://audityxe.xyz
     description: Production
 
 paths:

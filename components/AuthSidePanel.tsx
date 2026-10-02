@@ -65,15 +65,19 @@ export default function AuthSidePanel() {
           className="absolute"
           style={{ left: `${(x / 520) * 100}%`, top: `${(y / 640) * 100}%`, transform: "translate(-50%, -50%)" }}
         >
+          {/* The float loop lives on the OUTER wrapper so the card and its
+              icon bob together as one unit. It used to sit on the inner
+              icon only, so the icon drifted up and down inside a card
+              that never moved. The entrance animation stays on the card. */}
           <motion.div
-            className="glass rounded-2xl p-3"
-            initial={{ opacity: 0, y: 12, scale: 0.85 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ delay, duration: 0.5, ease: "easeOut" }}
+            animate={{ y: [0, -8, 0] }}
+            transition={{ delay: delay + 0.6, duration: 3 + i * 0.4, repeat: Infinity, ease: "easeInOut" }}
           >
             <motion.div
-              animate={{ y: [0, -6, 0] }}
-              transition={{ delay: delay + 1, duration: 3 + i * 0.4, repeat: Infinity, ease: "easeInOut" }}
+              className="glass rounded-2xl p-3"
+              initial={{ opacity: 0, y: 12, scale: 0.85 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ delay, duration: 0.5, ease: "easeOut" }}
             >
               <Icon size={18} className="text-primary" />
             </motion.div>

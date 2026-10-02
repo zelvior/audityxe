@@ -21,7 +21,10 @@ export interface ShowcaseEntry {
   submittedAt: string;
 }
 
-const BADGE_LINK_PATTERN = /href=["'][^"']*audityxe\.vercel\.app[^"']*["']/i;
+// Matches the current domain AND the previous one: badges already embedded
+// on other sites before the move still link to audityxe.vercel.app, and
+// those sites must keep qualifying for the showcase.
+const BADGE_LINK_PATTERN = /href=["'][^"']*audityxe\.(?:xyz|vercel\.app)[^"']*["']/i;
 
 function normalizeHost(raw: string): string {
   return raw
@@ -58,7 +61,7 @@ export async function verifyAndSubmitToShowcase(rawHost: string): Promise<Showca
     const res = await fetch(target, {
       redirect: "follow",
       signal: controller.signal,
-      headers: { "User-Agent": "Mozilla/5.0 (compatible; AudityxeBot/1.0; +https://audityxe.vercel.app)" },
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; AudityxeBot/1.0; +https://audityxe.xyz)" },
     });
     if (!res.ok) {
       throw new ShowcaseVerificationError(`Couldn't fetch https://${host}/ (HTTP ${res.status}).`);

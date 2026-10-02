@@ -10,12 +10,13 @@ Instant, evidence-based website audits — every score backed by a real, live ch
 [![npm downloads](https://img.shields.io/npm/dm/audityxe-cli.svg)](https://www.npmjs.com/package/audityxe-cli)
 [![License](https://img.shields.io/badge/ACOL-1.0-blue.svg)](./LICENSE.md)
 
-[Live app](https://audityxe.vercel.app) · [Methodology](https://audityxe.vercel.app/methodology) · [Sample report](https://audityxe.vercel.app/sample-report) · [Changelog](https://audityxe.vercel.app/changelog)
+[Live app](https://audityxe.xyz) · [Methodology](https://audityxe.xyz/methodology) · [Sample report](https://audityxe.xyz/sample-report) · [Changelog](https://audityxe.xyz/changelog)
 
 <p>
 <a href="https://viberank.dev/apps/Audityxe" target="_blank" rel="noopener noreferrer"><img src="https://viberank.dev/badge?app=Audityxe&theme=dark" alt="Audityxe on VibeRank" /></a>
 <a href="https://programmerneeds.com/tools/audityxe-a2486b?utm_source=maker-site&utm_medium=badge&utm_campaign=audityxe-a2486b" target="_blank" rel="noopener"><img src="https://programmerneeds.com/api/badge/audityxe-a2486b?v=9" alt="Find Audityxe on ProgrammerNeeds" width="220" height="54" /></a>
 <a href="https://www.producthunt.com/products/audityxe?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-audityxe" target="_blank" rel="noopener noreferrer"><img alt="Audityxe - Build better. Launch faster. | Product Hunt" width="250" height="54" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1256500&theme=neutral&t=1789932465351" /></a>
+<a href="https://websitelaunches.com/site/audityxe.xyz" target="_blank" rel="noopener"><img src="https://websitelaunches.com/badge/audityxe.xyz.svg?theme=dark" alt="Established online - Public launch record" width="255" height="55" /></a>
 <a href="https://kittylaunch.com/p/audityxe?utm_source=badge" target="_blank" rel="noopener">
   <img src="https://kittylaunch.com/api/public/badges/launch_badge.svg?style=pill&theme=dark" width="296" alt="Audityxe — Verified by KittyLaunch" data-kittylaunch-badge="1" />
 </a>
@@ -389,7 +390,7 @@ action resolves immediately, no setup needed on your end beyond adding the step 
 ### REST API
 
 The hosted `/api/audit` endpoint is documented as an OpenAPI 3.0 spec at
-[`openapi.yaml`](./openapi.yaml) (view it rendered at [`/api-docs`](https://audityxe.vercel.app/api-docs)).
+[`openapi.yaml`](./openapi.yaml) (view it rendered at [`/api-docs`](https://audityxe.xyz/api-docs)).
 It's subject to the same per-plan daily limits as the website itself (see
 [Plans and limits](#plans-and-limits)) — for unlimited use, the CLI above is the right tool, since it
 runs the engine locally instead of calling this hosted endpoint.
@@ -410,7 +411,7 @@ free/open tier for scripted callers. Keys:
 Usage:
 
 ```bash
-curl -X POST https://audityxe.vercel.app/api/audit \
+curl -X POST https://audityxe.xyz/api/audit \
   -H "x-api-key: atx_live_..." \
   -H "Content-Type: application/json" \
   -d '{"url": "https://example.com"}'
@@ -419,12 +420,12 @@ curl -X POST https://audityxe.vercel.app/api/audit \
 ### VS Code extension
 
 [`vscode-extension/`](./vscode-extension) — run an audit from the Command Palette, results in an
-output panel. Also a thin wrapper around the CLI. A pre-built `.vsix` ships in the repo
-([`vscode-extension/audityxe-1.2.1.vsix`](./vscode-extension/audityxe-1.2.1.vsix)) — install it
-locally right now with `code --install-extension vscode-extension/audityxe-1.2.1.vsix`, no build
-step needed. Not yet published to the Marketplace itself — see
-[`vscode-extension/README.md`](./vscode-extension/README.md) for the exact publish steps (needs
-your own Marketplace publisher account, which this repo can't create on your behalf).
+output panel. Also a thin wrapper around the CLI. Install it from the VS Code Marketplace
+(search **Audityxe**, or `code --install-extension zelvior.audityxe`). A pre-built `.vsix`
+([`vscode-extension/audityxe-1.3.1.vsix`](./vscode-extension/audityxe-1.3.1.vsix)) also ships in
+the repo for offline installs: `code --install-extension vscode-extension/audityxe-1.3.1.vsix`.
+See [`vscode-extension/README.md`](./vscode-extension/README.md) for requirements and
+troubleshooting.
 
 ### Pre-commit / pre-deploy gate
 
@@ -620,7 +621,7 @@ That detailed diagnosis is deliberately **operator-only**: `createInvoice`'s tra
 > ⚠️ **Verify before going live.** Payment integrations must be tested against your own account.
 > Run a small real payment end-to-end and confirm the plan is credited before accepting real money.
 
-See the [Refund Policy](https://audityxe.vercel.app/refund-policy) for refund handling, including
+See the [Refund Policy](https://audityxe.xyz/refund-policy) for refund handling, including
 why crypto refunds are sent as new transactions.
 
 ## Redeem codes
@@ -635,7 +636,7 @@ fully supported. The old `/admin/discount-codes` URL 301-redirects to the new on
 
 ## Showcase
 
-[`/showcase`](https://audityxe.vercel.app/showcase) — a public wall of real sites using the
+[`/showcase`](https://audityxe.xyz/showcase) — a public wall of real sites using the
 Audityxe badge, and a genuine backlink source (see [SEO & discoverability](#seo--discoverability)).
 Deliberately **ownership-verified, not a dump of every badge ever requested**: anyone can request a
 badge for any domain without proving they own it (see [Exports](#exports)), so listing every domain
@@ -853,7 +854,7 @@ than a live plugin system.
 
 ## Roadmap
 
-See [`/roadmap`](https://audityxe.vercel.app/roadmap) for what's planned next, and
+See [`/roadmap`](https://audityxe.xyz/roadmap) for what's planned next, and
 [GitHub Issues](https://github.com/zelvior/audityxe/issues) to weigh in or request something.
 
 ## Infrastructure & scaling
@@ -910,7 +911,7 @@ never end up in a committed file).
 ## Credits
 
 Audityxe is built on the work of many others — see the full
-[Credits page](https://audityxe.vercel.app/credits) for every tool, framework, font, and
+[Credits page](https://audityxe.xyz/credits) for every tool, framework, font, and
 interactive-component source used, with attribution.
 
 ## License
@@ -937,7 +938,7 @@ this license gives to AI systems asked to replicate it.
 - [Product Hunt](https://www.producthunt.com/products/audityxe) · [ProgrammerNeeds](https://programmerneeds.com/tools/audityxe-a2486b) · [VibeRank](https://viberank.dev/apps/Audityxe)
 - [YouTube](https://youtube.com/@zelviorhere) · [Linktree](https://linktr.ee/zelvior) · [ORCID](https://orcid.org/0009-0009-2376-367X) · [KittyLaunch](https://kittylaunch.com/p/audityxe)
 - [Blog write-up](https://zelvior.blogspot.com/2026/09/audityxe.html) · [Uptime status](https://stats.uptimerobot.com/PHQOGeVpYz)
-- [MDN HTTP Observatory scan](https://developer.mozilla.org/en-US/observatory/analyze?host=audityxe.vercel.app) · [SSL Labs scan](https://www.ssllabs.com/ssltest/analyze.html?d=audityxe.vercel.app) · [Omnintel scan](https://omnintel.net/scan/audityxe.vercel.app) · [WebScan Radar](https://webscan-radar.com/)
+- [MDN HTTP Observatory scan](https://developer.mozilla.org/en-US/observatory/analyze?host=audityxe.xyz) · [SSL Labs scan](https://www.ssllabs.com/ssltest/analyze.html?d=audityxe.xyz) · [Omnintel scan](https://omnintel.net/scan/audityxe.xyz) · [WebScan Radar](https://webscan-radar.com/)
 
 ---
 

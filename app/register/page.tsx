@@ -1,5 +1,7 @@
 "use client";
 
+import { validatePassword } from "@/lib/password-policy";
+import PasswordRequirements from "@/components/PasswordRequirements";
 import { useState, Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -35,8 +37,9 @@ function RegisterForm() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters.");
+    const passwordProblem = validatePassword(password);
+    if (passwordProblem) {
+      setError(passwordProblem);
       return;
     }
     setBusy(true);
@@ -121,12 +124,16 @@ function RegisterForm() {
           <PasswordInput
             id="password"
             required
-            minLength={6}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="At least 6 characters"
+            placeholder="6–10 characters"
+            autoComplete="new-password"
+            aria-describedby="password-rules"
             className="w-full bg-surface2 border border-border rounded-card px-3.5 py-2.5 text-sm outline-none focus-visible:border-primary"
           />
+          <div id="password-rules">
+            <PasswordRequirements password={password} />
+          </div>
         </div>
 
         {error && (

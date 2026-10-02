@@ -96,7 +96,7 @@ as certainty, no guessing.
   report, only a real finding when the check actually ran.)
 - Scoped to something checkable from an already-fetched page/response, DNS, or TLS handshake — not
   something that requires rendering the page in a real browser (that's the headless-browser fallback
-  on the [roadmap](https://audityxe.vercel.app/roadmap), not something to bolt onto individual PRs).
+  on the [roadmap](https://audityxe.xyz/roadmap), not something to bolt onto individual PRs).
 
 ## Security
 

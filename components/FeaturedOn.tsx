@@ -43,6 +43,15 @@ export default function FeaturedOn() {
           height={54}
         />
       </a>
+      <a href="https://websitelaunches.com/site/audityxe.xyz" target="_blank" rel="noopener" className="inline-block">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="https://websitelaunches.com/badge/audityxe.xyz.svg?theme=dark"
+          alt="Established online - Public launch record"
+          width={255}
+          height={55}
+        />
+      </a>
       <a href="https://kittylaunch.com/p/audityxe?utm_source=badge" target="_blank" rel="noopener" className="inline-block">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img

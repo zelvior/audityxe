@@ -19,7 +19,7 @@ const HOWTO = {
   name: "How to audit a website with Audityxe",
   description: "Run your first Audityxe website audit in the web app or the command line.",
   step: [
-    { "@type": "HowToStep", position: 1, name: "Choose how to run it", text: "Use the web app at audityxe.vercel.app, or the free CLI with npx audityxe-cli." },
+    { "@type": "HowToStep", position: 1, name: "Choose how to run it", text: "Use the web app at audityxe.xyz, or the free CLI with npx audityxe-cli." },
     { "@type": "HowToStep", position: 2, name: "Enter the URL", text: "Paste the public URL in the web app, or pass it as the argument: npx audityxe-cli https://example.com." },
     { "@type": "HowToStep", position: 3, name: "Read the scored report", text: "Review the six category scores and the module findings, each with evidence and a suggested fix." },
     { "@type": "HowToStep", position: 4, name: "Gate your CI (optional)", text: "Add --min-score 75 to the CLI command, or use the GitHub Action, to fail a build when the score drops." },

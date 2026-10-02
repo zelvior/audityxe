@@ -21,7 +21,7 @@ const CRAWL_TIMEOUT_MS = 6000;
 const MAX_PAGES = 6; // homepage + up to 5 more
 const MAX_LINKS_SAMPLED_PER_PAGE = 40;
 const MAX_CONCURRENT_FETCHES = 3; // bounded request pool, same idea as a Crawlee RequestQueue's concurrency cap, without the dependency
-const UA = "Mozilla/5.0 (compatible; AudityxeBot/1.0; +https://audityxe.vercel.app)";
+const UA = "Mozilla/5.0 (compatible; AudityxeBot/1.0; +https://audityxe.xyz)";
 /**
  * Best-effort extra seed URLs pulled from /sitemap.xml, merged in
  * alongside the homepage's own <a> links before the BFS queue is capped

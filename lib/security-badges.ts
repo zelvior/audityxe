@@ -27,7 +27,7 @@ import { FieldValue } from "firebase-admin/firestore";
  * ssllabs.com or observatory-api.mdn.mozilla.net directly.
  */
 
-const TARGET_HOST = "audityxe.vercel.app";
+const TARGET_HOST = "audityxe.xyz";
 const COLLECTION = "security_badges";
 
 export interface SslLabsGrade {

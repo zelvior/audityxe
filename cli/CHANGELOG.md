@@ -1,7 +1,7 @@
 # Changelog
 
 The CLI (`audityxe-cli`) shares its audit engine byte-for-byte with the web app at
-[audityxe.vercel.app](https://audityxe.vercel.app) — `src/engine/*.ts` here is kept in sync with
+[audityxe.xyz](https://audityxe.xyz) — `src/engine/*.ts` here is kept in sync with
 the web app's `lib/*.ts` on every release, so the full, detailed changelog (every module added,
 every scoring change, every fix) lives in one place: the web app's in-product changelog
 (`/changelog` on the site, sourced from `lib/changelog-data.ts`). This file only tracks the CLI

@@ -61,9 +61,9 @@ const BACKLINKS: { href: string; label: string }[] = [
   { href: "https://kittylaunch.com/p/audityxe", label: "KittyLaunch" },
   { href: "https://zelvior.blogspot.com/2026/09/audityxe.html", label: "Blog" },
   { href: "https://stats.uptimerobot.com/PHQOGeVpYz", label: "Uptime Status" },
-  { href: "https://developer.mozilla.org/en-US/observatory/analyze?host=audityxe.vercel.app", label: "MDN Observatory Scan" },
-  { href: "https://www.ssllabs.com/ssltest/analyze.html?d=audityxe.vercel.app", label: "SSL Labs Scan" },
-  { href: "https://omnintel.net/scan/audityxe.vercel.app", label: "Omnintel Scan" },
+  { href: "https://developer.mozilla.org/en-US/observatory/analyze?host=audityxe.xyz", label: "MDN Observatory Scan" },
+  { href: "https://www.ssllabs.com/ssltest/analyze.html?d=audityxe.xyz", label: "SSL Labs Scan" },
+  { href: "https://omnintel.net/scan/audityxe.xyz", label: "Omnintel Scan" },
   { href: "https://webscan-radar.com/", label: "WebScan Radar" },
 ];
 

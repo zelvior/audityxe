@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   description: "What's new, fixed, and changed in Audityxe.",
   alternates: {
     ...canonicalMeta("changelog").alternates,
-    types: { "application/rss+xml": "https://audityxe.vercel.app/changelog/rss.xml" },
+    types: { "application/rss+xml": "https://audityxe.xyz/changelog/rss.xml" },
   },
 };
 

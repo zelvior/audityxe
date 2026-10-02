@@ -8,7 +8,7 @@ import AnnouncementBanner from "@/components/AnnouncementBanner";
 import PushGate from "@/components/PushGate";
 import DeviceGuard from "@/components/DeviceGuard";
 
-const SITE_URL = "https://audityxe.vercel.app";
+const SITE_URL = "https://audityxe.xyz";
 const SITE_NAME = "Audityxe";
 const SITE_TAGLINE = "Build better. Launch faster.";
 const SITE_TITLE = "Audityxe: Free Website Audit & Fix Report";

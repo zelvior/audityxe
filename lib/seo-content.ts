@@ -50,7 +50,7 @@ export const CAPABILITIES: Capability[] = [
     group: "Distribution",
     question: "Is there a hosted Audityxe web app?",
     status: "available",
-    answer: "Yes — Audityxe is a hosted web app at audityxe.vercel.app where you paste a URL and get a scored website audit.",
+    answer: "Yes — Audityxe is a hosted web app at audityxe.xyz where you paste a URL and get a scored website audit.",
     detail: "Free accounts get a limited number of audits per day; Standard and Pro raise the limits and unlock competitor comparison, PageSpeed Insights, and bulk audits.",
     href: "/pricing",
   },

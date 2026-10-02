@@ -1,7 +1,7 @@
 # Changelog
 
 The authoritative, always-current changelog is the in-product page at
-[audityxe.vercel.app/changelog](https://audityxe.vercel.app/changelog), sourced directly from
+[audityxe.xyz/changelog](https://audityxe.xyz/changelog), sourced directly from
 `lib/changelog-data.ts`. This file mirrors the same entries in plain Markdown so they're readable
 directly on GitHub, without running the app. If this file and `lib/changelog-data.ts` ever
 disagree, `lib/changelog-data.ts` is the source of truth — please report the mismatch.
@@ -174,5 +174,5 @@ release notes.
 
 ## Earlier releases
 
-See [audityxe.vercel.app/changelog](https://audityxe.vercel.app/changelog) for the full history —
+See [audityxe.xyz/changelog](https://audityxe.xyz/changelog) for the full history —
 this file starts from the release this project adopted a root-level `CHANGELOG.md`.

@@ -1,5 +1,5 @@
 /**
- * Live third-party trust/verification badges for audityxe.vercel.app —
+ * Live third-party trust/verification badges for audityxe.xyz —
  * independently run scans, not self-reported. Update the underlying
  * URLs here if a provider's badge path or account changes.
  *
@@ -43,7 +43,7 @@ export default function TrustBadges() {
           SSL/TLS · QUALYS SSL LABS
         </p>
         <a
-          href="https://www.ssllabs.com/ssltest/analyze.html?d=audityxe.vercel.app"
+          href="https://www.ssllabs.com/ssltest/analyze.html?d=audityxe.xyz"
           target="_blank"
           rel="noopener noreferrer"
           className="inline-block"
@@ -59,7 +59,7 @@ export default function TrustBadges() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/api/badge/qualys"
-            alt="Qualys SSL Labs grade for audityxe.vercel.app"
+            alt="Qualys SSL Labs grade for audityxe.xyz"
             width={300}
             height={90}
           />
@@ -71,7 +71,7 @@ export default function TrustBadges() {
           SECURITY SCORE · MDN HTTP OBSERVATORY
         </p>
         <a
-          href="https://developer.mozilla.org/en-US/observatory/analyze?host=audityxe.vercel.app"
+          href="https://developer.mozilla.org/en-US/observatory/analyze?host=audityxe.xyz"
           target="_blank"
           rel="noopener noreferrer"
           className="inline-block"
@@ -82,7 +82,7 @@ export default function TrustBadges() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/api/badge/mdn"
-            alt="MDN HTTP Observatory grade for audityxe.vercel.app"
+            alt="MDN HTTP Observatory grade for audityxe.xyz"
             width={300}
             height={90}
           />
@@ -94,15 +94,15 @@ export default function TrustBadges() {
           DOMAIN RISK AUDIT · OMNINTEL
         </p>
         <a
-          href="https://omnintel.net/scan/audityxe.vercel.app"
+          href="https://omnintel.net/scan/audityxe.xyz"
           target="_blank"
           rel="noopener noreferrer"
           className="inline-block"
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="https://omnintel.net/api/badge/audityxe.vercel.app.svg"
-            alt="OMNIntel security verdict for audityxe.vercel.app"
+            src="https://omnintel.net/api/badge/audityxe.xyz.svg"
+            alt="OMNIntel security verdict for audityxe.xyz"
             width={320}
             height={84}
           />
@@ -116,7 +116,7 @@ export default function TrustBadges() {
         <a href="https://webscan-radar.com" target="_blank" rel="noopener noreferrer" className="inline-block">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="https://webscan-radar.com/badge/audityxe.vercel.app"
+            src="https://webscan-radar.com/badge/audityxe.xyz"
             alt="Webscan Radar Security Grade"
             width={220}
             height={64}

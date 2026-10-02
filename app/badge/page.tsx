@@ -5,7 +5,7 @@ import { Check, Copy, ShieldCheck } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
-const SITE_URL = "https://audityxe.vercel.app";
+const SITE_URL = "https://audityxe.xyz";
 
 function normalizeDomain(input: string): string {
   return input
