@@ -6,6 +6,14 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    version: "3.19.0",
+    date: "October 2026",
+    changes: [
+      "New: Audityxe now has its own page for Firebase email links (/auth/action) \u2014 password reset, email verification, email-change recovery, and verify-and-change-email all happen on audityxe.xyz instead of the default firebaseapp.com page.",
+      "Password resets now enforce the same 6\u201310 character, mixed-case, number and special-character rules as sign-up (Firebase's hosted reset page accepted any password).",
+    ],
+  },
+  {
     version: "3.18.0",
     date: "October 2026",
     changes: [

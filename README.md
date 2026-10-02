@@ -540,6 +540,28 @@ Summary:
 | `AUDITYXE_KILL_SWITCH` / `*_MESSAGE` | ➖ | Emergency maintenance mode without redeploying code |
 | `AUDITYXE_HOTFIX_MESSAGE` | ➖ | Zero-deploy dismissible banner (e.g. "Audits are running slow — we're on it") — served via `/api/announcement`, overrides the DB-driven announcement while set |
 
+## Custom Firebase email-action page (password reset, verify email)
+
+Audityxe handles Firebase Auth email links on its own domain and design instead of the default
+`<project>.firebaseapp.com/__/auth/action` page. The handler lives at
+[`app/auth/action/page.tsx`](./app/auth/action/page.tsx) and supports `resetPassword`,
+`verifyEmail`, `recoverEmail` and `verifyAndChangeEmail`. The password-reset form enforces the
+same password policy as sign-up (`lib/password-policy.ts`), which also closes the gap where
+Firebase's hosted reset page accepted any password.
+
+To turn it on, in the Firebase Console go to **Authentication → Templates**, open any template
+(password reset, email verification, email change), click **Customize action URL**, and set:
+
+```
+https://audityxe.xyz/auth/action
+```
+
+Firebase then sends links like
+`https://audityxe.xyz/auth/action?mode=resetPassword&oobCode=…&apiKey=…&lang=en`. The same page is also served at `/__/auth/action` (a rewrite), so either form of the URL works. The domain must
+also be listed under **Authentication → Settings → Authorized domains**. Links are single-use and
+expire (password reset: 1 hour; email verification: 3 days), and a `continueUrl` is only followed
+when it points back at this site.
+
 ## PageSpeed Insights (Lighthouse) setup
 
 The Lighthouse module needs a Google API key. It's free, no billing required.

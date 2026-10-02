@@ -63,6 +63,15 @@ const nextConfig = {
     ];
   },
 
+  // Firebase's default handler lives at /__/auth/action. Serve the same
+  // Audityxe page there too, so either form of the action URL works:
+  //   https://audityxe.xyz/auth/action?mode=…&oobCode=…
+  //   https://audityxe.xyz/__/auth/action?mode=…&oobCode=…
+  // (Next ignores app/ folders starting with "__", so this is a rewrite.)
+  async rewrites() {
+    return [{ source: "/__/auth/action", destination: "/auth/action" }];
+  },
+
   // /admin/discount-codes was renamed to /admin/redeem-codes when the
   // percent_off code type (and everything checkout-side built on it)
   // was removed — this keeps any bookmark or saved link working.

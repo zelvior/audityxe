@@ -6,7 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { currentPushStatus, syncPushSubscription } from "@/lib/push-client";
 
 const EXEMPT_PREFIXES = [
-  "/onboarding", "/login", "/register", "/verify-email", "/forgot-password", "/maintenance", "/offline",
+  "/onboarding", "/auth", "/__/auth", "/login", "/register", "/verify-email", "/forgot-password", "/maintenance", "/offline",
   "/privacy", "/terms", "/cookies", "/contact", "/refund-policy", "/disclaimer", "/acceptable-use",
   "/dpa", "/license", "/third-party-services",
   // public docs / reference pages — reading them must never bounce a signed-in user to onboarding
