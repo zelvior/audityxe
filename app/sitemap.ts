@@ -49,8 +49,12 @@ const ROUTES: RouteEntry[] = [
   { path: "/refund-policy", priority: 0.3, changeFrequency: "yearly" },
 ];
 
+// YYYY-MM-DD is the simplest valid W3C date for <lastmod>; avoids the
+// millisecond/timezone variants some parsers are stricter about.
+const day = (d: Date) => d.toISOString().slice(0, 10);
+
 export default function sitemap(): MetadataRoute.Sitemap {
-  const now = new Date();
+  const now = day(new Date());
   const core = ROUTES.map((route) => ({
     url: `${BASE_URL}${route.path}`,
     lastModified: now,
@@ -61,7 +65,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   // lastmod (the date their content was last reviewed against the code)
   // instead of "now" — search engines learn to ignore lastmod on sites
   // where every URL changes on every deploy.
-  const reviewed = new Date(SEO_REVIEWED);
+  const reviewed = SEO_REVIEWED; // already YYYY-MM-DD
   const seo = allSeoPages().map((p) => ({
     url: `${BASE_URL}${p.path}`,
     lastModified: reviewed,
