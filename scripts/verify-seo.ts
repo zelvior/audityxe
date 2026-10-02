@@ -59,5 +59,25 @@ const pkg = JSON.parse(readFileSync(join(root, "cli/package.json"), "utf8"));
 if (pkg.name !== "audityxe-cli") fail(`cli package name is ${pkg.name}, docs say audityxe-cli`);
 if (!/18\.17/.test(pkg.engines?.node || "")) fail(`cli engines.node is ${pkg.engines?.node}, docs say 18.17`);
 
+// 5. the sitemap must contain only indexable, crawlable, unique URLs
+// (a noindex or robots-blocked entry shows up as a Search Console error)
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const sitemapEntries: { url: string }[] = require("../app/sitemap").default();
+const seen = new Set<string>();
+const robotsSrc = readFileSync(join(root, "app/robots.ts"), "utf8");
+const disallowed = Array.from(robotsSrc.matchAll(/disallow\s*=\s*\[([^\]]*)\]/g)).flatMap((m) => Array.from(m[1].matchAll(/"([^"]+)"/g)).map((x) => x[1]));
+for (const { url } of sitemapEntries) {
+  if (seen.has(url)) fail(`sitemap lists ${url} twice`);
+  seen.add(url);
+  if (!url.startsWith("https://audityxe.xyz")) fail(`sitemap URL on wrong host: ${url}`);
+  const path = url.replace("https://audityxe.xyz", "") || "/";
+  if (disallowed.some((d) => path === d || path.startsWith(d.endsWith("/") ? d : d + "/"))) fail(`sitemap lists robots-blocked ${path}`);
+  const dir = path.split("/").filter(Boolean);
+  for (const f of [join(root, "app", ...dir, "page.tsx"), join(root, "app", ...dir, "layout.tsx")]) {
+    if (!existsSync(f)) continue;
+    if (/noindexMeta\(|index:\s*false/.test(readFileSync(f, "utf8"))) fail(`sitemap lists noindex page ${path} (${f.replace(root + "/", "")})`);
+  }
+}
+
 console.log(failed ? `${failed} problem(s)` : "seo content verified");
 process.exit(failed ? 1 : 0);

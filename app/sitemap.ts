@@ -9,10 +9,15 @@ interface RouteEntry {
   changeFrequency: MetadataRoute.Sitemap[number]["changeFrequency"];
 }
 
-// Every real, publicly indexable route in the app. Auth-gated pages
-// (/account, /settings, /bulk) are intentionally excluded — audits
-// themselves are never stored server-side or given a public URL at
-// all, by design (see the Privacy section of the README).
+// Every real, publicly indexable route in the app. A sitemap must list
+// ONLY URLs that return 200, are indexable, and are not blocked by
+// robots.txt — otherwise Search Console reports "Submitted URL marked
+// 'noindex'" errors. So the auth-gated and auth-form pages (/account,
+// /settings, /bulk, /login, /register) are intentionally excluded:
+// they are noindex. scripts/verify-seo.ts fails if a noindex or
+// robots-blocked route ever gets added here. (Audits themselves are
+// never stored server-side or given a public URL at all, by design —
+// see the Privacy section of the README.)
 const ROUTES: RouteEntry[] = [
   { path: "", priority: 1.0, changeFrequency: "daily" },
   { path: "/pricing", priority: 0.9, changeFrequency: "weekly" },
@@ -24,9 +29,6 @@ const ROUTES: RouteEntry[] = [
   { path: "/onboarding/get-started", priority: 0.6, changeFrequency: "monthly" },
   { path: "/faq", priority: 0.8, changeFrequency: "monthly" },
   { path: "/about", priority: 0.7, changeFrequency: "monthly" },
-  { path: "/bulk", priority: 0.6, changeFrequency: "monthly" },
-  { path: "/login", priority: 0.5, changeFrequency: "yearly" },
-  { path: "/register", priority: 0.5, changeFrequency: "yearly" },
   { path: "/contact", priority: 0.5, changeFrequency: "yearly" },
   { path: "/privacy", priority: 0.3, changeFrequency: "yearly" },
   { path: "/terms", priority: 0.3, changeFrequency: "yearly" },
