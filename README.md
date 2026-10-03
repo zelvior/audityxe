@@ -545,7 +545,7 @@ Summary:
 Audityxe handles Firebase Auth email links on its own domain and design instead of the default
 `<project>.firebaseapp.com/__/auth/action` page. The handler lives at
 [`app/auth/action/page.tsx`](./app/auth/action/page.tsx) and supports `resetPassword`,
-`verifyEmail`, `recoverEmail` and `verifyAndChangeEmail`. The password-reset form enforces the
+`verifyEmail`, `recoverEmail`, `verifyAndChangeEmail` and `revertSecondFactorAddition`. The password-reset form enforces the
 same password policy as sign-up (`lib/password-policy.ts`), which also closes the gap where
 Firebase's hosted reset page accepted any password.
 
@@ -556,10 +556,13 @@ To turn it on, in the Firebase Console go to **Authentication → Templates**, o
 https://audityxe.xyz/auth/action
 ```
 
+Email templates, sender-domain/spam setup and the action-URL troubleshooting steps are in
+[`firebase/email-templates/README.md`](./firebase/email-templates/README.md).
+
 Firebase then sends links like
 `https://audityxe.xyz/auth/action?mode=resetPassword&oobCode=…&apiKey=…&lang=en`. The same page is also served at `/__/auth/action` (a rewrite), so either form of the URL works. The domain must
 also be listed under **Authentication → Settings → Authorized domains**. Links are single-use and
-expire (password reset: 1 hour; email verification: 3 days), and a `continueUrl` is only followed
+expire, and a `continueUrl` is only followed
 when it points back at this site.
 
 ## PageSpeed Insights (Lighthouse) setup

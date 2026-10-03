@@ -20,7 +20,7 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
       "Changed: Audityxe now lives at audityxe.xyz. Every URL, canonical, sitemap entry, API doc, CLI default and llms.txt now uses the new domain.",
       "New password rules for sign-up and password changes: 6\u201310 characters with an uppercase letter, lowercase letter, number, and special character, shown as a live checklist. Existing passwords still sign in normally.",
       "Fixed: the floating capability cards on the login and register showcase panel now float together with their icons; before, only the icons moved while the cards stayed still.",
-      "Added the Website Launches public launch-record badge to the footer and the credits page.",
+      "Added the Website Launches public launch-record badge to the credits page.",
     ],
   },
   {

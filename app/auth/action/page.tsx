@@ -37,7 +37,8 @@ type Phase =
   | { kind: "reset-done" }
   | { kind: "verified" }
   | { kind: "email-changed"; email: string | null }
-  | { kind: "recovered"; email: string };
+  | { kind: "recovered"; email: string }
+  | { kind: "mfa-reverted"; email: string };
 
 function actionError(err: unknown): string {
   const code = (err as { code?: string })?.code || "";
@@ -133,6 +134,14 @@ function ActionHandler() {
             await applyActionCode(auth, oobCode);
             await auth.currentUser?.reload().catch(() => {});
             setPhase({ kind: "email-changed", email: (info.data as { email?: string | null }).email || null });
+            break;
+          }
+          case "revertSecondFactorAddition": {
+            // The "a second sign-in step was added to your account" security
+            // notification: this link undoes it if it wasn't you.
+            const info = await checkActionCode(auth, oobCode);
+            await applyActionCode(auth, oobCode);
+            setPhase({ kind: "mfa-reverted", email: (info.data as { email?: string | null }).email || "" });
             break;
           }
           default:
@@ -304,16 +313,29 @@ function ActionHandler() {
     );
   }
 
-  // recovered
+  // recovered / mfa-reverted share the "secure your account" screen
+  const reverted = phase.kind === "mfa-reverted";
   return (
-    <Shell icon={<MailCheck size={22} className="text-emerald" />} title="Email address restored">
+    <Shell
+      icon={reverted ? <ShieldAlert size={22} className="text-primary" /> : <MailCheck size={22} className="text-emerald" />}
+      title={reverted ? "Two-step verification removed" : "Email address restored"}
+    >
       <p className="text-sm text-text-secondary text-center mb-6">
-        Your account email has been changed back to <span className="font-mono break-all">{phase.email}</span>. If you didn&apos;t request the
-        change, someone else may have access to your account — reset your password now.
+        {reverted ? (
+          <>
+            The second sign-in step that was just added to your account has been removed. If you didn&apos;t add it, someone else may have access to
+            your account — reset your password now.
+          </>
+        ) : (
+          <>
+            Your account email has been changed back to <span className="font-mono break-all">{phase.email}</span>. If you didn&apos;t request the
+            change, someone else may have access to your account — reset your password now.
+          </>
+        )}
       </p>
       {resetSent ? (
         <p role="status" className="text-sm text-emerald text-center">
-          We sent a password reset link to {phase.email}.
+          We sent a password reset link{phase.email ? ` to ${phase.email}` : ""}.
         </p>
       ) : (
         <div className="space-y-3">
@@ -323,7 +345,7 @@ function ActionHandler() {
               <span>{formError}</span>
             </div>
           )}
-          <button type="button" disabled={busy} onClick={() => secureAccount(phase.email)} className={primaryBtn}>
+          <button type="button" disabled={busy || !phase.email} onClick={() => secureAccount(phase.email)} className={primaryBtn}>
             {busy ? <Loader2 size={16} className="animate-spin" /> : <KeyRound size={16} />}
             Reset my password
           </button>
