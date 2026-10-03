@@ -553,14 +553,14 @@ To turn it on, in the Firebase Console go to **Authentication → Templates**, o
 (password reset, email verification, email change), click **Customize action URL**, and set:
 
 ```
-https://audityxe.xyz/auth/action
+https://audityxe.xyz/__/auth/action
 ```
 
 Email templates, sender-domain/spam setup and the action-URL troubleshooting steps are in
 [`firebase/email-templates/README.md`](./firebase/email-templates/README.md).
 
 Firebase then sends links like
-`https://audityxe.xyz/auth/action?mode=resetPassword&oobCode=…&apiKey=…&lang=en`. The same page is also served at `/__/auth/action` (a rewrite), so either form of the URL works. The domain must
+`https://audityxe.xyz/__/auth/action?mode=resetPassword&oobCode=…&apiKey=…&lang=en`. The page lives at `/auth/action` and is also served at Firebase's own `/__/auth/action` path (a rewrite in `next.config.js`), so either works. The domain must
 also be listed under **Authentication → Settings → Authorized domains**. Links are single-use and
 expire, and a `continueUrl` is only followed
 when it points back at this site.

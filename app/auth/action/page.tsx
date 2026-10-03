@@ -22,7 +22,7 @@ import { validatePassword } from "@/lib/password-policy";
  * Custom Firebase Auth action handler.
  *
  * Set it in Firebase Console → Authentication → Templates → (any template)
- * → Customize action URL → https://audityxe.xyz/auth/action
+ * → Customize action URL → https://audityxe.xyz/__/auth/action
  *
  * Firebase appends ?mode=…&oobCode=…&apiKey=…&continueUrl=…&lang=… and this
  * page does what the default <project>.firebaseapp.com/__/auth/action page

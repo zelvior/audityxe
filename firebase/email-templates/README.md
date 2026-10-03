@@ -6,37 +6,51 @@ change the sender, reply-to and subject line (their body is Firebase's own).
 
 ## 1. Action URL (one URL for the whole project)
 
-Firebase has a **single** action URL. Set it once (pencil icon on any template → **Customize action URL**):
+Firebase has a **single** action URL; changing it on one template changes all of them. Set it once
+(pencil icon on any template → **Customize action URL**). Keep the same shape Firebase uses for its
+own default (`https://<project>.firebaseapp.com/__/auth/action`) and swap only the domain:
 
 ```
-https://audityxe.xyz/auth/action
+https://audityxe.xyz/__/auth/action
 ```
 
-Enter the base URL only — **no** `?mode=…&oobCode=…`. Firebase appends those itself (plus `apiKey`,
-`lang` and, if set, `continueUrl`), so each template's `%LINK%` becomes:
+If the console's field is pre-filled with the query placeholders (as in the default
+`…/__/auth/action?mode=action&oobCode=code`), keep them too:
+
+```
+https://audityxe.xyz/__/auth/action?mode=action&oobCode=code
+```
+
+Both are served by `app/auth/action/page.tsx` (`/__/auth/action` is a rewrite to `/auth/action`,
+see `next.config.js`), so **deploy this version before saving** — the URL must already resolve.
+The `mode=action` / `oobCode=code` part is only a placeholder; Firebase replaces it, so `%LINK%`
+becomes:
 
 | Template | `%LINK%` the user receives |
 | --- | --- |
-| Email address verification | `https://audityxe.xyz/auth/action?mode=verifyEmail&oobCode=<code>&apiKey=<key>&lang=<lang>` |
-| Password reset | `https://audityxe.xyz/auth/action?mode=resetPassword&oobCode=<code>&apiKey=<key>&lang=<lang>` |
-| Email address change (revert) | `https://audityxe.xyz/auth/action?mode=recoverEmail&oobCode=<code>&apiKey=<key>&lang=<lang>` |
-| Verify-and-change email | `https://audityxe.xyz/auth/action?mode=verifyAndChangeEmail&oobCode=<code>&apiKey=<key>&lang=<lang>` |
-
-The `/__/auth/action` form works too (`https://audityxe.xyz/__/auth/action`). The page that handles
-all of these is `app/auth/action/page.tsx`.
+| Email address verification | `https://audityxe.xyz/__/auth/action?mode=verifyEmail&oobCode=<code>&apiKey=<key>&lang=<lang>` |
+| Password reset | `https://audityxe.xyz/__/auth/action?mode=resetPassword&oobCode=<code>&apiKey=<key>&lang=<lang>` |
+| Email address change (revert) | `https://audityxe.xyz/__/auth/action?mode=recoverEmail&oobCode=<code>&apiKey=<key>&lang=<lang>` |
+| Verify-and-change email | `https://audityxe.xyz/__/auth/action?mode=verifyAndChangeEmail&oobCode=<code>&apiKey=<key>&lang=<lang>` |
 
 ### "An error occurred updating action URL"
 
-1. **The domain must be authorized.** Authentication → Settings → **Authorized domains** → Add
-   domain → `audityxe.xyz` (domain only: no `https://`, no path). Check it from your machine:
+The console hides the real reason behind that generic message, so read it instead of guessing:
 
-   ```
-   node scripts/check-firebase-domain.mjs
-   ```
-
-   It prints the authorized-domain list and whether `audityxe.xyz` is in it.
-2. **If it still fails** the console is hiding the real reason behind a generic message. Get the
-   exact one from the API (needs the Google Cloud CLI, signed in as a project owner):
+1. Open the Firebase console in Chrome, press **F12 → Network**, tick **Preserve log**, then click
+   **Save** on the action URL dialog.
+2. Find the request that turns red (a `config` / `updateConfig` / `setAccountInfo` call to
+   `identitytoolkit…googleapis.com` or `firebase.google.com`), open **Response**, and read the
+   `error.message`. It names the exact cause, for example:
+   - `INVALID_ARGUMENT` / a message about the URL → the value's shape is wrong (use the forms above);
+   - a message about domain authorization → add the domain under Authentication → Settings →
+     **Authorized domains** (domain only, no `https://`, no path) and run
+     `node scripts/check-firebase-domain.mjs` to confirm it's listed;
+   - `EMAIL_TEMPLATE_UPDATE_NOT_ALLOWED` → the project itself refuses template-URL changes;
+     Firebase support has to lift it (and you can still keep the default action URL and rely on
+     the custom sender domain below).
+3. No browser tools? The same call from a terminal (Google Cloud CLI, signed in as a project
+   owner) returns the exact error body:
 
    ```bash
    curl -X PATCH \
@@ -44,11 +58,8 @@ all of these is `app/auth/action/page.tsx`.
      -H "Content-Type: application/json" \
      -H "X-Goog-User-Project: audityxe" \
      "https://identitytoolkit.googleapis.com/admin/v2/projects/audityxe/config?updateMask=notification.sendEmail.callbackUri" \
-     -d '{"notification":{"sendEmail":{"callbackUri":"https://audityxe.xyz/auth/action"}}}'
+     -d '{"notification":{"sendEmail":{"callbackUri":"https://audityxe.xyz/__/auth/action"}}}'
    ```
-
-   A success returns the updated config. A failure returns Firebase's actual error message (for
-   example `EMAIL_TEMPLATE_UPDATE_NOT_ALLOWED`, which Firebase support has to lift on the project).
 
 ## 2. Stop the emails going to spam
 
