@@ -1,3 +1,4 @@
+import { getEffectivePrices } from "./site-config";
 import crypto from "crypto";
 import { PlanId, PLANS } from "./plans";
 
@@ -65,7 +66,7 @@ export async function createInvoice(params: {
   const apiKey = process.env.NOWPAYMENTS_API_KEY?.trim();
   if (!apiKey) throw new Error("NOWPAYMENTS_API_KEY is not configured.");
 
-  const plan = PAID_PLANS[params.plan];
+  const plan = { ...PAID_PLANS[params.plan], usd: (await getEffectivePrices())[params.plan] };
 
   // order_id carries the uid + plan so the IPN callback can credit the
   // right account without us keeping a separate pending-orders table.

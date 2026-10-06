@@ -6,6 +6,7 @@ import {
   checkAndIncrementWeeklyFeatureUsage,
   getUserPlan,
 } from "./rate-limit";
+import { getUserLimits } from "./user-limits";
 import { enforceAbuseControls, consumeDeviceTrial, refundDeviceTrial, denyResponse, TrialDecision } from "./abuse/enforce";
 import { PLANS } from "./plans";
 import { isTrustedOrigin, looksLikeBot } from "./security";
@@ -116,7 +117,10 @@ export async function resolveAuditRequest(req: NextRequest): Promise<AuditReques
   // accounts or cleared storage don't multiply the free quota.
   let trial: TrialDecision | null = null;
   try {
-    if ((await getUserPlan(identity.uid)) === "free") {
+    // Users an admin has given a custom daily quota are exempt from the free
+    // device-bound trial cap (that cap exists to stop quota farming, and an
+    // admin-granted quota is the opposite of that).
+    if ((await getUserPlan(identity.uid)) === "free" && (await getUserLimits(identity.uid)).dailyAudits === null) {
       trial = await consumeDeviceTrial(req, gate, { viaApiKey: !!apiKeyHeader });
       if (!trial.allowed) return fail({ error: trial.message, code: trial.code }, trial.status || 429);
     }

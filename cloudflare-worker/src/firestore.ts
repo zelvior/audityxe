@@ -28,7 +28,8 @@ export async function queryOlderThan(
   collection: string,
   field: string,
   olderThanIso: string,
-  limit: number
+  limit: number,
+  valueType: "string" | "timestamp" = "string"
 ): Promise<string[]> {
   const body = {
     structuredQuery: {
@@ -37,7 +38,8 @@ export async function queryOlderThan(
         fieldFilter: {
           field: { fieldPath: field },
           op: "LESS_THAN",
-          value: { stringValue: olderThanIso },
+          // string = ISO-8601 / YYYY-MM-DD text fields; timestamp = native Firestore Timestamps
+          value: valueType === "timestamp" ? { timestampValue: olderThanIso } : { stringValue: olderThanIso },
         },
       },
       limit,
@@ -99,14 +101,85 @@ export async function drainOlderThan(
   field: string,
   olderThanIso: string,
   pageSize = 500,
-  maxPages = 20
+  maxPages = 20,
+  valueType: "string" | "timestamp" = "string"
 ): Promise<number> {
+  return (await drainOlderThanDetailed(projectId, accessToken, collection, field, olderThanIso, pageSize, maxPages, valueType)).deleted;
+}
+
+/** Same as drainOlderThan, but also reports whether the page budget ran out
+ * (so the admin panel can show "more remain — continues next run"). */
+export async function drainOlderThanDetailed(
+  projectId: string,
+  accessToken: string,
+  collection: string,
+  field: string,
+  olderThanIso: string,
+  pageSize = 500,
+  maxPages = 20,
+  valueType: "string" | "timestamp" = "string"
+): Promise<{ deleted: number; capped: boolean }> {
   let total = 0;
   for (let page = 0; page < maxPages; page++) {
-    const names = await queryOlderThan(projectId, accessToken, collection, field, olderThanIso, pageSize);
-    if (names.length === 0) break;
+    const names = await queryOlderThan(projectId, accessToken, collection, field, olderThanIso, pageSize, valueType);
+    if (names.length === 0) return { deleted: total, capped: false };
     total += await batchDelete(projectId, accessToken, names);
-    if (names.length < pageSize) break;
+    if (names.length < pageSize) return { deleted: total, capped: false };
   }
-  return total;
+  return { deleted: total, capped: true };
+}
+
+// ---- config document access (retention policies set from the admin panel) ----
+
+type FsValue = Record<string, unknown>;
+
+function decodeValue(v: FsValue): unknown {
+  if ("stringValue" in v) return v.stringValue;
+  if ("booleanValue" in v) return v.booleanValue;
+  if ("integerValue" in v) return Number(v.integerValue);
+  if ("doubleValue" in v) return Number(v.doubleValue);
+  if ("timestampValue" in v) return v.timestampValue;
+  if ("nullValue" in v) return null;
+  if ("mapValue" in v) return decodeFields(((v.mapValue as { fields?: Record<string, FsValue> }).fields) || {});
+  if ("arrayValue" in v) return (((v.arrayValue as { values?: FsValue[] }).values) || []).map(decodeValue);
+  return undefined;
+}
+function decodeFields(fields: Record<string, FsValue>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(fields)) out[k] = decodeValue(v);
+  return out;
+}
+function encodeValue(v: unknown): FsValue {
+  if (v === null || v === undefined) return { nullValue: null };
+  if (typeof v === "boolean") return { booleanValue: v };
+  if (typeof v === "number") return Number.isInteger(v) ? { integerValue: String(v) } : { doubleValue: v };
+  if (typeof v === "string") return { stringValue: v };
+  if (Array.isArray(v)) return { arrayValue: { values: v.map(encodeValue) } };
+  return { mapValue: { fields: encodeFields(v as Record<string, unknown>) } };
+}
+function encodeFields(o: Record<string, unknown>): Record<string, FsValue> {
+  const out: Record<string, FsValue> = {};
+  for (const [k, v] of Object.entries(o)) if (v !== undefined) out[k] = encodeValue(v);
+  return out;
+}
+
+/** Reads one document (e.g. "config/retention") as plain JS; null if it doesn't exist. */
+export async function getDocumentData(projectId: string, accessToken: string, docPath: string): Promise<Record<string, unknown> | null> {
+  const res = await fetch(`${FIRESTORE_BASE}/projects/${projectId}/databases/(default)/documents/${docPath}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`Firestore get ${docPath} failed (${res.status}): ${await res.text().catch(() => "")}`);
+  const doc = (await res.json()) as { fields?: Record<string, FsValue> };
+  return decodeFields(doc.fields || {});
+}
+
+/** Creates/replaces one document with the given plain-JS data. */
+export async function setDocumentData(projectId: string, accessToken: string, docPath: string, data: Record<string, unknown>): Promise<void> {
+  const res = await fetch(`${FIRESTORE_BASE}/projects/${projectId}/databases/(default)/documents/${docPath}`, {
+    method: "PATCH",
+    headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ fields: encodeFields(data) }),
+  });
+  if (!res.ok) throw new Error(`Firestore set ${docPath} failed (${res.status}): ${await res.text().catch(() => "")}`);
 }

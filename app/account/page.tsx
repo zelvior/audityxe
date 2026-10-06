@@ -313,6 +313,20 @@ function AccountPageInner() {
               <ShieldCheck size={16} /> Abuse Protection
             </Link>
           )}
+          {user.emailVerified && usage?.isAdmin && (
+            <div className="grid grid-cols-2 gap-2 mb-3">
+              {[
+                ["/admin/users", "Users"],
+                ["/admin/payments", "Payments"],
+                ["/admin/content", "Content"],
+                ["/admin/retention", "Data retention"],
+              ].map(([href, label]) => (
+                <Link key={href} href={href} className="flex items-center justify-center py-2.5 rounded-card glass text-xs font-semibold hover:border-[rgb(var(--color-text-primary)/0.2)] transition">
+                  {label}
+                </Link>
+              ))}
+            </div>
+          )}
 
           <Link
             href="/settings"

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth, AuthError } from "@/lib/auth-server";
-import { createInvoice, nowPaymentsConfigError, PAID_PLANS } from "@/lib/nowpayments";
+import { createInvoice, nowPaymentsConfigError } from "@/lib/nowpayments";
+import { getEffectivePrices } from "@/lib/site-config";
 import { SITE_URL } from "@/lib/seo";
 import { enforceAbuseControls, denyResponse } from "@/lib/abuse/enforce";
 
@@ -28,7 +29,7 @@ export async function POST(req: NextRequest) {
     }
 
     const invoice = await createInvoice({ plan, uid: identity.uid, siteUrl: SITE_URL });
-    return NextResponse.json({ invoiceUrl: invoice.invoiceUrl, amountUsd: PAID_PLANS[plan].usd });
+    return NextResponse.json({ invoiceUrl: invoice.invoiceUrl, amountUsd: (await getEffectivePrices())[plan] });
   } catch (err) {
     if (err instanceof AuthError) {
       return NextResponse.json({ error: "Sign in to upgrade." }, { status: 401 });

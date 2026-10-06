@@ -1,7 +1,7 @@
-import { Transaction } from "firebase-admin/firestore";
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase/admin";
 import { verifyIpnSignature, isPaidStatus, parseOrderId, PAID_PLANS } from "@/lib/nowpayments";
+import { FAILURE_STATUSES, creditPayment, recordNonCredited } from "@/lib/payments";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -38,10 +38,12 @@ export async function POST(req: NextRequest) {
   }
 
   const status = String(payload.payment_status ?? "");
+  const tracked = FAILURE_STATUSES.has(status);
   // Acknowledge non-terminal statuses (waiting/confirming/sending) with
   // a 200 so NOWPayments stops retrying them — they're informational,
-  // not something to act on.
-  if (!isPaidStatus(status)) return NextResponse.json({ ok: true, ignored: status });
+  // not something to act on. Failed/expired/partial/refunded ones are
+  // recorded (never credited) so an admin can see and act on them.
+  if (!isPaidStatus(status) && !tracked) return NextResponse.json({ ok: true, ignored: status });
 
   const db = adminDb();
 
@@ -69,48 +71,27 @@ export async function POST(req: NextRequest) {
       }
     }
   }
-  if (!order) return NextResponse.json({ error: "Unrecognized order." }, { status: 400 });
+  if (!order) {
+    // A failure we can't attribute to an account is just acknowledged; an
+    // unattributable PAID notification stays an error so it's retried/noticed.
+    return tracked ? NextResponse.json({ ok: true, ignored: status }) : NextResponse.json({ error: "Unrecognized order." }, { status: 400 });
+  }
 
   const paymentId = String(payload.payment_id ?? payload.invoice_id ?? "");
   if (!paymentId) return NextResponse.json({ error: "Missing payment id." }, { status: 400 });
 
-  const paymentRef = db.collection("crypto_payments").doc(paymentId);
-  const userRef = db.collection("users").doc(order.uid);
   const grant = PAID_PLANS[order.plan];
+  const invoiced = Number(payload.price_amount);
+  const amountUsd = Number.isFinite(invoiced) && invoiced > 0 ? invoiced : grant.usd;
+  const base = { paymentId, plan: order.plan, status, amountUsd, orderId: String(payload.order_id ?? ""), subscriptionId };
 
   try {
-    await db.runTransaction(async (tx: Transaction) => {
-      const existing = await tx.get(paymentRef);
-      if (existing.exists && existing.data()?.credited) return; // already handled
-
-      const userSnap = await tx.get(userRef);
-      const currentExpiry = userSnap.data()?.planExpiresAt;
-      const now = new Date();
-      // Stack onto remaining time rather than overwriting it, so paying
-      // again before expiry extends access instead of throwing away
-      // days the person already paid for.
-      const currentExpiryDate: Date | null =
-        currentExpiry && typeof currentExpiry.toDate === "function"
-          ? currentExpiry.toDate()
-          : currentExpiry
-          ? new Date(currentExpiry)
-          : null;
-      const base =
-        currentExpiryDate && !isNaN(currentExpiryDate.getTime()) && currentExpiryDate > now ? currentExpiryDate : now;
-      const newExpiry = new Date(base.getTime() + grant.days * 24 * 60 * 60 * 1000);
-
-      tx.set(userRef, { plan: order.plan, planExpiresAt: newExpiry.toISOString() }, { merge: true });
-      tx.set(paymentRef, {
-        credited: true,
-        uid: order.uid,
-        plan: order.plan,
-        status,
-        amountUsd: grant.usd,
-        orderId: String(payload.order_id ?? ""),
-        subscriptionId,
-        creditedAt: now.toISOString(),
-      });
-    });
+    if (!isPaidStatus(status)) {
+      await recordNonCredited(db, { ...base, uid: order.uid });
+      return NextResponse.json({ ok: true, recorded: status });
+    }
+    // Idempotent: creditPayment is a no-op if this payment id was already credited.
+    await creditPayment(db, { ...base, uid: order.uid, plan: order.plan, days: grant.days });
     return NextResponse.json({ ok: true });
   } catch {
     // Return 500 so NOWPayments retries — a transient Firestore failure

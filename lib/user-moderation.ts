@@ -1,3 +1,4 @@
+import { getEffectivePrices } from "./site-config";
 import { adminDb, adminAuth } from "./firebase/admin";
 import { DocumentData, DocumentSnapshot, FieldValue, QueryDocumentSnapshot, Timestamp } from "firebase-admin/firestore";
 import { PlanId, PLANS } from "./plans";
@@ -244,9 +245,8 @@ export async function getAdminStats(): Promise<AdminStats> {
 
   const standardCount = standardSnap.data().count;
   const proCount = proSnap.data().count;
-  const estimatedMrrCents = Math.round(
-    (standardCount * PLANS.standard.priceUsd + proCount * PLANS.pro.priceUsd) * 100
-  );
+  const prices = await getEffectivePrices();
+  const estimatedMrrCents = Math.round((standardCount * prices.standard + proCount * prices.pro) * 100);
 
   return {
     totalUsers: totalSnap.data().count,

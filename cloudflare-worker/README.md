@@ -9,13 +9,30 @@ every 4 hours for real, and the Worker itself, its Cron Trigger, and the ~5-10 F
 Toolkit calls it makes per run all comfortably fit inside Cloudflare's free tier (100,000
 requests/day; a cron invocation counts as one).
 
-**This does not replace or duplicate any audit-engine logic** — it only deletes trash data:
+**This does not replace or duplicate any audit-engine logic** — it only deletes trash data, and
+**what it deletes and for how long is controlled from the admin panel** (`/admin/retention`).
+Each run reads the `config/retention` Firestore document, applies the enabled policies, and writes
+the outcome to `config/retention_status` so the admin page can show the last run. Defaults (used
+until you change something) live in `lib/retention-core.ts`, which the Worker imports by relative
+path — the Worker and the Next.js app share that one file, so they can never disagree:
 
-| Task | Collection / target | TTL | Mirrors |
-|---|---|---|---|
-| Expired background-audit-job docs | Firestore `auditJobs` | 24h | `lib/audit-jobs.ts`'s `JOB_TTL_MS` |
-| Orphaned push-notification subscriptions | Firestore `auditJobPushSubs` | 48h | Safety net — `lib/push.ts` already deletes each one immediately after use; this only catches ones orphaned by a job that never reached that code path |
-| Unverified Firebase Auth accounts | Firebase Auth (Identity Toolkit) | 7 days | The old `app/api/cron/cleanup-unverified/route.ts` |
+| Policy | Collection | Default |
+|---|---|---|
+| Audit history | `audits` | 90 days |
+| Background audit jobs | `auditJobs` | 1 day |
+| Admin action log | `admin_audit_log` | 365 days |
+| Badge score cache | `badge_scores` | 365 days |
+| Daily usage / feature counters | `usage`, `feature_usage` | 30 / 14 days |
+| Abuse events, device graph | `abuse_events`, `abuse_devices`, `abuse_ips`, `abuse_fp`, `abuse_uid` | 30–180 days |
+| Rate-limit, trial, ban, strike counters | `abuse_rl`, `abuse_trial`, `abuse_bans`, `abuse_strikes` | self-expiring (`expireAt`) |
+| Payment records | `crypto_payments` | **off** (opt-in; keep for accounting) |
+| Unverified Firebase Auth accounts | Firebase Auth | 7 days |
+
+`users`, `config`, redeem codes, the showcase and the global counters are **protected** — retention
+can never touch them, even if a policy is misconfigured.
+
+Each run deletes up to 10,000 documents per policy (20 pages of 500); a bigger backlog reports
+"more remain" in the admin panel and continues on the next run.
 
 The equivalent Next.js API routes are **left in place, unscheduled** (removed from
 `vercel.json`'s `crons` array) — they still work if you want to trigger a cleanup manually or run

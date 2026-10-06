@@ -5,11 +5,14 @@ import { banUser, suspendUser, unbanUser, adminSetUserPlan, adminResetUsage } fr
 import { adminAuth } from "@/lib/firebase/admin";
 import { logAdminAction } from "@/lib/admin-log";
 import { isAdminEmail } from "@/lib/admin-email";
+import { adminDb } from "@/lib/firebase/admin";
+import { getUserDetail } from "@/lib/admin-users";
+import { setUserLimits } from "@/lib/user-limits";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const ALLOWED_ACTIONS = ["ban", "suspend", "unban", "set-plan", "reset-usage", "revoke-sessions"] as const;
+const ALLOWED_ACTIONS = ["ban", "suspend", "unban", "set-plan", "reset-usage", "revoke-sessions", "verify-email", "set-limits"] as const;
 type Action = (typeof ALLOWED_ACTIONS)[number];
 
 export async function POST(req: NextRequest, { params }: { params: { uid: string } }) {
@@ -68,6 +71,16 @@ export async function POST(req: NextRequest, { params }: { params: { uid: string
       const resolvedUid = targetUser?.uid || target;
       await adminSetUserPlan(resolvedUid, plan, expiresAt);
       logDetails = `${plan}${expiresAt ? ` until ${expiresAt}` : " (no expiry)"}`;
+    } else if (action === "verify-email") {
+      // Marks the email as verified in Firebase Auth (support case: the mail never arrived).
+      const resolvedUid = targetUser?.uid || target;
+      await adminAuth().updateUser(resolvedUid, { emailVerified: true });
+    } else if (action === "set-limits") {
+      // Custom per-user daily quota / per-minute rate limit. Empty values clear the override.
+      const resolvedUid = targetUser?.uid || target;
+      const r = await setUserLimits(resolvedUid, { dailyAudits: body?.dailyAudits, perMinute: body?.perMinute, note: body?.note }, identity.email || "unknown");
+      if (!r.ok) return NextResponse.json({ error: r.error }, { status: 400 });
+      logDetails = `daily=${r.limits.dailyAudits ?? "plan"} perMinute=${r.limits.perMinute ?? "default"}`;
     } else if (action === "reset-usage") {
       const resolvedUid = targetUser?.uid || target;
       await adminResetUsage(resolvedUid);
@@ -91,5 +104,25 @@ export async function POST(req: NextRequest, { params }: { params: { uid: string
     }
     const message = err instanceof Error ? err.message : "Failed to update user.";
     return NextResponse.json({ error: message }, { status: 400 });
+  }
+}
+
+/** Full detail for one user: profile, plan, limits, usage, auth state, recent payments. */
+export async function GET(req: NextRequest, { params }: { params: { uid: string } }) {
+  try {
+    const identity = await requireAuth(req, { requireEmailVerified: true });
+    await requireAdmin(identity, req);
+    let target = decodeURIComponent(params.uid || "").trim().slice(0, 200);
+    if (target.includes("@")) {
+      const u = await adminAuth().getUserByEmail(target).catch(() => null);
+      if (!u) return NextResponse.json({ error: "No user with that email." }, { status: 404 });
+      target = u.uid;
+    }
+    const detail = await getUserDetail(target, adminDb());
+    if (!detail) return NextResponse.json({ error: "User not found." }, { status: 404 });
+    return NextResponse.json({ user: detail });
+  } catch (err) {
+    if (err instanceof AuthError) return NextResponse.json({ error: err.message, code: err.code }, { status: err.status });
+    return NextResponse.json({ error: err instanceof Error ? err.message : "Failed to load user." }, { status: 500 });
   }
 }

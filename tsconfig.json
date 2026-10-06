@@ -38,6 +38,7 @@
     "node_modules",
     "cli",
     "vscode-extension",
-    "cloudflare-worker"
+    "cloudflare-worker",
+    "scripts/test-worker-retention.ts"
   ]
 }

@@ -61,7 +61,6 @@ if (!/18\.17/.test(pkg.engines?.node || "")) fail(`cli engines.node is ${pkg.eng
 
 // 5. the sitemap must contain only indexable, crawlable, unique URLs
 // (a noindex or robots-blocked entry shows up as a Search Console error)
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 const sitemapEntries: { url: string }[] = require("../app/sitemap").default();
 const seen = new Set<string>();
 const robotsSrc = readFileSync(join(root, "app/robots.ts"), "utf8");

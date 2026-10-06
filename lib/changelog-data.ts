@@ -6,6 +6,16 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    version: "3.20.0",
+    date: "October 2026",
+    changes: [
+      "New admin panel sections: Users (search, verify, block, custom quotas and rate limits), Payments (refunds, failed transactions, manual credit, commission), Content (prices, site notes, categories, showcase listings) and Data retention. Every list is cursor-paginated, so it handles any amount of data.",
+      "New: Firestore data retention you control from the admin panel. The Cloudflare Worker reads the limits you set and deletes expired data (audit history, abuse records, counters, jobs and more) so the database never fills up; users, settings and payments are protected by default.",
+      "Fixed: failed, expired, partially-paid and refunded payment notifications were silently dropped. They are now recorded (never credited) so they can be reviewed.",
+      "Removed: the custom Firebase action-URL setup. This project's Firebase email settings are locked by Firebase (EMAIL_TEMPLATE_UPDATE_NOT_ALLOWED); the on-site handler page remains as a safety net.",
+    ],
+  },
+  {
     version: "3.19.0",
     date: "October 2026",
     changes: [

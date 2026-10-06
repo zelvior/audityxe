@@ -1,412 +1,212 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { ArrowLeft, Loader2, Search, Ban, Clock, ShieldCheck, Tag, RotateCcw, LogOut } from "lucide-react";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
-import { useAuth } from "@/context/AuthContext";
-import PasswordInput from "@/components/PasswordInput";
-import { fetchJson } from "@/lib/fetch-json";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Search, Settings2, ShieldCheck, MailCheck, LogOut, RotateCcw } from "lucide-react";
+import AdminShell, { useAdminApi } from "@/components/admin/AdminShell";
+import { Badge, Card, Modal, Notice, Spinner, TableWrap, btn, btnDanger, btnPrimary, fmtDate, fmtDay, inputCls, td, th, useFlash } from "@/components/admin/ui";
 
-interface ModerationInfo {
-  status: "active" | "suspended" | "banned";
-  reason: string | null;
-  until: string | null;
-  actedAt: string | null;
-  actedByEmail: string | null;
+interface Row {
+  uid: string; email: string | null; displayName: string | null; plan: string; planExpiresAt: string | null;
+  moderation: { status: "active" | "suspended" | "banned"; reason: string | null; until: string | null };
+  createdAt: string | null; lastActiveAt: string | null;
+  limits: { dailyAudits: number | null; perMinute: number | null; note: string | null } | null;
+}
+interface Detail extends Row {
+  usage: { used: number; limit: number };
+  auth: { emailVerified: boolean; disabled: boolean; providers: string[]; lastSignInTime: string | null } | null;
+  auditCount: number | null;
+  recentPayments: { id: string; plan: string; amountUsd: number; status: string; at: string | null }[];
 }
 
-interface UserListItem {
-  uid: string;
-  email: string | null;
-  displayName: string | null;
-  plan: string;
-  moderation: ModerationInfo;
-  createdAt: string | null;
+const statusTone = (s: string) => (s === "banned" ? "bad" : s === "suspended" ? "warn" : "good");
+
+function UserModal({ uid, onClose, onChanged }: { uid: string; onClose: () => void; onChanged: () => void }) {
+  const api = useAdminApi();
+  const [d, setD] = useState<Detail | null>(null);
+  const [msg, flash, clear] = useFlash();
+  const [busy, setBusy] = useState("");
+  const [daily, setDaily] = useState(""); const [perMin, setPerMin] = useState(""); const [note, setNote] = useState("");
+  const [plan, setPlan] = useState("free"); const [expires, setExpires] = useState("");
+  const [reason, setReason] = useState(""); const [until, setUntil] = useState("");
+
+  const load = useCallback(async () => {
+    const r = await api(`/api/admin/users/${encodeURIComponent(uid)}`);
+    if (!r.ok) return flash("error", r.error || "Failed to load user.");
+    const u: Detail = r.data.user;
+    setD(u); setDaily(u.limits?.dailyAudits?.toString() ?? ""); setPerMin(u.limits?.perMinute?.toString() ?? ""); setNote(u.limits?.note ?? "");
+    setPlan(u.plan); setExpires(u.planExpiresAt ? u.planExpiresAt.slice(0, 10) : "");
+  }, [api, uid, flash]);
+  useEffect(() => { load(); }, [load]);
+
+  async function act(action: string, body: Record<string, unknown> = {}, ok = "Done.") {
+    setBusy(action); clear();
+    const r = await api(`/api/admin/users/${encodeURIComponent(uid)}`, { method: "POST", body: { action, ...body } });
+    setBusy("");
+    if (!r.ok) return flash("error", r.error || "Action failed.");
+    flash("success", ok); await load(); onChanged();
+  }
+
+  if (!d) return <Modal title="User" onClose={onClose} wide><div className="py-10 flex justify-center"><Spinner /></div></Modal>;
+  const m = d.moderation;
+  return (
+    <Modal title={d.email || d.uid} onClose={onClose} wide>
+      <div className="space-y-4 text-sm">
+        {msg && <Notice kind={msg.kind} onClose={clear}>{msg.text}</Notice>}
+        <div className="flex flex-wrap gap-1.5">
+          <Badge tone="info">{d.plan}{d.planExpiresAt ? ` until ${fmtDay(d.planExpiresAt)}` : ""}</Badge>
+          <Badge tone={statusTone(m.status)}>{m.status}</Badge>
+          <Badge tone={d.auth?.emailVerified ? "good" : "warn"}>{d.auth?.emailVerified ? "email verified" : "email not verified"}</Badge>
+          {d.auth?.disabled && <Badge tone="bad">auth disabled</Badge>}
+          {d.limits && <Badge tone="info">custom limits</Badge>}
+        </div>
+        <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+          <dt className="text-text-secondary">UID</dt><dd className="font-mono break-all">{d.uid}</dd>
+          <dt className="text-text-secondary">Joined</dt><dd>{fmtDate(d.createdAt)}</dd>
+          <dt className="text-text-secondary">Last active</dt><dd>{fmtDate(d.lastActiveAt)}</dd>
+          <dt className="text-text-secondary">Sign-in methods</dt><dd>{d.auth?.providers.join(", ") || "—"}</dd>
+          <dt className="text-text-secondary">Audits today</dt><dd>{d.usage.used} / {d.usage.limit}</dd>
+          <dt className="text-text-secondary">Audits all-time</dt><dd>{d.auditCount ?? "—"}</dd>
+        </dl>
+
+        <Card title="Account">
+          <div className="flex flex-wrap gap-2">
+            <button className={btn} disabled={!!busy || d.auth?.emailVerified} onClick={() => act("verify-email", {}, "Email marked as verified.")}><MailCheck size={13} /> Verify email</button>
+            <button className={btn} disabled={!!busy} onClick={() => act("revoke-sessions", {}, "All sessions revoked.")}><LogOut size={13} /> Sign out everywhere</button>
+            <button className={btn} disabled={!!busy} onClick={() => act("reset-usage", {}, "Today's usage reset.")}><RotateCcw size={13} /> Reset today&apos;s usage</button>
+          </div>
+        </Card>
+
+        <Card title="Plan">
+          <div className="flex flex-wrap items-end gap-2">
+            <label className="text-[11px] text-text-secondary">Plan
+              <select className={`${inputCls} mt-1`} value={plan} onChange={(e) => setPlan(e.target.value)}><option value="free">Free</option><option value="standard">Standard</option><option value="pro">Pro</option></select>
+            </label>
+            <label className="text-[11px] text-text-secondary">Expires (blank = never)
+              <input type="date" className={`${inputCls} mt-1`} value={expires} onChange={(e) => setExpires(e.target.value)} disabled={plan === "free"} />
+            </label>
+            <button className={btnPrimary} disabled={!!busy} onClick={() => act("set-plan", { plan, expiresAt: plan === "free" || !expires ? null : new Date(`${expires}T23:59:59Z`).toISOString() }, "Plan updated.")}>Apply</button>
+          </div>
+        </Card>
+
+        <Card title="Custom quota & rate limits">
+          <p className="text-[11px] text-text-secondary mb-2">Overrides this user&apos;s plan. Leave a field empty to use the default. Takes effect within 30 seconds.</p>
+          <div className="grid sm:grid-cols-3 gap-2">
+            <label className="text-[11px] text-text-secondary">Audits per day<input className={`${inputCls} mt-1`} inputMode="numeric" placeholder="plan default" value={daily} onChange={(e) => setDaily(e.target.value)} /></label>
+            <label className="text-[11px] text-text-secondary">Requests per minute<input className={`${inputCls} mt-1`} inputMode="numeric" placeholder="system default" value={perMin} onChange={(e) => setPerMin(e.target.value)} /></label>
+            <label className="text-[11px] text-text-secondary">Note (internal)<input className={`${inputCls} mt-1`} maxLength={200} value={note} onChange={(e) => setNote(e.target.value)} /></label>
+          </div>
+          <div className="flex gap-2 mt-3">
+            <button className={btnPrimary} disabled={!!busy} onClick={() => act("set-limits", { dailyAudits: daily.trim() === "" ? null : Number(daily), perMinute: perMin.trim() === "" ? null : Number(perMin), note }, "Limits saved.")}>Save limits</button>
+            <button className={btn} disabled={!!busy || !d.limits} onClick={() => act("set-limits", { dailyAudits: null, perMinute: null }, "Limits cleared — plan defaults apply.")}>Clear overrides</button>
+          </div>
+        </Card>
+
+        <Card title="Block / unblock">
+          {m.status !== "active" && <p className="text-xs mb-2">Currently <strong>{m.status}</strong>{m.until ? ` until ${fmtDate(m.until)}` : ""}{m.reason ? ` — ${m.reason}` : ""}.</p>}
+          <div className="grid sm:grid-cols-2 gap-2">
+            <input className={inputCls} placeholder="Reason (shown in the log)" value={reason} onChange={(e) => setReason(e.target.value)} />
+            <input type="datetime-local" className={inputCls} value={until} onChange={(e) => setUntil(e.target.value)} aria-label="Suspend until" />
+          </div>
+          <div className="flex flex-wrap gap-2 mt-3">
+            <button className={btnDanger} disabled={!!busy || !until} onClick={() => act("suspend", { reason, until: new Date(until).toISOString() }, "User suspended.")}>Suspend until date</button>
+            <button className={btnDanger} disabled={!!busy} onClick={() => confirm("Permanently block this account?") && act("ban", { reason }, "User banned.")}>Ban</button>
+            <button className={btn} disabled={!!busy || m.status === "active"} onClick={() => act("unban", {}, "User unblocked.")}><ShieldCheck size={13} /> Unblock</button>
+          </div>
+        </Card>
+
+        {d.recentPayments.length > 0 && (
+          <Card title="Recent payments">
+            <ul className="text-xs space-y-1">{d.recentPayments.map((p) => <li key={p.id} className="flex justify-between gap-3"><span>{p.plan} · ${p.amountUsd} · {p.status}</span><span className="text-text-secondary">{fmtDate(p.at)}</span></li>)}</ul>
+          </Card>
+        )}
+      </div>
+    </Modal>
+  );
+}
+
+function UsersBody() {
+  const api = useAdminApi();
+  const [rows, setRows] = useState<Row[]>([]);
+  const [cursor, setCursor] = useState<string | null>(null);
+  const [mode, setMode] = useState<"browse" | "search">("browse");
+  const [degraded, setDegraded] = useState(false);
+  const [total, setTotal] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [q, setQ] = useState(""); const [plan, setPlan] = useState(""); const [status, setStatus] = useState("");
+  const [open, setOpen] = useState<string | null>(null);
+  const [msg, flash, clear] = useFlash();
+  const seq = useRef(0);
+
+  const fetchPage = useCallback(async (reset: boolean, cur: string | null) => {
+    const id = ++seq.current;
+    setLoading(true);
+    const p = new URLSearchParams({ limit: "50" });
+    if (q.trim()) p.set("q", q.trim());
+    if (plan) p.set("plan", plan);
+    if (status) p.set("status", status);
+    if (cur && !reset) p.set("cursor", cur);
+    if (reset) p.set("count", "1");
+    const r = await api(`/api/admin/users?${p}`);
+    if (id !== seq.current) return; // a newer request superseded this one
+    setLoading(false);
+    if (!r.ok) return flash("error", r.error || "Failed to load users.");
+    setRows((prev) => (reset ? r.data.items : [...prev, ...r.data.items]));
+    setCursor(r.data.nextCursor); setMode(r.data.mode); setDegraded(!!r.data.degraded);
+    if (reset) setTotal(typeof r.data.total === "number" ? r.data.total : null);
+  }, [api, q, plan, status, flash]);
+
+  // Filters re-query immediately; typing in search waits for Enter/blur so we don't query per keystroke.
+  useEffect(() => {
+    fetchPage(true, null);
+    // Re-query when a filter changes; typing in the search box waits for Enter.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [plan, status]);
+
+  return (
+    <div className="space-y-4">
+      {msg && <Notice kind={msg.kind} onClose={clear}>{msg.text}</Notice>}
+      <form className="flex flex-wrap gap-2" onSubmit={(e) => { e.preventDefault(); fetchPage(true, null); }}>
+        <div className="relative flex-1 min-w-[220px]">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" />
+          <input className={`${inputCls} pl-9`} placeholder="Search by email, name or UID — press Enter" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search users" />
+        </div>
+        <select className={`${inputCls} !w-auto`} value={plan} onChange={(e) => setPlan(e.target.value)} aria-label="Filter by plan"><option value="">All plans</option><option value="free">Free</option><option value="standard">Standard</option><option value="pro">Pro</option></select>
+        <select className={`${inputCls} !w-auto`} value={status} onChange={(e) => setStatus(e.target.value)} aria-label="Filter by status"><option value="">All statuses</option><option value="active">Active</option><option value="suspended">Suspended</option><option value="banned">Banned</option></select>
+        <button className={btnPrimary} type="submit">Search</button>
+      </form>
+      <p className="text-[11px] text-text-secondary">
+        {total !== null && mode === "browse" && !plan && !status ? `${total.toLocaleString()} users · ` : ""}{rows.length.toLocaleString()} shown{cursor ? " · more available" : ""}
+        {degraded && " · filters are running without a Firestore index (still works; deploy firestore.indexes.json for faster filtered lists)"}
+      </p>
+
+      <TableWrap>
+        <table className="w-full text-xs">
+          <thead><tr className="border-b border-border"><th className={th}>User</th><th className={th}>Plan</th><th className={th}>Status</th><th className={th}>Limits</th><th className={th}>Joined</th><th className={th}></th></tr></thead>
+          <tbody>
+            {rows.map((u) => (
+              <tr key={u.uid} className="border-b border-border last:border-0 hover:bg-[rgb(var(--color-text-primary)/0.03)]">
+                <td className={td}><p className="font-semibold">{u.email || "(no email)"}</p><p className="text-[10px] text-text-secondary">{u.displayName || ""} <span className="font-mono">{u.uid.slice(0, 10)}…</span></p></td>
+                <td className={td}><Badge tone="info">{u.plan}</Badge>{u.planExpiresAt && <p className="text-[10px] text-text-secondary mt-0.5">to {fmtDay(u.planExpiresAt)}</p>}</td>
+                <td className={td}><Badge tone={statusTone(u.moderation.status)}>{u.moderation.status}</Badge></td>
+                <td className={td}>{u.limits ? <Badge tone="warn">{[u.limits.dailyAudits !== null ? `${u.limits.dailyAudits}/day` : "", u.limits.perMinute !== null ? `${u.limits.perMinute}/min` : ""].filter(Boolean).join(" · ")}</Badge> : <span className="text-text-secondary">plan default</span>}</td>
+                <td className={td}>{fmtDay(u.createdAt)}</td>
+                <td className={td}><button className={btn} onClick={() => setOpen(u.uid)}><Settings2 size={12} /> Manage</button></td>
+              </tr>
+            ))}
+            {!rows.length && !loading && <tr><td className={`${td} text-text-secondary text-center py-8`} colSpan={6}>No users match.</td></tr>}
+          </tbody>
+        </table>
+      </TableWrap>
+      <div className="flex justify-center">{loading ? <Spinner /> : cursor ? <button className={btn} onClick={() => fetchPage(false, cursor)}>Load more</button> : null}</div>
+      {open && <UserModal uid={open} onClose={() => setOpen(null)} onChanged={() => fetchPage(true, null)} />}
+    </div>
+  );
 }
 
 export default function AdminUsersPage() {
-  const { user, loading, getToken } = useAuth();
-  const router = useRouter();
-
-  const [denyReason, setDenyReason] = useState("");
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [adminPassword, setAdminPassword] = useState("");
-  const [passwordEntered, setPasswordEntered] = useState("");
-  const [passwordError, setPasswordError] = useState("");
-  const [checkingPassword, setCheckingPassword] = useState(false);
-
-  const [query, setQuery] = useState("");
-  const [users, setUsers] = useState<UserListItem[] | null>(null);
-  const [listError, setListError] = useState("");
-  const [fetching, setFetching] = useState(false);
-  const [actionTarget, setActionTarget] = useState<string | null>(null); // uid mid-action
-  const [reasonDraft, setReasonDraft] = useState("");
-  const [untilDraft, setUntilDraft] = useState("");
-  const [pendingAction, setPendingAction] = useState<{ uid: string; type: "ban" | "suspend" | "set-plan" } | null>(null);
-  const [planDraft, setPlanDraft] = useState<"free" | "standard" | "pro">("pro");
-  const [planDaysDraft, setPlanDaysDraft] = useState(30);
-
-  useEffect(() => {
-    if (!loading && !user) {
-      router.replace("/login?redirect=/admin/users");
-    }
-  }, [loading, user, router]);
-
-  useEffect(() => {
-    if (!denyReason) return;
-    const t = setTimeout(() => router.replace("/account"), 6000);
-    return () => clearTimeout(t);
-  }, [denyReason, router]);
-
-  const fetchUsers = useCallback(
-    async (q: string, pw: string) => {
-      if (!user) return;
-      setFetching(true);
-      setListError("");
-      try {
-        const token = await getToken();
-        const { ok, status, data, error } = await fetchJson<{ users: UserListItem[]; code?: string }>(
-          `/api/admin/users?q=${encodeURIComponent(q)}`,
-          { headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), "x-admin-password": pw } }
-        );
-        if (status === 403) {
-          if ((data as any)?.code === "NOT_ADMIN") {
-            setDenyReason(
-              `Signed in as ${user.email || "unknown email"} — this address isn't in ADMIN_EMAILS. Add it (comma-separated) in your Vercel env vars and redeploy.`
-            );
-            return;
-          }
-          setPasswordError(error || "Incorrect admin password.");
-          return;
-        }
-        if (status === 429) {
-          setPasswordError(error || "Too many attempts. Try again later.");
-          return;
-        }
-        if (status === 401) {
-          setDenyReason("Your session couldn't be verified — try signing out and back in. If this persists, the server's Firebase Admin credentials may be misconfigured.");
-          return;
-        }
-        if (!ok || !data) throw new Error(error || "Couldn't load users.");
-        setIsAdmin(true);
-        setUsers(data.users);
-      } catch (err) {
-        setListError(err instanceof Error ? err.message : "Something went wrong.");
-      } finally {
-        setFetching(false);
-        setCheckingPassword(false);
-      }
-    },
-    [user, getToken]
-  );
-
-  const submitPassword = useCallback(() => {
-    if (!adminPassword.trim() || checkingPassword) return;
-    setCheckingPassword(true);
-    setPasswordError("");
-    setPasswordEntered(adminPassword);
-    fetchUsers(query, adminPassword);
-  }, [adminPassword, checkingPassword, fetchUsers, query]);
-
-  const runSearch = useCallback(() => {
-    if (!isAdmin) return;
-    fetchUsers(query, passwordEntered);
-  }, [isAdmin, fetchUsers, query, passwordEntered]);
-
-  const performAction = useCallback(
-    async (
-      uid: string,
-      action: "ban" | "suspend" | "unban" | "set-plan" | "reset-usage" | "revoke-sessions",
-      extra?: { reason?: string; until?: string; plan?: string; expiresAt?: string | null }
-    ) => {
-      setActionTarget(uid);
-      try {
-        const token = await getToken();
-        const { ok, error } = await fetchJson(`/api/admin/users/${encodeURIComponent(uid)}`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            "x-admin-password": passwordEntered,
-          },
-          body: JSON.stringify({ action, ...extra }),
-        });
-        if (!ok) throw new Error(error || "Action failed.");
-        setPendingAction(null);
-        setReasonDraft("");
-        setUntilDraft("");
-        fetchUsers(query, passwordEntered);
-      } catch (err) {
-        alert(err instanceof Error ? err.message : "Action failed.");
-      } finally {
-        setActionTarget(null);
-      }
-    },
-    [getToken, passwordEntered, fetchUsers, query]
-  );
-
-  if (loading || !user) {
-    return (
-      <main className="min-h-screen flex items-center justify-center">
-        <Loader2 size={22} className="animate-spin text-text-secondary" />
-      </main>
-    );
-  }
-
-  if (denyReason) {
-    return (
-      <main className="min-h-screen flex items-center justify-center px-4">
-        <div className="glass rounded-card p-6 max-w-sm text-center">
-          <p className="text-sm font-semibold mb-2 text-rose">Admin access denied</p>
-          <p className="text-xs text-text-secondary mb-4">{denyReason}</p>
-          <p className="text-xs text-text-secondary/60">Redirecting to your account in a few seconds…</p>
-        </div>
-      </main>
-    );
-  }
-
-  if (!isAdmin) {
-    return (
-      <>
-        <Header />
-        <main className="min-h-screen flex items-center justify-center px-4">
-          <div className="glass rounded-card p-6 w-full max-w-sm">
-            <span className="text-sm font-semibold mb-3 block">Admin password required</span>
-            <PasswordInput
-              value={adminPassword}
-              onChange={(e) => setAdminPassword(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && submitPassword()}
-              placeholder="Password"
-              autoFocus
-              className="w-full rounded-card bg-[rgb(var(--color-text-primary)/0.045)] border border-border px-3 py-2 text-sm mb-3 focus:outline-none focus:border-primary/50"
-              disabled={checkingPassword}
-            />
-            {passwordError && <p className="text-xs text-rose mb-3">{passwordError}</p>}
-            <button
-              onClick={submitPassword}
-              disabled={checkingPassword || !adminPassword.trim()}
-              className="w-full py-2 rounded-card bg-primary text-white text-sm font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
-            >
-              {checkingPassword ? <Loader2 size={14} className="animate-spin" /> : "Continue"}
-            </button>
-          </div>
-        </main>
-        <Footer />
-      </>
-    );
-  }
-
   return (
-    <>
-      <Header />
-      <main className="min-h-screen pt-28 pb-20 px-4 max-w-3xl mx-auto">
-        <Link href="/account" className="inline-flex items-center gap-2 text-sm text-text-secondary hover:text-text-primary mb-6">
-          <ArrowLeft size={16} /> Back to account
-        </Link>
-
-        <h1 className="font-display font-bold text-2xl mb-1 flex items-center gap-2">
-          <ShieldCheck size={20} className="text-primary" /> User Management
-        </h1>
-        <p className="text-sm text-text-secondary mb-6">Search by email or UID, then ban, suspend, or unban.</p>
-
-        <div className="flex gap-2 mb-6">
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && runSearch()}
-            placeholder="Search email or UID"
-            className="flex-1 rounded-card bg-[rgb(var(--color-text-primary)/0.045)] border border-border px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
-          />
-          <button onClick={runSearch} className="px-4 py-2 rounded-card glass hover:border-[rgb(var(--color-text-primary)/0.2)] flex items-center gap-2 text-sm">
-            <Search size={14} /> Search
-          </button>
-        </div>
-
-        {fetching && (
-          <div className="flex items-center gap-2 text-sm text-text-secondary">
-            <Loader2 size={14} className="animate-spin" /> Loading users…
-          </div>
-        )}
-        {listError && !fetching && <p className="text-sm text-rose">{listError}</p>}
-        {!fetching && users && users.length === 0 && <p className="text-sm text-text-secondary">No matching users.</p>}
-
-        {!fetching && users && users.length > 0 && (
-          <div className="space-y-3">
-            {users.map((u) => (
-              <div key={u.uid} className="glass rounded-card p-4">
-                <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
-                  <div>
-                    <p className="text-sm font-semibold">{u.email || u.uid}</p>
-                    <p className="text-xs text-text-secondary font-mono">{u.uid}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {u.moderation.status === "banned" && (
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-rose/20 text-rose">Banned</span>
-                    )}
-                    {u.moderation.status === "suspended" && (
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400">
-                        Suspended until {u.moderation.until ? new Date(u.moderation.until).toLocaleDateString() : "—"}
-                      </span>
-                    )}
-                    {u.moderation.status === "active" && (
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-emerald/20 text-emerald">Active</span>
-                    )}
-                    <span className="text-xs text-text-secondary">{u.plan} plan</span>
-                  </div>
-                </div>
-                {u.moderation.reason && u.moderation.status !== "active" && (
-                  <p className="text-xs text-text-secondary mb-2">Reason: {u.moderation.reason}</p>
-                )}
-
-                {pendingAction?.uid === u.uid ? (
-                  <div className="mt-2 space-y-2 border-t border-border pt-3">
-                    {pendingAction.type === "set-plan" ? (
-                      <>
-                        <div className="flex gap-2">
-                          <select
-                            value={planDraft}
-                            onChange={(e) => setPlanDraft(e.target.value as any)}
-                            className="flex-1 rounded-card bg-[rgb(var(--color-text-primary)/0.045)] border border-border px-3 py-2 text-xs focus:outline-none focus:border-primary/50"
-                          >
-                            <option value="free">Free</option>
-                            <option value="standard">Standard</option>
-                            <option value="pro">Pro</option>
-                          </select>
-                          {planDraft !== "free" && (
-                            <input
-                              type="number"
-                              min={0}
-                              value={planDaysDraft}
-                              onChange={(e) => setPlanDaysDraft(Number(e.target.value))}
-                              placeholder="Days (0 = never expires)"
-                              className="w-40 rounded-card bg-[rgb(var(--color-text-primary)/0.045)] border border-border px-3 py-2 text-xs focus:outline-none focus:border-primary/50"
-                            />
-                          )}
-                        </div>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() =>
-                              performAction(u.uid, "set-plan", {
-                                plan: planDraft,
-                                expiresAt:
-                                  planDraft !== "free" && planDaysDraft > 0
-                                    ? new Date(Date.now() + planDaysDraft * 86400000).toISOString()
-                                    : null,
-                              })
-                            }
-                            disabled={actionTarget === u.uid}
-                            className="px-3 py-1.5 rounded-card bg-primary text-white text-xs font-semibold disabled:opacity-50"
-                          >
-                            {actionTarget === u.uid ? <Loader2 size={12} className="animate-spin" /> : "Apply"}
-                          </button>
-                          <button onClick={() => setPendingAction(null)} className="px-3 py-1.5 rounded-card glass text-xs">
-                            Cancel
-                          </button>
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <input
-                          type="text"
-                          value={reasonDraft}
-                          onChange={(e) => setReasonDraft(e.target.value)}
-                          placeholder="Reason (shown to the user)"
-                          className="w-full rounded-card bg-[rgb(var(--color-text-primary)/0.045)] border border-border px-3 py-2 text-xs focus:outline-none focus:border-primary/50"
-                        />
-                        {pendingAction.type === "suspend" && (
-                          <input
-                            type="date"
-                            value={untilDraft}
-                            onChange={(e) => setUntilDraft(e.target.value)}
-                            className="w-full rounded-card bg-[rgb(var(--color-text-primary)/0.045)] border border-border px-3 py-2 text-xs focus:outline-none focus:border-primary/50"
-                          />
-                        )}
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() =>
-                              performAction(u.uid, pendingAction.type, {
-                                reason: reasonDraft,
-                                until: pendingAction.type === "suspend" ? new Date(untilDraft).toISOString() : undefined,
-                              })
-                            }
-                            disabled={actionTarget === u.uid || (pendingAction.type === "suspend" && !untilDraft)}
-                            className="px-3 py-1.5 rounded-card bg-rose text-white text-xs font-semibold disabled:opacity-50"
-                          >
-                            {actionTarget === u.uid ? <Loader2 size={12} className="animate-spin" /> : "Confirm"}
-                          </button>
-                          <button onClick={() => setPendingAction(null)} className="px-3 py-1.5 rounded-card glass text-xs">
-                            Cancel
-                          </button>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                ) : (
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {u.moderation.status !== "banned" && (
-                      <button
-                        onClick={() => setPendingAction({ uid: u.uid, type: "ban" })}
-                        className="px-3 py-1.5 rounded-card glass hover:border-rose/40 text-xs flex items-center gap-1.5 text-rose"
-                      >
-                        <Ban size={12} /> Ban
-                      </button>
-                    )}
-                    {u.moderation.status === "active" && (
-                      <button
-                        onClick={() => setPendingAction({ uid: u.uid, type: "suspend" })}
-                        className="px-3 py-1.5 rounded-card glass hover:border-amber-400/40 text-xs flex items-center gap-1.5 text-amber-400"
-                      >
-                        <Clock size={12} /> Suspend
-                      </button>
-                    )}
-                    {u.moderation.status !== "active" && (
-                      <button
-                        onClick={() => performAction(u.uid, "unban")}
-                        disabled={actionTarget === u.uid}
-                        className="px-3 py-1.5 rounded-card glass hover:border-emerald/40 text-xs flex items-center gap-1.5 text-emerald disabled:opacity-50"
-                      >
-                        {actionTarget === u.uid ? <Loader2 size={12} className="animate-spin" /> : <ShieldCheck size={12} />} Unban
-                      </button>
-                    )}
-                    <button
-                      onClick={() => {
-                        setPlanDraft((u.plan as any) || "free");
-                        setPlanDaysDraft(30);
-                        setPendingAction({ uid: u.uid, type: "set-plan" });
-                      }}
-                      className="px-3 py-1.5 rounded-card glass hover:border-primary/40 text-xs flex items-center gap-1.5 text-primary"
-                    >
-                      <Tag size={12} /> Change plan
-                    </button>
-                    <button
-                      onClick={() => performAction(u.uid, "reset-usage")}
-                      disabled={actionTarget === u.uid}
-                      className="px-3 py-1.5 rounded-card glass hover:border-white/30 text-xs flex items-center gap-1.5 disabled:opacity-50"
-                    >
-                      <RotateCcw size={12} /> Reset usage
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (!confirm("Force sign-out on all devices for this user?")) return;
-                        performAction(u.uid, "revoke-sessions");
-                      }}
-                      disabled={actionTarget === u.uid}
-                      className="px-3 py-1.5 rounded-card glass hover:border-white/30 text-xs flex items-center gap-1.5 disabled:opacity-50"
-                    >
-                      <LogOut size={12} /> Revoke sessions
-                    </button>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </main>
-      <Footer />
-    </>
+    <AdminShell title="User management" subtitle="View, verify, block and manage users, with custom quotas and rate limits. Handles any number of users.">
+      <UsersBody />
+    </AdminShell>
   );
 }

@@ -540,30 +540,57 @@ Summary:
 | `AUDITYXE_KILL_SWITCH` / `*_MESSAGE` | ➖ | Emergency maintenance mode without redeploying code |
 | `AUDITYXE_HOTFIX_MESSAGE` | ➖ | Zero-deploy dismissible banner (e.g. "Audits are running slow — we're on it") — served via `/api/announcement`, overrides the DB-driven announcement while set |
 
-## Custom Firebase email-action page (password reset, verify email)
+## Admin panel
 
-Audityxe handles Firebase Auth email links on its own domain and design instead of the default
-`<project>.firebaseapp.com/__/auth/action` page. The handler lives at
-[`app/auth/action/page.tsx`](./app/auth/action/page.tsx) and supports `resetPassword`,
-`verifyEmail`, `recoverEmail`, `verifyAndChangeEmail` and `revertSecondFactorAddition`. The password-reset form enforces the
-same password policy as sign-up (`lib/password-policy.ts`), which also closes the gap where
-Firebase's hosted reset page accepted any password.
+All admin pages share one shell (`components/admin/AdminShell.tsx`: verified `ADMIN_EMAILS` session +
+the admin password) and every list is **cursor-paginated** (`lib/admin-paginate.ts`) — a page reads at
+most 51 documents however large the collection is, so it works at any scale. If a filtered query needs a
+Firestore composite index that isn't deployed yet, the list still works (it falls back to a
+plain order and says so); deploy `firestore.indexes.json` for the fast path.
 
-To turn it on, in the Firebase Console go to **Authentication → Templates**, open any template
-(password reset, email verification, email change), click **Customize action URL**, and set:
+| Page | What you can do |
+| --- | --- |
+| `/admin/users` | Search by email / name / UID, filter by plan and status, **verify** an email, change plan, **block / suspend / unblock**, reset usage, sign out everywhere, and set a **custom daily quota and per-minute rate limit** per user (overrides the plan, takes effect within 30 s; users with a custom quota skip the free device-trial cap). |
+| `/admin/payments` | Transactions with a 30-day summary, a **failed / expired / partial** queue, **refunds** (records the refund and can take back the access it bought — the money itself is returned from the NOWPayments dashboard, there is no crypto-refund API), manual **credit** of a payment that really succeeded, notes, and a configurable **commission / fee** shown in the net figure. The IPN now records failed/expired/partially-paid/refunded notifications (it used to drop them) without ever crediting them. |
+| `/admin/content` | **Prices** (checkout and the pricing page use the new price immediately; recurring NOWPayments subscription plans keep the price they were created with), plain-text site notes (pricing page, footer), showcase **categories**, and showcase **listings** (hide, feature, categorise, delete). Banners stay on `/admin/announcement`. |
+| `/admin/retention` | Per-collection **data-retention limits** that the Cloudflare Worker enforces (below). |
 
-```
-https://audityxe.xyz/__/auth/action
-```
+### Data retention
 
-Email templates, sender-domain/spam setup and the action-URL troubleshooting steps are in
-[`firebase/email-templates/README.md`](./firebase/email-templates/README.md).
+Retention policies live in Firestore (`config/retention`) and are edited at `/admin/retention`. The
+Cloudflare Worker (`cloudflare-worker/`) reads them on every run, deletes what is past its limit, and
+writes the outcome to `config/retention_status`, which the page shows. The policy registry
+(`lib/retention-core.ts`) is shared by the app and the Worker, so they cannot disagree. `users`,
+`config`, redeem codes, the showcase and the global counters are protected and can never be deleted by
+retention; payment records are opt-in. Set `RETENTION_WORKER_URL` and `CLEANUP_SHARED_SECRET` in Vercel to
+let **Run cleanup now** trigger the Worker directly (otherwise the same cleanup runs inside the app).
+See `cloudflare-worker/README.md` for deploying the Worker.
 
-Firebase then sends links like
-`https://audityxe.xyz/__/auth/action?mode=resetPassword&oobCode=…&apiKey=…&lang=en`. The page lives at `/auth/action` and is also served at Firebase's own `/__/auth/action` path (a rewrite in `next.config.js`), so either works. The domain must
-also be listed under **Authentication → Settings → Authorized domains**. Links are single-use and
-expire, and a `continueUrl` is only followed
-when it points back at this site.
+Tests (no emulator needed — they run against an in-memory Firestore):
+`npx tsx scripts/test-retention.ts`, `test-admin-paginate.ts`, `test-admin-users.ts`, `test-user-limits.ts`,
+`test-payments.ts`, `test-site-config.ts`, `test-worker-retention.ts`.
+
+## Email authentication & BIMI logo
+
+SPF, DKIM, DMARC and BIMI setup for the Firebase emails (and why Gmail won't show the logo without a
+VMC/CMC certificate) is in [`email-auth/README.md`](./email-auth/README.md). The BIMI-compliant logo
+is served at `/audityxelogo.svg` (source art: `audityxelogo.svg`). Check live DNS with
+`node scripts/check-email-dns.mjs`.
+
+## Firebase email action links
+
+This Firebase project **refuses any change to its email templates and action URL**: saving a custom
+action URL (or editing a template) fails with `EMAIL_TEMPLATE_UPDATE_NOT_ALLOWED`. It is a
+project-level lock on Firebase's side, so there is nothing to configure in the console and the
+custom-URL/template setup that used to be documented here has been removed. Emails keep Firebase's
+built-in text.
+
+The handler page at [`app/auth/action/page.tsx`](./app/auth/action/page.tsx) is still shipped, and
+also answers on Firebase's own `/__/auth/action` path (a rewrite in `next.config.js`), as a safety
+net: if Firebase ever links to `https://audityxe.xyz/__/auth/action?…` (for example once the custom
+sender domain is applied), password reset, email verification and email-change links work on-site
+and the reset form enforces the same password policy as sign-up. Check which domain your Firebase
+emails actually link to by opening one of them and reading the link.
 
 ## PageSpeed Insights (Lighthouse) setup
 

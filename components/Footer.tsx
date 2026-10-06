@@ -6,6 +6,7 @@ import Logo from "./Logo";
 import HoverRevealButton from "./HoverRevealButton";
 import { Heart, ChevronDown, Youtube, Link2 } from "lucide-react";
 import { SEO_DEEP_LINKS } from "@/lib/seo-nav";
+import SiteNote from "@/components/SiteNote";
 
 // The real, minimal ORCID mark (a green circle with a white "iD"
 // wordmark) — lucide-react has no ORCID icon, and a generic badge/id
@@ -309,6 +310,8 @@ export default function Footer() {
             ))}
           </ul>
         </nav>
+
+        <SiteNote id="footerNote" className="mt-4 text-xs text-text-secondary text-center" />
 
         <p className="mt-4 text-[9px] font-mono text-text-secondary/40 text-center">
           Open-source work of{" "}

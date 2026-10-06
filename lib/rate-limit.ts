@@ -3,6 +3,7 @@ import { DEFAULT_PLAN, PlanId, planLimit } from "./plans";
 import { DocumentData, FieldValue, Timestamp, Transaction } from "firebase-admin/firestore";
 import { recordDailyEvent, incrementCounter } from "./counters";
 import { bloomAddTokens } from "./bloom-filter";
+import { normalizeLimits } from "./user-limits";
 
 function todayKey(): string {
   return new Date().toISOString().slice(0, 10); // YYYY-MM-DD (UTC)
@@ -63,7 +64,7 @@ export async function ensureUserDoc(identity: DecodedIdentity, displayName?: str
  * in Firestore when an admin approves a 30 or 365-day access request
  * (see README: "Approving a plan upgrade").
  */
-function effectivePlan(data: DocumentData | undefined): { plan: PlanId; expiresAt: Date | null; expired: boolean } {
+export function effectivePlan(data: DocumentData | undefined): { plan: PlanId; expiresAt: Date | null; expired: boolean } {
   if (!data) return { plan: DEFAULT_PLAN, expiresAt: null, expired: false };
 
   const rawPlan = data.plan as PlanId | undefined;
@@ -101,8 +102,7 @@ export interface UsageResult {
  * if allowed, increments the counter. Uses a Firestore transaction so
  * concurrent requests from the same account can't race past the limit.
  */
-export async function checkAndIncrementUsage(uid: string): Promise<UsageResult> {
-  const db = adminDb();
+export async function checkAndIncrementUsage(uid: string, db: ReturnType<typeof adminDb> = adminDb()): Promise<UsageResult> {
   const userRef = db.collection("users").doc(uid);
   const usageRef = db.collection("usage").doc(uid);
   const today = todayKey();
@@ -111,7 +111,8 @@ export async function checkAndIncrementUsage(uid: string): Promise<UsageResult> 
     const [userSnap, usageSnap] = await Promise.all([tx.get(userRef), tx.get(usageRef)]);
 
     const { plan, expiresAt, expired } = effectivePlan(userSnap.data());
-    const limit = planLimit(plan);
+    // An admin-set custom daily quota (admin panel → Users) replaces the plan's.
+    const limit = normalizeLimits(userSnap.data()?.limits).dailyAudits ?? planLimit(plan);
 
     let used = 0;
     if (usageSnap.exists) {
@@ -149,15 +150,14 @@ export async function checkAndIncrementUsage(uid: string): Promise<UsageResult> 
 }
 
 /** Read-only usage lookup for the account page — does not increment. */
-export async function getUsageSnapshot(uid: string): Promise<UsageResult> {
-  const db = adminDb();
+export async function getUsageSnapshot(uid: string, db: ReturnType<typeof adminDb> = adminDb()): Promise<UsageResult> {
   const [userSnap, usageSnap] = await Promise.all([
     db.collection("users").doc(uid).get(),
     db.collection("usage").doc(uid).get(),
   ]);
 
   const { plan, expiresAt, expired } = effectivePlan(userSnap.data());
-  const limit = planLimit(plan);
+  const limit = normalizeLimits(userSnap.data()?.limits).dailyAudits ?? planLimit(plan);
   const today = todayKey();
 
   let used = 0;

@@ -40,6 +40,7 @@ import {
   upsertGraph,
 } from "./store";
 import { RiskInput, RiskResult, computeRisk, limitMultiplier } from "./risk";
+import { getUserLimits } from "../user-limits";
 
 export type AbuseRoute = "audit" | "bulk" | "redeem" | "payment" | "register";
 
@@ -305,7 +306,14 @@ export async function enforceAbuseControls(req: NextRequest, opts: GateOptions):
     const checks: { key: string; limit: number; win: number }[] = [];
     for (const [l, w] of cfg.ip) checks.push({ key: `${opts.route}:ip:${ipHash}:${w}`, limit: Math.max(1, Math.floor(l * mult)), win: w });
     if (deviceId) for (const [l, w] of cfg.device) checks.push({ key: `${opts.route}:dev:${deviceId}:${w}`, limit: Math.max(1, Math.floor(l * mult)), win: w });
-    if (uid) for (const [l, w] of cfg.uid) checks.push({ key: `${opts.route}:uid:${uid}:${w}`, limit: Math.max(1, Math.floor(l * mult)), win: w });
+    if (uid) {
+      // An admin-set per-minute limit (admin panel → Users) replaces the default for audit/bulk.
+      const custom = opts.route === "audit" || opts.route === "bulk" ? (await getUserLimits(uid)).perMinute : null;
+      for (const [l, w] of cfg.uid) {
+        const limit = w === 60 && custom !== null ? custom : Math.max(1, Math.floor(l * mult));
+        checks.push({ key: `${opts.route}:uid:${uid}:${w}`, limit, win: w });
+      }
+    }
 
     const results = await Promise.all(checks.map((c) => rlConsume(c.key, c.limit, c.win)));
     const hit = results.find((r) => !r.allowed);

@@ -19,6 +19,9 @@ import { assertSafeUrl } from "./url-safety";
 export interface ShowcaseEntry {
   host: string;
   submittedAt: string;
+  /** Set by an admin (Content → Listings). */
+  featured?: boolean;
+  category?: string;
 }
 
 // Matches the current domain AND the previous one: badges already embedded
@@ -86,12 +89,17 @@ export async function verifyAndSubmitToShowcase(rawHost: string): Promise<Showca
 }
 
 export async function listShowcaseEntries(): Promise<ShowcaseEntry[]> {
-  const snap = await adminDb().collection("showcase_submissions").orderBy("submittedAt", "desc").limit(60).get();
-  return snap.docs.map((d: QueryDocumentSnapshot) => {
-    const data = d.data();
-    const submittedAt = data.submittedAt instanceof Timestamp ? data.submittedAt.toDate().toISOString() : data.submittedAt;
-    return { host: d.id, submittedAt };
-  });
+  // Read a little more than we show so entries an admin hid don't leave a short page.
+  const snap = await adminDb().collection("showcase_submissions").orderBy("submittedAt", "desc").limit(120).get();
+  const rows = snap.docs
+    .filter((d: QueryDocumentSnapshot) => d.data().hidden !== true)
+    .map((d: QueryDocumentSnapshot) => {
+      const data = d.data();
+      const submittedAt = data.submittedAt instanceof Timestamp ? data.submittedAt.toDate().toISOString() : data.submittedAt;
+      return { host: d.id, submittedAt, featured: data.featured === true, category: typeof data.category === "string" && data.category ? data.category : undefined };
+    });
+  // Featured first (each group stays newest-first), capped at the page size.
+  return [...rows.filter((r) => r.featured), ...rows.filter((r) => !r.featured)].slice(0, 60);
 }
 
 export async function removeShowcaseEntry(host: string): Promise<void> {

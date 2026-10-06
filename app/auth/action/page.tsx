@@ -21,8 +21,11 @@ import { validatePassword } from "@/lib/password-policy";
 /**
  * Custom Firebase Auth action handler.
  *
- * Set it in Firebase Console → Authentication → Templates → (any template)
- * → Customize action URL → https://audityxe.xyz/__/auth/action
+ * NOTE: this project's Firebase email settings are locked (the console's
+ * "Customize action URL" fails with EMAIL_TEMPLATE_UPDATE_NOT_ALLOWED), so
+ * this page is a safety net, not a configured handler: it answers if a link
+ * ever points at https://audityxe.xyz/__/auth/action (e.g. after the custom
+ * sender domain is applied).
  *
  * Firebase appends ?mode=…&oobCode=…&apiKey=…&continueUrl=…&lang=… and this
  * page does what the default <project>.firebaseapp.com/__/auth/action page

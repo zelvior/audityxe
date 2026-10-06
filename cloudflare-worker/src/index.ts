@@ -1,6 +1,9 @@
 import { getGoogleAccessToken, ServiceAccount } from "./google-auth";
-import { drainOlderThan } from "./firestore";
+import { drainOlderThanDetailed, getDocumentData, setDocumentData } from "./firestore";
 import { cleanupUnverifiedUsers } from "./identity-toolkit";
+// Shared with the Next.js app (admin API + fallback runner) by relative path, so
+// the policy registry, validation and cutoff maths are literally the same code.
+import { resolveRetention, cutoffFor, type StoredRetention, type RetentionRunSummary } from "../../lib/retention-core";
 
 export interface Env {
   FIREBASE_PROJECT_ID: string;
@@ -14,58 +17,61 @@ export interface Env {
   CLEANUP_SHARED_SECRET: string;
 }
 
-const AUDIT_JOB_TTL_DAYS = 1; // matches lib/audit-jobs.ts's JOB_TTL_MS
-const PUSH_SUB_TTL_DAYS = 2; // safety-net only — lib/push.ts already deletes each subscription immediately after sending (or attempting to send) its one-shot notification; this just catches any that were orphaned by a job that never reached that code path
-const UNVERIFIED_USER_STALE_DAYS = 7; // matches the old Vercel cron's STALE_AFTER_DAYS
+const MAX_PAGES_PER_POLICY = 20; // 20 x 500 = 10,000 docs per policy per run; a bigger backlog continues next run
 
-function isoDaysAgo(days: number): string {
-  return new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
-}
-
-async function runCleanup(env: Env) {
-  const sa: ServiceAccount = {
-    projectId: env.FIREBASE_PROJECT_ID,
-    clientEmail: env.GOOGLE_CLIENT_EMAIL,
-    privateKey: env.GOOGLE_PRIVATE_KEY,
-  };
-  const accessToken = await getGoogleAccessToken(sa);
+/**
+ * Policy-driven cleanup. WHAT gets deleted and HOW LONG data is kept is no
+ * longer hard-coded here: it comes from the `config/retention` document the
+ * admin panel edits (defaults from the shared registry apply when a policy
+ * hasn't been customised). Each policy is independent — one failing never
+ * stops the rest — and the outcome is written to `config/retention_status`
+ * so the admin panel can show the last run.
+ */
+export async function runCleanup(env: Env, deps: { accessToken?: string } = {}): Promise<RetentionRunSummary> {
   const projectId = env.FIREBASE_PROJECT_ID;
+  const accessToken =
+    deps.accessToken ||
+    (await getGoogleAccessToken({ projectId, clientEmail: env.GOOGLE_CLIENT_EMAIL, privateKey: env.GOOGLE_PRIVATE_KEY } satisfies ServiceAccount));
 
-  // Each of the three tasks is independent — one failing (e.g. a
-  // transient Firestore/Identity Toolkit hiccup) must not prevent the
-  // other two from running, and the response should say exactly which
-  // task(s) failed rather than a single opaque 500 for the whole
-  // invocation.
-  const results: Record<string, { ok: boolean; detail: unknown }> = {};
+  let stored: StoredRetention | null = null;
+  try {
+    stored = (await getDocumentData(projectId, accessToken, "config/retention")) as StoredRetention | null;
+  } catch (err) {
+    // Can't read the admin's settings: fall back to the registry defaults rather than skipping cleanup.
+    console.log("retention config unreadable, using defaults:", err instanceof Error ? err.message : err);
+  }
+  const cfg = resolveRetention(stored);
+  const results: RetentionRunSummary["results"] = {};
 
   await Promise.allSettled([
-    (async () => {
+    ...cfg.policies.map(async (p) => {
+      if (!p.enabled) { results[p.id] = { ok: true, skipped: "disabled" }; return; }
       try {
-        const deleted = await drainOlderThan(projectId, accessToken, "auditJobs", "createdAt", isoDaysAgo(AUDIT_JOB_TTL_DAYS));
-        results.auditJobs = { ok: true, detail: { deleted } };
+        const cutoff = cutoffFor(p);
+        const r = await drainOlderThanDetailed(projectId, accessToken, p.collection, p.field, cutoff, 500, MAX_PAGES_PER_POLICY, p.fieldType === "timestamp" ? "timestamp" : "string");
+        results[p.id] = { ok: true, deleted: r.deleted, ...(r.capped ? { skipped: "more remain — will continue on the next run" } : {}) };
       } catch (err) {
-        results.auditJobs = { ok: false, detail: err instanceof Error ? err.message : String(err) };
+        results[p.id] = { ok: false, error: (err instanceof Error ? err.message : String(err)).slice(0, 300) };
       }
-    })(),
+    }),
     (async () => {
+      if (!cfg.unverifiedUsers.enabled) { results.unverifiedUsers = { ok: true, skipped: "disabled" }; return; }
       try {
-        const deleted = await drainOlderThan(projectId, accessToken, "auditJobPushSubs", "savedAt", isoDaysAgo(PUSH_SUB_TTL_DAYS));
-        results.auditJobPushSubs = { ok: true, detail: { deleted } };
+        const stats = await cleanupUnverifiedUsers(projectId, accessToken, cfg.unverifiedUsers.ttlDays);
+        results.unverifiedUsers = { ok: true, deleted: stats.deleted };
       } catch (err) {
-        results.auditJobPushSubs = { ok: false, detail: err instanceof Error ? err.message : String(err) };
-      }
-    })(),
-    (async () => {
-      try {
-        const stats = await cleanupUnverifiedUsers(projectId, accessToken, UNVERIFIED_USER_STALE_DAYS);
-        results.unverifiedUsers = { ok: true, detail: stats };
-      } catch (err) {
-        results.unverifiedUsers = { ok: false, detail: err instanceof Error ? err.message : String(err) };
+        results.unverifiedUsers = { ok: false, error: (err instanceof Error ? err.message : String(err)).slice(0, 300) };
       }
     })(),
   ]);
 
-  return { ranAt: new Date().toISOString(), results };
+  const summary: RetentionRunSummary = { ranAt: new Date().toISOString(), source: "worker", results };
+  try {
+    await setDocumentData(projectId, accessToken, "config/retention_status", summary as unknown as Record<string, unknown>);
+  } catch (err) {
+    console.log("could not persist retention status:", err instanceof Error ? err.message : err);
+  }
+  return summary;
 }
 
 export default {

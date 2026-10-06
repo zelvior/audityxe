@@ -8,6 +8,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useAuth } from "@/context/AuthContext";
 import { PLANS, PlanId } from "@/lib/plans";
+import SiteNote from "@/components/SiteNote";
 import { useCurrency, formatPrice } from "@/lib/currency";
 import { fetchJson } from "@/lib/fetch-json";
 import { breadcrumbJsonLd } from "@/lib/breadcrumb";
@@ -46,6 +47,15 @@ function buildBuyMailto(params: {
 }
 
 export default function PricingPage() {
+  // Prices an admin has changed (Admin → Content → Prices) override the defaults in lib/plans.ts.
+  const [livePrices, setLivePrices] = useState<{ standard?: number; pro?: number }>({});
+  useEffect(() => {
+    fetch("/api/pricing")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((p) => p && setLivePrices(p))
+      .catch(() => {});
+  }, []);
+  const priceOf = (id: PlanId) => (id === "standard" ? livePrices.standard : id === "pro" ? livePrices.pro : undefined) ?? PLANS[id].priceUsd;
   const { user, getToken } = useAuth();
   const router = useRouter();
   const currency = useCurrency();
@@ -175,7 +185,7 @@ export default function PricingPage() {
     }
     // If we got here, user is guaranteed non-null
     const plan = PLANS[planId];
-    const priceLabel = formatPrice(plan.priceUsd, currency);
+    const priceLabel = formatPrice(priceOf(planId), currency);
 
     const href = buildBuyMailto({
       planName: plan.name,
@@ -233,9 +243,11 @@ export default function PricingPage() {
             )}
           </div>
 
+          <SiteNote id="pricingNote" className="text-center text-sm text-text-secondary mb-6 max-w-2xl mx-auto" />
+
           <div className="grid md:grid-cols-3 gap-5 sm:gap-6">
             {Object.values(PLANS).map((plan) => {
-              const usdPrice = plan.priceUsd;
+              const usdPrice = priceOf(plan.id as PlanId);
               const isFree = plan.id === "free";
               const isCurrentPlan = status?.plan === plan.id;
 
